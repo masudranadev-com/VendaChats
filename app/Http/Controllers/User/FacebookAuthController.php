@@ -1,0 +1,327 @@
+<?php
+
+namespace App\Http\Controllers\User;
+
+use App\Http\Controllers\Controller;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
+use Illuminate\View\View;
+
+class FacebookAuthController extends Controller
+{
+    public function oauthPage(Request $request): View
+    {
+        return view('user.facebook.oauth', [
+            'missingConfig' => $this->missingConfig(),
+            'redirectUri' => $this->facebookConfig('redirect_uri'),
+            'graphVersion' => $this->facebookConfig('graph_version', 'v22.0'),
+            'connectedUser' => $request->session()->get('facebook.user'),
+            'connectedPages' => $request->session()->get('facebook.pages', []),
+        ]);
+    }
+
+    public function redirectToFacebook(Request $request): RedirectResponse
+    {
+        $missingConfig = $this->missingConfig();
+        if ($missingConfig !== []) {
+            return redirect()
+                ->route('facebook.oauth')
+                ->withErrors(['facebook' => 'Missing configuration: '.implode(', ', $missingConfig)]);
+        }
+
+        $state = Str::random(40);
+        $request->session()->put('facebook.oauth_state', $state);
+
+        $query = http_build_query([
+            'client_id' => $this->facebookConfig('app_id'),
+            'redirect_uri' => $this->facebookConfig('redirect_uri'),
+            'scope' => implode(',', $this->facebookConfig('scopes', [])),
+            'response_type' => 'code',
+            'state' => $state,
+        ]);
+
+        $oauthUrl = "https://www.facebook.com/{$this->facebookConfig('graph_version', 'v22.0')}/dialog/oauth?{$query}";
+
+        return redirect()->away($oauthUrl);
+    }
+
+    public function handleFacebookCallback(Request $request): RedirectResponse
+    {
+        if ($request->has('error')) {
+            $message = $request->query('error_message', 'Facebook authorization failed.');
+
+            return redirect()
+                ->route('facebook.oauth')
+                ->withErrors(['facebook' => $message]);
+        }
+
+        $expectedState = $request->session()->pull('facebook.oauth_state');
+        $incomingState = $request->query('state');
+        if (! $expectedState || ! $incomingState || ! hash_equals($expectedState, $incomingState)) {
+            return redirect()
+                ->route('facebook.oauth')
+                ->withErrors(['facebook' => 'Invalid OAuth state. Please try again.']);
+        }
+
+        $code = $request->query('code');
+        if (! $code) {
+            return redirect()
+                ->route('facebook.oauth')
+                ->withErrors(['facebook' => 'OAuth code missing from callback.']);
+        }
+
+        $tokenResponse = Http::acceptJson()->get(
+            $this->graphUrl('oauth/access_token'),
+            [
+                'client_id' => $this->facebookConfig('app_id'),
+                'client_secret' => $this->facebookConfig('app_secret'),
+                'redirect_uri' => $this->facebookConfig('redirect_uri'),
+                'code' => $code,
+            ]
+        );
+
+        if ($tokenResponse->failed()) {
+            return redirect()
+                ->route('facebook.oauth')
+                ->withErrors(['facebook' => $this->graphErrorMessage($tokenResponse)]);
+        }
+
+        $userAccessToken = $tokenResponse->json('access_token');
+        if (! $userAccessToken) {
+            return redirect()
+                ->route('facebook.oauth')
+                ->withErrors(['facebook' => 'Could not read access token from Facebook response.']);
+        }
+
+        $userResponse = Http::acceptJson()->get(
+            $this->graphUrl('me'),
+            [
+                'fields' => 'id,name,email',
+                'access_token' => $userAccessToken,
+            ]
+        );
+
+        if ($userResponse->failed()) {
+            return redirect()
+                ->route('facebook.oauth')
+                ->withErrors(['facebook' => $this->graphErrorMessage($userResponse)]);
+        }
+
+        $pagesResponse = Http::acceptJson()->get(
+            $this->graphUrl('me/accounts'),
+            ['access_token' => $userAccessToken]
+        );
+
+        if ($pagesResponse->failed()) {
+            return redirect()
+                ->route('facebook.oauth')
+                ->withErrors(['facebook' => $this->graphErrorMessage($pagesResponse)]);
+        }
+
+        $request->session()->put('facebook.user_access_token', $userAccessToken);
+        $request->session()->put('facebook.user', $userResponse->json());
+        $request->session()->put('facebook.pages', $pagesResponse->json('data', []));
+
+        return redirect()
+            ->route('facebook.dashboard')
+            ->with('status', 'Facebook account connected successfully.');
+    }
+
+    public function dashboard(Request $request): View
+    {
+        return view('user.facebook.dashboard', [
+            'user' => $request->session()->get('facebook.user'),
+            'pages' => $request->session()->get('facebook.pages', []),
+            'graphVersion' => $this->facebookConfig('graph_version', 'v22.0'),
+            'verifyToken' => $this->facebookConfig('verify_token'),
+            'webhookVerifyUrl' => route('facebook.webhook.verify'),
+            'appId' => $this->facebookConfig('app_id'),
+        ]);
+    }
+
+    public function sendMessage(Request $request): RedirectResponse
+    {
+        $validated = $request->validate([
+            'page_id' => ['required', 'string'],
+            'recipient_psid' => ['required', 'string'],
+            'message_text' => ['required', 'string', 'max:1000'],
+        ]);
+
+        $pageToken = $this->pageToken($request, $validated['page_id']);
+        if (! $pageToken) {
+            return redirect()
+                ->route('facebook.dashboard')
+                ->withErrors(['facebook' => 'Page token not found in session. Connect Facebook again.']);
+        }
+
+        $response = Http::acceptJson()->post(
+            $this->graphUrl('me/messages', ['access_token' => $pageToken]),
+            [
+                'recipient' => ['id' => $validated['recipient_psid']],
+                'message' => ['text' => $validated['message_text']],
+            ]
+        );
+
+        if ($response->failed()) {
+            return redirect()
+                ->route('facebook.dashboard')
+                ->withErrors(['facebook' => $this->graphErrorMessage($response)]);
+        }
+
+        return redirect()
+            ->route('facebook.dashboard')
+            ->with('status', 'Message request sent to Messenger API.')
+            ->with('facebook_api_response', $response->json());
+    }
+
+    public function replyToComment(Request $request): RedirectResponse
+    {
+        $validated = $request->validate([
+            'page_id' => ['required', 'string'],
+            'comment_id' => ['required', 'string'],
+            'comment_reply' => ['required', 'string', 'max:1000'],
+        ]);
+
+        $pageToken = $this->pageToken($request, $validated['page_id']);
+        if (! $pageToken) {
+            return redirect()
+                ->route('facebook.dashboard')
+                ->withErrors(['facebook' => 'Page token not found in session. Connect Facebook again.']);
+        }
+
+        $response = Http::acceptJson()->post(
+            $this->graphUrl($validated['comment_id'].'/comments', ['access_token' => $pageToken]),
+            ['message' => $validated['comment_reply']]
+        );
+
+        if ($response->failed()) {
+            return redirect()
+                ->route('facebook.dashboard')
+                ->withErrors(['facebook' => $this->graphErrorMessage($response)]);
+        }
+
+        return redirect()
+            ->route('facebook.dashboard')
+            ->with('status', 'Comment reply request sent.')
+            ->with('facebook_api_response', $response->json());
+    }
+
+    public function subscribeWebhook(Request $request): RedirectResponse
+    {
+        $validated = $request->validate([
+            'page_id' => ['required', 'string'],
+            'subscribed_fields' => ['required', 'string'],
+        ]);
+
+        $pageToken = $this->pageToken($request, $validated['page_id']);
+        if (! $pageToken) {
+            return redirect()
+                ->route('facebook.dashboard')
+                ->withErrors(['facebook' => 'Page token not found in session. Connect Facebook again.']);
+        }
+
+        $response = Http::acceptJson()->post(
+            $this->graphUrl($validated['page_id'].'/subscribed_apps', ['access_token' => $pageToken]),
+            ['subscribed_fields' => $validated['subscribed_fields']]
+        );
+
+        if ($response->failed()) {
+            return redirect()
+                ->route('facebook.dashboard')
+                ->withErrors(['facebook' => $this->graphErrorMessage($response)]);
+        }
+
+        return redirect()
+            ->route('facebook.dashboard')
+            ->with('status', 'Webhook subscribed for the selected page.')
+            ->with('facebook_api_response', $response->json());
+    }
+
+    public function disconnect(Request $request): RedirectResponse
+    {
+        $request->session()->forget([
+            'facebook.oauth_state',
+            'facebook.user_access_token',
+            'facebook.user',
+            'facebook.pages',
+        ]);
+
+        return redirect()
+            ->route('facebook.oauth')
+            ->with('status', 'Facebook session data cleared.');
+    }
+
+    public function verifyWebhook(Request $request)
+    {
+        $mode = $request->query('hub_mode');
+        $verifyToken = $request->query('hub_verify_token');
+        $challenge = $request->query('hub_challenge');
+
+        if ($mode === 'subscribe' && $verifyToken === $this->facebookConfig('verify_token')) {
+            return response($challenge, 200);
+        }
+
+        return response('Invalid verify token.', 403);
+    }
+
+    public function receiveWebhook(Request $request): JsonResponse
+    {
+        Log::info('Facebook webhook payload', $request->all());
+
+        return response()->json(['status' => 'ok']);
+    }
+
+    private function pageToken(Request $request, string $pageId): ?string
+    {
+        $pages = $request->session()->get('facebook.pages', []);
+        foreach ($pages as $page) {
+            if (($page['id'] ?? null) === $pageId) {
+                return $page['access_token'] ?? null;
+            }
+        }
+
+        return null;
+    }
+
+    private function graphUrl(string $path, array $query = []): string
+    {
+        $base = "https://graph.facebook.com/{$this->facebookConfig('graph_version', 'v22.0')}/".ltrim($path, '/');
+
+        if ($query === []) {
+            return $base;
+        }
+
+        return $base.'?'.http_build_query($query);
+    }
+
+    private function graphErrorMessage($response): string
+    {
+        $errorMessage = $response->json('error.message');
+        if ($errorMessage) {
+            return $errorMessage;
+        }
+
+        return $response->body();
+    }
+
+    private function facebookConfig(string $key, $default = null)
+    {
+        return config("services.facebook.{$key}", $default);
+    }
+
+    private function missingConfig(): array
+    {
+        $required = [
+            'FB_APP_ID' => $this->facebookConfig('app_id'),
+            'FB_APP_SECRET' => $this->facebookConfig('app_secret'),
+            'FB_REDIRECT_URI' => $this->facebookConfig('redirect_uri'),
+            'FB_VERIFY_TOKEN' => $this->facebookConfig('verify_token'),
+        ];
+
+        return array_keys(array_filter($required, static fn ($value) => blank($value)));
+    }
+}

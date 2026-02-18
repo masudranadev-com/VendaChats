@@ -36,5 +36,20 @@ return [
         'page_access_token' => env('META_PAGE_ACCESS_TOKEN', env('META_ACCESS_TOKEN')),
         'graph_api_version' => env('META_GRAPH_API_VERSION', 'v22.0'),
     ],
-
+    'facebook' => [
+        'app_id' => env('FB_APP_ID'),
+        'app_secret' => env('FB_APP_SECRET'),
+        'redirect_uri' => env('FB_REDIRECT_URI', env('APP_URL').'/facebook/auth/callback'),
+        'graph_version' => env('FB_GRAPH_VERSION', 'v22.0'),
+        'verify_token' => env('FB_VERIFY_TOKEN', 'myverifytoken123'),
+        'scopes' => [
+            'public_profile',
+            'email',
+            'pages_show_list',
+            'pages_read_engagement',
+            'pages_manage_engagement',
+            'pages_manage_metadata',
+            'pages_messaging',
+        ],
+    ],
 ];

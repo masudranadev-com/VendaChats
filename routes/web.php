@@ -3,6 +3,7 @@
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
 use App\Http\Controllers\User\AccountController;
+use App\Http\Controllers\User\FacebookAuthController;
 use App\Http\Controllers\User\HomeController;
 use App\Http\Controllers\User\InfoController;
 use App\Http\Controllers\User\PricingController;
@@ -29,8 +30,20 @@ Route::get('/login', [AccountController::class, 'index'])->name('login.index');
 Route::get('/privacy-policy', [InfoController::class, 'privacy'])->name('privacy.index');
 Route::get('/terms-and-conditions', [InfoController::class, 'terms'])->name('terms.index');
 
-// webhook 
+// webhook
 Route::any('/webhook', [HomeController::class, 'webhook'])->name('home.webhook');
+Route::prefix('facebook')->name('facebook.')->group(function () {
+    Route::get('/oauth', [FacebookAuthController::class, 'oauthPage'])->name('oauth');
+    Route::get('/auth/redirect', [FacebookAuthController::class, 'redirectToFacebook'])->name('auth.redirect');
+    Route::get('/auth/callback', [FacebookAuthController::class, 'handleFacebookCallback'])->name('auth.callback');
+    Route::get('/dashboard', [FacebookAuthController::class, 'dashboard'])->name('dashboard');
+    Route::post('/send-message', [FacebookAuthController::class, 'sendMessage'])->name('send-message');
+    Route::post('/reply-comment', [FacebookAuthController::class, 'replyToComment'])->name('reply-comment');
+    Route::post('/subscribe-webhook', [FacebookAuthController::class, 'subscribeWebhook'])->name('subscribe-webhook');
+    Route::post('/disconnect', [FacebookAuthController::class, 'disconnect'])->name('disconnect');
+    Route::get('/webhook', [FacebookAuthController::class, 'verifyWebhook'])->name('webhook.verify');
+    Route::post('/webhook', [FacebookAuthController::class, 'receiveWebhook'])->name('webhook.receive');
+});
 
 // Admin
 Route::redirect('/admin', '/admin/dashboard');
