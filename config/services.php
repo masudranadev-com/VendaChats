@@ -31,4 +31,10 @@ return [
         'region' => env('AWS_DEFAULT_REGION', 'us-east-1'),
     ],
 
+    'meta' => [
+        'verify_token' => env('META_VERIFY_TOKEN'),
+        'page_access_token' => env('META_PAGE_ACCESS_TOKEN', env('META_ACCESS_TOKEN')),
+        'graph_api_version' => env('META_GRAPH_API_VERSION', 'v22.0'),
+    ],
+
 ];

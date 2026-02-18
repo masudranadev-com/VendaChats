@@ -29,6 +29,9 @@ Route::get('/login', [AccountController::class, 'index'])->name('login.index');
 Route::get('/privacy-policy', [InfoController::class, 'privacy'])->name('privacy.index');
 Route::get('/terms-and-conditions', [InfoController::class, 'terms'])->name('terms.index');
 
+// webhook 
+Route::any('/webhook', [HomeController::class, 'webhook'])->name('home.webhook');
+
 // Admin
 Route::redirect('/admin', '/admin/dashboard');
 Route::prefix('admin')->name('admin.')->group(function () {
