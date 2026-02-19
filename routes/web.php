@@ -37,6 +37,8 @@ Route::prefix('facebook')->name('facebook.')->group(function () {
     Route::get('/auth/redirect', [FacebookAuthController::class, 'redirectToFacebook'])->name('auth.redirect');
     Route::get('/auth/callback', [FacebookAuthController::class, 'handleFacebookCallback'])->name('auth.callback');
     Route::get('/dashboard', [FacebookAuthController::class, 'dashboard'])->name('dashboard');
+    Route::get('/posts', [FacebookAuthController::class, 'getPagePosts'])->name('posts');
+    Route::get('/post-comments', [FacebookAuthController::class, 'getPostComments'])->name('post-comments');
     Route::post('/send-message', [FacebookAuthController::class, 'sendMessage'])->name('send-message');
     Route::post('/reply-comment', [FacebookAuthController::class, 'replyToComment'])->name('reply-comment');
     Route::post('/subscribe-webhook', [FacebookAuthController::class, 'subscribeWebhook'])->name('subscribe-webhook');

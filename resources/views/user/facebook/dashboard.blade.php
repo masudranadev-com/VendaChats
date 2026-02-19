@@ -109,6 +109,16 @@
             padding: 2px 6px;
             border-radius: 6px;
         }
+        .helper-text {
+            margin-top: 6px;
+            font-size: 13px;
+            color: #475569;
+        }
+        .mono {
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+            font-size: 12px;
+            word-break: break-all;
+        }
     </style>
 </head>
 <body>
@@ -182,12 +192,12 @@
         </section>
 
         <section class="section">
-            <h2>Reply to Comment</h2>
-            <form method="POST" action="{{ route('facebook.reply-comment') }}">
+            <h2>Reply to Comment (Select Post and Comment)</h2>
+            <form method="POST" action="{{ route('facebook.reply-comment') }}" id="reply-picker-form">
                 @csrf
                 <div>
-                    <label for="comment-page-id">Page ID</label>
-                    <select id="comment-page-id" name="page_id" required>
+                    <label for="reply-page-id">Page ID</label>
+                    <select id="reply-page-id" name="page_id" required>
                         <option value="">Select a page</option>
                         @foreach ($pages as $page)
                             <option value="{{ $page['id'] ?? '' }}">{{ $page['name'] ?? 'Unnamed Page' }} ({{ $page['id'] ?? 'No ID' }})</option>
@@ -195,14 +205,25 @@
                     </select>
                 </div>
                 <div>
-                    <label for="comment-id">Comment ID</label>
-                    <input id="comment-id" type="text" name="comment_id" placeholder="COMMENT_ID" required>
+                    <label for="reply-post-id">Post</label>
+                    <select id="reply-post-id" required disabled>
+                        <option value="">Select a page first</option>
+                    </select>
+                    <div class="helper-text mono" id="selected-post-id"></div>
+                </div>
+                <div>
+                    <label for="reply-comment-id">Comment</label>
+                    <select id="reply-comment-id" name="comment_id" required disabled>
+                        <option value="">Select a post first</option>
+                    </select>
+                    <div class="helper-text mono" id="selected-comment-id"></div>
                 </div>
                 <div>
                     <label for="comment-reply">Reply Message</label>
                     <input id="comment-reply" type="text" name="comment_reply" placeholder="Thanks for your comment!" required>
                 </div>
-                <button type="submit" class="btn btn-primary">Reply Comment</button>
+                <button type="submit" class="btn btn-primary" id="reply-submit-btn" disabled>Reply Comment</button>
+                <div class="helper-text" id="reply-picker-status">Pick page, post, and comment to send a reply.</div>
             </form>
         </section>
 
@@ -241,5 +262,162 @@
             </section>
         @endif
     </main>
+    <script>
+        (() => {
+            const pages = @json($pages);
+            const postsUrl = @json(route('facebook.posts'));
+            const commentsUrl = @json(route('facebook.post-comments'));
+
+            const pageSelect = document.getElementById('reply-page-id');
+            const postSelect = document.getElementById('reply-post-id');
+            const commentSelect = document.getElementById('reply-comment-id');
+            const submitButton = document.getElementById('reply-submit-btn');
+            const statusEl = document.getElementById('reply-picker-status');
+            const selectedPostIdEl = document.getElementById('selected-post-id');
+            const selectedCommentIdEl = document.getElementById('selected-comment-id');
+
+            const byId = new Map((pages || []).map(page => [String(page.id || ''), page]));
+
+            const setStatus = (message, isError = false) => {
+                statusEl.textContent = message;
+                statusEl.style.color = isError ? '#991b1b' : '#475569';
+            };
+
+            const resetPosts = (text = 'Select a page first') => {
+                postSelect.innerHTML = '';
+                const option = document.createElement('option');
+                option.value = '';
+                option.textContent = text;
+                postSelect.appendChild(option);
+                postSelect.disabled = true;
+                selectedPostIdEl.textContent = '';
+            };
+
+            const resetComments = (text = 'Select a post first') => {
+                commentSelect.innerHTML = '';
+                const option = document.createElement('option');
+                option.value = '';
+                option.textContent = text;
+                commentSelect.appendChild(option);
+                commentSelect.disabled = true;
+                submitButton.disabled = true;
+                selectedCommentIdEl.textContent = '';
+            };
+
+            const formatPostLabel = (post) => {
+                const message = (post.message || '').trim().replace(/\s+/g, ' ');
+                const messagePreview = message ? message.slice(0, 80) : 'No text';
+                const createdTime = post.created_time ? new Date(post.created_time).toLocaleString() : 'Unknown time';
+                return `${messagePreview} (${createdTime})`;
+            };
+
+            const formatCommentLabel = (comment) => {
+                const from = comment.from?.name || 'Unknown';
+                const message = (comment.message || '').trim().replace(/\s+/g, ' ');
+                const messagePreview = message ? message.slice(0, 100) : 'No text';
+                return `${from}: ${messagePreview}`;
+            };
+
+            const loadPosts = async (pageId) => {
+                resetPosts('Loading posts...');
+                resetComments();
+                if (!pageId) {
+                    resetPosts();
+                    setStatus('Pick page, post, and comment to send a reply.');
+                    return;
+                }
+
+                try {
+                    const url = `${postsUrl}?page_id=${encodeURIComponent(pageId)}&limit=25`;
+                    const response = await fetch(url, {
+                        headers: { 'Accept': 'application/json' },
+                    });
+                    const payload = await response.json();
+
+                    if (!response.ok) {
+                        throw new Error(payload.message || 'Failed to load posts.');
+                    }
+
+                    const posts = payload.data || [];
+                    if (posts.length === 0) {
+                        resetPosts('No posts found for this page');
+                        setStatus('No posts found for the selected page.', true);
+                        return;
+                    }
+
+                    postSelect.innerHTML = '<option value="">Select a post</option>';
+                    posts.forEach((post) => {
+                        const option = document.createElement('option');
+                        option.value = post.id || '';
+                        option.textContent = formatPostLabel(post);
+                        postSelect.appendChild(option);
+                    });
+                    postSelect.disabled = false;
+                    const pageName = byId.get(String(pageId))?.name || pageId;
+                    setStatus(`Loaded ${posts.length} post(s) from ${pageName}.`);
+                } catch (error) {
+                    resetPosts('Failed to load posts');
+                    setStatus(error.message || 'Failed to load posts.', true);
+                }
+            };
+
+            const loadComments = async (pageId, postId) => {
+                resetComments('Loading comments...');
+                if (!postId) {
+                    resetComments();
+                    submitButton.disabled = true;
+                    return;
+                }
+
+                try {
+                    const url = `${commentsUrl}?page_id=${encodeURIComponent(pageId)}&post_id=${encodeURIComponent(postId)}&limit=100`;
+                    const response = await fetch(url, {
+                        headers: { 'Accept': 'application/json' },
+                    });
+                    const payload = await response.json();
+
+                    if (!response.ok) {
+                        throw new Error(payload.message || 'Failed to load comments.');
+                    }
+
+                    const comments = payload.data || [];
+                    if (comments.length === 0) {
+                        resetComments('No comments found on this post');
+                        setStatus('No comments found on the selected post.', true);
+                        return;
+                    }
+
+                    commentSelect.innerHTML = '<option value="">Select a comment</option>';
+                    comments.forEach((comment) => {
+                        const option = document.createElement('option');
+                        option.value = comment.id || '';
+                        option.textContent = formatCommentLabel(comment);
+                        commentSelect.appendChild(option);
+                    });
+                    commentSelect.disabled = false;
+                    setStatus(`Loaded ${comments.length} comment(s). Choose one and submit reply.`);
+                } catch (error) {
+                    resetComments('Failed to load comments');
+                    setStatus(error.message || 'Failed to load comments.', true);
+                }
+            };
+
+            pageSelect.addEventListener('change', async () => {
+                await loadPosts(pageSelect.value);
+            });
+
+            postSelect.addEventListener('change', async () => {
+                const postId = postSelect.value;
+                selectedPostIdEl.textContent = postId ? `Selected post ID: ${postId}` : '';
+                await loadComments(pageSelect.value, postId);
+            });
+
+            commentSelect.addEventListener('change', () => {
+                const commentId = commentSelect.value;
+                selectedCommentIdEl.textContent = commentId ? `Selected comment ID: ${commentId}` : '';
+                submitButton.disabled = !commentId;
+            });
+        })();
+    </script>
 </body>
 </html>

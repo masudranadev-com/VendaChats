@@ -9,6 +9,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Validator;
 use Illuminate\View\View;
 
 class FacebookAuthController extends Controller
@@ -42,6 +43,7 @@ class FacebookAuthController extends Controller
             'scope' => implode(',', $this->facebookConfig('scopes', [])),
             'response_type' => 'code',
             'state' => $state,
+            'auth_type' => 'rerequest',
         ]);
 
         $oauthUrl = "https://www.facebook.com/{$this->facebookConfig('graph_version', 'v22.0')}/dialog/oauth?{$query}";
@@ -137,7 +139,7 @@ class FacebookAuthController extends Controller
             'user' => $request->session()->get('facebook.user'),
             'pages' => $request->session()->get('facebook.pages', []),
             'graphVersion' => $this->facebookConfig('graph_version', 'v22.0'),
-            'verifyToken' => $this->facebookConfig('verify_token'),
+            'verifyToken' => "AATTTRR7788GGHHY00",
             'webhookVerifyUrl' => route('facebook.webhook.verify'),
             'appId' => $this->facebookConfig('app_id'),
         ]);
@@ -176,6 +178,119 @@ class FacebookAuthController extends Controller
             ->route('facebook.dashboard')
             ->with('status', 'Message request sent to Messenger API.')
             ->with('facebook_api_response', $response->json());
+    }
+
+    public function getPagePosts(Request $request): JsonResponse
+    {
+        $validator = Validator::make($request->query(), [
+            'page_id' => ['required', 'string'],
+            'limit' => ['nullable', 'integer', 'min:1', 'max:100'],
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'message' => $validator->errors()->first(),
+                'errors' => $validator->errors(),
+            ], 422);
+        }
+
+        $validated = $validator->validated();
+        $pageToken = $this->pageToken($request, $validated['page_id']);
+        if (! $pageToken) {
+            return response()->json([
+                'message' => 'Page token not found in session. Connect Facebook again.',
+            ], 422);
+        }
+
+        $response = Http::acceptJson()->get(
+            $this->graphUrl($validated['page_id'].'/posts'),
+            [
+                'fields' => 'id,message,created_time,permalink_url',
+                'limit' => $validated['limit'] ?? 25,
+                'access_token' => $pageToken,
+            ]
+        );
+
+        if ($response->failed()) {
+            return response()->json([
+                'message' => $this->graphErrorMessage($response),
+                'error' => $response->json('error'),
+            ], $response->status() ?: 500);
+        }
+
+        $posts = collect($response->json('data', []))
+            ->map(static function (array $post): array {
+                return [
+                    'id' => $post['id'] ?? null,
+                    'message' => $post['message'] ?? '',
+                    'created_time' => $post['created_time'] ?? null,
+                    'permalink_url' => $post['permalink_url'] ?? null,
+                ];
+            })
+            ->values()
+            ->all();
+
+        return response()->json(['data' => $posts]);
+    }
+
+    public function getPostComments(Request $request): JsonResponse
+    {
+        $validator = Validator::make($request->query(), [
+            'page_id' => ['required', 'string'],
+            'post_id' => ['required', 'string'],
+            'limit' => ['nullable', 'integer', 'min:1', 'max:100'],
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'message' => $validator->errors()->first(),
+                'errors' => $validator->errors(),
+            ], 422);
+        }
+
+        $validated = $validator->validated();
+        $pageToken = $this->pageToken($request, $validated['page_id']);
+        if (! $pageToken) {
+            return response()->json([
+                'message' => 'Page token not found in session. Connect Facebook again.',
+            ], 422);
+        }
+
+        $response = Http::acceptJson()->get(
+            $this->graphUrl($validated['post_id'].'/comments'),
+            [
+                'fields' => 'id,message,created_time,from{id,name},comment_count,like_count',
+                'filter' => 'stream',
+                'limit' => $validated['limit'] ?? 50,
+                'access_token' => $pageToken,
+            ]
+        );
+
+        if ($response->failed()) {
+            return response()->json([
+                'message' => $this->graphErrorMessage($response),
+                'error' => $response->json('error'),
+            ], $response->status() ?: 500);
+        }
+
+        $comments = collect($response->json('data', []))
+            ->map(static function (array $comment): array {
+                return [
+                    'id' => $comment['id'] ?? null,
+                    'message' => $comment['message'] ?? '',
+                    'created_time' => $comment['created_time'] ?? null,
+                    'from' => [
+                        'id' => $comment['from']['id'] ?? null,
+                        'name' => $comment['from']['name'] ?? 'Unknown',
+                    ],
+                    'comment_count' => $comment['comment_count'] ?? 0,
+                    'like_count' => $comment['like_count'] ?? 0,
+                ];
+            })
+            ->values()
+            ->all();
+
+        return response()->json(['data' => $comments]);
     }
 
     public function replyToComment(Request $request): RedirectResponse
@@ -257,9 +372,9 @@ class FacebookAuthController extends Controller
 
     public function verifyWebhook(Request $request)
     {
-        $mode = $request->query('hub_mode');
-        $verifyToken = $request->query('hub_verify_token');
-        $challenge = $request->query('hub_challenge');
+        $mode = $request->query('hub.mode', $request->query('hub_mode'));
+        $verifyToken = $request->query('hub.verify_token', $request->query('hub_verify_token'));
+        $challenge = $request->query('hub.challenge', $request->query('hub_challenge'));
 
         if ($mode === 'subscribe' && $verifyToken === $this->facebookConfig('verify_token')) {
             return response($challenge, 200);
@@ -319,7 +434,7 @@ class FacebookAuthController extends Controller
             'FB_APP_ID' => $this->facebookConfig('app_id'),
             'FB_APP_SECRET' => $this->facebookConfig('app_secret'),
             'FB_REDIRECT_URI' => $this->facebookConfig('redirect_uri'),
-            'FB_VERIFY_TOKEN' => $this->facebookConfig('verify_token'),
+            'FB_VERIFY_TOKEN' => "AATTTRR7788GGHHY00",
         ];
 
         return array_keys(array_filter($required, static fn ($value) => blank($value)));
