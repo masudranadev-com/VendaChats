@@ -1098,11 +1098,111 @@ ul, ol { list-style: none; }
   margin-bottom: var(--spacing-lg);
   padding: 10px 14px;
   border-radius: var(--radius-sm);
-  border: 1px solid rgba(16,185,129,0.2);
-  background: rgba(16,185,129,0.1);
-  color: var(--brand-success);
+  border: 1px solid rgba(59,130,246,0.25);
+  background: rgba(59,130,246,0.1);
+  color: var(--brand-info);
   font-size: 13px;
   font-weight: 600;
+}
+
+.bot-settings-alert.success {
+  border-color: rgba(16,185,129,0.2);
+  background: rgba(16,185,129,0.1);
+  color: var(--brand-success);
+}
+
+.bot-settings-alert.error {
+  border-color: rgba(229,62,62,0.25);
+  background: rgba(229,62,62,0.1);
+  color: var(--brand-danger);
+}
+
+.bot-facebook-card {
+  margin-bottom: var(--spacing-xl);
+}
+
+.bot-facebook-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-md);
+  margin-bottom: var(--spacing-lg);
+}
+
+.bot-facebook-user {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.bot-facebook-user strong {
+  font-size: 15px;
+}
+
+.bot-facebook-user span {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.bot-facebook-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+}
+
+.bot-facebook-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-lg);
+}
+
+.bot-facebook-services {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-sm);
+}
+
+.bot-service-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-secondary);
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.bot-service-check input {
+  accent-color: var(--brand-primary);
+}
+
+.bot-service-check.locked {
+  cursor: not-allowed;
+  opacity: 0.8;
+  border-style: dashed;
+}
+
+.bot-service-check.locked input {
+  pointer-events: none;
+}
+
+.bot-facebook-empty {
+  margin-bottom: var(--spacing-md);
+  color: var(--text-secondary);
+  font-size: 14px;
+}
+
+.bot-selected-page {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  border-radius: 999px;
+  background: rgba(19,82,220,0.1);
+  color: var(--brand-primary);
+  font-size: 13px;
 }
 
 .bot-settings-grid .card {
@@ -1345,6 +1445,11 @@ ul, ol { list-style: none; }
 
   .bot-settings-grid {
     grid-template-columns: 1fr;
+  }
+
+  .bot-facebook-top {
+    flex-direction: column;
+    align-items: flex-start;
   }
 }
 

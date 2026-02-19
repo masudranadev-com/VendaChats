@@ -9,13 +9,13 @@
         'key' => 'messenger_bot',
         'label' => 'Messenger Bot',
         'description' => 'Enable or disable automated Messenger conversations.',
-        'enabled' => true,
+        'enabled' => false,
       ],
       [
         'key' => 'comments_bot',
         'label' => 'Comments Bot',
         'description' => 'Enable or disable automated comment monitoring and replies.',
-        'enabled' => true,
+        'enabled' => false,
       ],
     ];
 
@@ -24,25 +24,25 @@
         'key' => 'detect_users_emotions',
         'label' => 'Detect users emotions',
         'description' => 'Read emotional tone and adapt response style.',
-        'enabled' => true,
+        'enabled' => false,
       ],
       [
         'key' => 'detect_price_vs_quality_buyer',
         'label' => 'Detect users Price-sensitive vs quality-focused buyer',
         'description' => 'Classify buyer mindset for smarter replies.',
-        'enabled' => true,
+        'enabled' => false,
       ],
       [
         'key' => 'analysis_and_suggest_products',
         'label' => 'Analysis & Suggest new products',
         'description' => 'Analyze context and recommend suitable products.',
-        'enabled' => true,
+        'enabled' => false,
       ],
       [
         'key' => 'product_bergain',
         'label' => 'Product Bergain',
         'description' => 'Control whether bot can negotiate product pricing.',
-        'enabled' => true,
+        'enabled' => false,
       ],
       [
         'key' => 'voice_proccessing',
@@ -77,6 +77,16 @@
     $totalMessengerFeatures = count($messengerFeatures);
     $totalMessengerFeatures = max(1, $totalMessengerFeatures);
     $messengerProgress = (int) round(($enabledMessengerCount / $totalMessengerFeatures) * 100);
+
+    $selectedFacebookPageName = null;
+    foreach ($facebookPages ?? [] as $page) {
+      if (($page['id'] ?? null) === ($selectedFacebookPageId ?? null)) {
+        $selectedFacebookPageName = $page['name'] ?? null;
+        break;
+      }
+    }
+
+    $hasConnectedFacebookPage = filled($selectedFacebookPageId);
   @endphp
 
   <div class="page-header bot-page-header">
@@ -96,23 +106,204 @@
     </div>
   </div>
 
+  @if (session('status'))
+    <div class="bot-settings-alert success" role="status">
+      <span>✓</span>
+      <span>{{ session('status') }}</span>
+    </div>
+  @endif
+
+  @if (session('facebook_status'))
+    <div class="bot-settings-alert success" role="status">
+      <span>✓</span>
+      <span>{{ session('facebook_status') }}</span>
+    </div>
+  @endif
+
+  @if ($errors->has('facebook'))
+    <div class="bot-settings-alert error" role="alert">
+      <span>!</span>
+      <span>{{ $errors->first('facebook') }}</span>
+    </div>
+  @endif
+
   <div class="bot-settings-alert" role="status">
     <span>i</span>
-    <span>Frontend preview mode: toggles update the UI only.</span>
+    <span>Bot feature toggles are frontend preview. Facebook connect and page selection are active.</span>
   </div>
 
-  <form data-bot-settings>
+  <section class="card bot-facebook-card mt-xl">
+    <div class="card-header">
+      <h3 class="card-title">Facebook Connection</h3>
+      <span class="badge {{ $facebookUser ? 'badge-success' : 'badge-warning' }}">
+        {{ $facebookUser ? 'Connected' : 'Not Connected' }}
+      </span>
+    </div>
 
-    <div class="grid grid-2 bot-settings-grid">
-      <section class="card bot-settings-card">
-        <div class="card-header">
-          <h3 class="card-title">Bot Settings</h3>
-          <span class="badge badge-primary">Core</span>
+    @if ($facebookUser)
+      <div class="bot-facebook-top">
+        <div class="bot-facebook-user">
+          <strong>{{ $facebookUser['name'] ?? 'Facebook User' }}</strong>
+          <span>ID: {{ $facebookUser['id'] ?? '-' }}</span>
         </div>
-        <p class="bot-section-description">Turn each channel on or off.</p>
+
+        <div class="bot-facebook-actions">
+          <a href="{{ route('facebook.auth.redirect', ['origin' => 'admin-bot-settings']) }}" class="btn btn-secondary btn-sm">
+            Reconnect
+          </a>
+
+          <form action="{{ route('facebook.disconnect') }}" method="POST">
+            @csrf
+            <input type="hidden" name="origin" value="admin-bot-settings">
+            <button type="submit" class="btn btn-danger btn-sm">Disconnect</button>
+          </form>
+        </div>
+      </div>
+
+      @if (count($facebookPages) > 0)
+        <form action="{{ route('admin.bot-settings.facebook-page') }}" method="POST" class="bot-facebook-form">
+          @csrf
+
+          <div class="form-group mb-0">
+            <label for="facebook_page_id" class="form-label">Select Facebook Page</label>
+            <select id="facebook_page_id" name="page_id" class="form-select" required>
+              @foreach ($facebookPages as $page)
+                <option value="{{ $page['id'] }}" {{ $selectedFacebookPageId === $page['id'] ? 'selected' : '' }}>
+                  {{ $page['name'] }}
+                </option>
+              @endforeach
+            </select>
+          </div>
+
+          <div class="bot-facebook-services">
+            <input type="hidden" name="service_messenger" value="1">
+            <label class="bot-service-check locked" aria-disabled="true">
+              <input
+                type="checkbox"
+                name="service_messenger"
+                value="1"
+                checked
+                disabled
+              >
+              <span>Enable Messenger service (Always On)</span>
+            </label>
+
+            <input type="hidden" name="service_comments" value="1">
+            <label class="bot-service-check locked" aria-disabled="true">
+              <input
+                type="checkbox"
+                name="service_comments"
+                value="1"
+                checked
+                disabled
+              >
+              <span>Enable auto reply to comments (Always On)</span>
+            </label>
+          </div>
+
+          <button type="submit" class="btn btn-primary">Save Facebook Page Services</button>
+        </form>
+
+        @if ($selectedFacebookPageName)
+          <div class="bot-selected-page mt-md">
+            Active page: <strong>{{ $selectedFacebookPageName }}</strong>
+          </div>
+        @endif
+      @else
+        <p class="bot-facebook-empty">
+          No Facebook pages found in this session. Reconnect and ensure your app has `pages_show_list` permission.
+        </p>
+      @endif
+    @else
+      <p class="bot-facebook-empty">
+        Connect Facebook to select the page where Messenger and comment auto-reply should run.
+      </p>
+      <a href="{{ route('facebook.auth.redirect', ['origin' => 'admin-bot-settings']) }}" class="btn btn-primary">
+        Connect Facebook
+      </a>
+    @endif
+  </section>
+
+  @if ($hasConnectedFacebookPage)
+    <form data-bot-settings>
+
+      <div class="grid grid-2 bot-settings-grid">
+        <section class="card bot-settings-card">
+          <div class="card-header">
+            <h3 class="card-title">Bot Settings</h3>
+            <span class="badge badge-primary">Core</span>
+          </div>
+          <p class="bot-section-description">Turn each channel on or off.</p>
+
+          <div class="bot-settings-list">
+            @foreach ($coreFeatures as $feature)
+              @php
+                $id = 'setting_' . $feature['key'];
+                $isEnabled = (bool) ($feature['enabled'] ?? false);
+              @endphp
+              <label class="bot-setting-row" for="{{ $id }}">
+                <div class="bot-setting-info">
+                  <h4>{{ $feature['label'] }}</h4>
+                  <p>{{ $feature['description'] }}</p>
+                </div>
+
+                <span class="bot-setting-state {{ $isEnabled ? 'on' : 'off' }}" data-state-for="{{ $id }}">
+                  {{ $isEnabled ? 'On' : 'Off' }}
+                </span>
+
+                <span class="bot-switch">
+                  <input
+                    id="{{ $id }}"
+                    class="bot-toggle-input"
+                    type="checkbox"
+                    name="{{ $feature['key'] }}"
+                    value="1"
+                    data-group="core"
+                    {{ $isEnabled ? 'checked' : '' }}
+                  >
+                  <span class="bot-switch-ui"></span>
+                </span>
+              </label>
+            @endforeach
+          </div>
+        </section>
+
+        <section class="card bot-overview-card">
+          <div class="card-header">
+            <h3 class="card-title">Automation Overview</h3>
+            <span class="badge badge-success">Live</span>
+          </div>
+
+          <div class="bot-overview-grid">
+            <div class="bot-mini-stat">
+              <div class="bot-mini-label">Total Features</div>
+              <div class="bot-mini-value">{{ $totalFeatures }}</div>
+            </div>
+            <div class="bot-mini-stat">
+              <div class="bot-mini-label">Enabled</div>
+              <div class="bot-mini-value" data-total-enabled>{{ $enabledFeatures }}</div>
+            </div>
+            <div class="bot-mini-stat">
+              <div class="bot-mini-label">Disabled</div>
+              <div class="bot-mini-value" data-total-disabled>{{ $totalFeatures - $enabledFeatures }}</div>
+            </div>
+          </div>
+
+          <p class="bot-overview-copy">
+            Use this panel to balance smart automation with brand tone and control. Save changes to apply new behavior.
+          </p>
+        </section>
+      </div>
+
+      <section class="card mt-xl bot-settings-card">
+        <div class="card-header">
+          <h3 class="card-title">Messenger Settings</h3>
+          <span class="badge badge-info">AI Features</span>
+        </div>
+        <p class="bot-section-description">Configure how the Messenger bot analyzes users and responds. These settings freeze when Messenger Bot is off.</p>
 
         <div class="bot-settings-list">
-          @foreach ($coreFeatures as $feature)
+          @foreach ($messengerFeatures as $feature)
             @php
               $id = 'setting_' . $feature['key'];
               $isEnabled = (bool) ($feature['enabled'] ?? false);
@@ -134,7 +325,7 @@
                   type="checkbox"
                   name="{{ $feature['key'] }}"
                   value="1"
-                  data-group="core"
+                  data-group="messenger"
                   {{ $isEnabled ? 'checked' : '' }}
                 >
                 <span class="bot-switch-ui"></span>
@@ -144,78 +335,22 @@
         </div>
       </section>
 
-      <section class="card bot-overview-card">
-        <div class="card-header">
-          <h3 class="card-title">Automation Overview</h3>
-          <span class="badge badge-success">Live</span>
-        </div>
-
-        <div class="bot-overview-grid">
-          <div class="bot-mini-stat">
-            <div class="bot-mini-label">Total Features</div>
-            <div class="bot-mini-value">{{ $totalFeatures }}</div>
-          </div>
-          <div class="bot-mini-stat">
-            <div class="bot-mini-label">Enabled</div>
-            <div class="bot-mini-value" data-total-enabled>{{ $enabledFeatures }}</div>
-          </div>
-          <div class="bot-mini-stat">
-            <div class="bot-mini-label">Disabled</div>
-            <div class="bot-mini-value" data-total-disabled>{{ $totalFeatures - $enabledFeatures }}</div>
-          </div>
-        </div>
-
-        <p class="bot-overview-copy">
-          Use this panel to balance smart automation with brand tone and control. Save changes to apply new behavior.
-        </p>
-      </section>
-    </div>
-
-    <section class="card mt-xl bot-settings-card">
-      <div class="card-header">
-        <h3 class="card-title">Messenger Settings</h3>
-        <span class="badge badge-info">AI Features</span>
+      <div class="page-actions mt-xl bot-actions">
+        <div class="bot-unsaved-badge" data-unsaved-badge>Unsaved changes</div>
+        <button type="button" class="btn btn-primary" data-bot-save>Save UI Changes</button>
+        <button type="button" class="btn btn-secondary" data-bot-reset>Reset Toggles</button>
+        <a href="{{ route('admin.dashboard') }}" class="btn btn-secondary">Back to Dashboard</a>
       </div>
-      <p class="bot-section-description">Configure how the Messenger bot analyzes users and responds. These settings freeze when Messenger Bot is off.</p>
-
-      <div class="bot-settings-list">
-        @foreach ($messengerFeatures as $feature)
-          @php
-            $id = 'setting_' . $feature['key'];
-            $isEnabled = (bool) ($feature['enabled'] ?? false);
-          @endphp
-          <label class="bot-setting-row" for="{{ $id }}">
-            <div class="bot-setting-info">
-              <h4>{{ $feature['label'] }}</h4>
-              <p>{{ $feature['description'] }}</p>
-            </div>
-
-            <span class="bot-setting-state {{ $isEnabled ? 'on' : 'off' }}" data-state-for="{{ $id }}">
-              {{ $isEnabled ? 'On' : 'Off' }}
-            </span>
-
-            <span class="bot-switch">
-              <input
-                id="{{ $id }}"
-                class="bot-toggle-input"
-                type="checkbox"
-                name="{{ $feature['key'] }}"
-                value="1"
-                data-group="messenger"
-                {{ $isEnabled ? 'checked' : '' }}
-              >
-              <span class="bot-switch-ui"></span>
-            </span>
-          </label>
-        @endforeach
+    </form>
+  @else
+    <section class="card mt-xl">
+      <div class="card-header">
+        <h3 class="card-title">Bot Panels Hidden</h3>
+        <span class="badge badge-warning">Requires Facebook Page</span>
+      </div>
+      <div class="card-body">
+        <p>Connect Facebook and select a page to unlock <strong>Bot Settings</strong>, <strong>Automation Overview</strong>, and <strong>Messenger Settings</strong>.</p>
       </div>
     </section>
-
-    <div class="page-actions mt-xl bot-actions">
-      <div class="bot-unsaved-badge" data-unsaved-badge>Unsaved changes</div>
-      <button type="button" class="btn btn-primary" data-bot-save>Save UI Changes</button>
-      <button type="button" class="btn btn-secondary" data-bot-reset>Reset Toggles</button>
-      <a href="{{ route('admin.dashboard') }}" class="btn btn-secondary">Back to Dashboard</a>
-    </div>
-  </form>
+  @endif
 @endsection

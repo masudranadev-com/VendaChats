@@ -27,12 +27,26 @@ class FacebookAuthController extends Controller
 
     public function redirectToFacebook(Request $request): RedirectResponse
     {
+        $origin = $request->query('origin');
+        $fromBotSettings = $origin === 'admin-bot-settings';
+        $errorRoute = $fromBotSettings ? 'admin.bot-settings' : 'facebook.oauth';
+
         $missingConfig = $this->missingConfig();
+
         if ($missingConfig !== []) {
             return redirect()
-                ->route('facebook.oauth')
+                ->route($errorRoute)
                 ->withErrors(['facebook' => 'Missing configuration: '.implode(', ', $missingConfig)]);
         }
+
+        $request->session()->put(
+            'facebook.oauth_success_redirect',
+            $fromBotSettings ? route('admin.bot-settings') : route('facebook.dashboard')
+        );
+        $request->session()->put(
+            'facebook.oauth_error_redirect',
+            $fromBotSettings ? route('admin.bot-settings') : route('facebook.oauth')
+        );
 
         $state = Str::random(40);
         $request->session()->put('facebook.oauth_state', $state);
@@ -57,7 +71,7 @@ class FacebookAuthController extends Controller
             $message = $request->query('error_message', 'Facebook authorization failed.');
 
             return redirect()
-                ->route('facebook.oauth')
+                ->to($this->oauthErrorRedirect($request))
                 ->withErrors(['facebook' => $message]);
         }
 
@@ -65,14 +79,14 @@ class FacebookAuthController extends Controller
         $incomingState = $request->query('state');
         if (! $expectedState || ! $incomingState || ! hash_equals($expectedState, $incomingState)) {
             return redirect()
-                ->route('facebook.oauth')
+                ->to($this->oauthErrorRedirect($request))
                 ->withErrors(['facebook' => 'Invalid OAuth state. Please try again.']);
         }
 
         $code = $request->query('code');
         if (! $code) {
             return redirect()
-                ->route('facebook.oauth')
+                ->to($this->oauthErrorRedirect($request))
                 ->withErrors(['facebook' => 'OAuth code missing from callback.']);
         }
 
@@ -88,14 +102,14 @@ class FacebookAuthController extends Controller
 
         if ($tokenResponse->failed()) {
             return redirect()
-                ->route('facebook.oauth')
+                ->to($this->oauthErrorRedirect($request))
                 ->withErrors(['facebook' => $this->graphErrorMessage($tokenResponse)]);
         }
 
         $userAccessToken = $tokenResponse->json('access_token');
         if (! $userAccessToken) {
             return redirect()
-                ->route('facebook.oauth')
+                ->to($this->oauthErrorRedirect($request))
                 ->withErrors(['facebook' => 'Could not read access token from Facebook response.']);
         }
 
@@ -109,7 +123,7 @@ class FacebookAuthController extends Controller
 
         if ($userResponse->failed()) {
             return redirect()
-                ->route('facebook.oauth')
+                ->to($this->oauthErrorRedirect($request))
                 ->withErrors(['facebook' => $this->graphErrorMessage($userResponse)]);
         }
 
@@ -120,7 +134,7 @@ class FacebookAuthController extends Controller
 
         if ($pagesResponse->failed()) {
             return redirect()
-                ->route('facebook.oauth')
+                ->to($this->oauthErrorRedirect($request))
                 ->withErrors(['facebook' => $this->graphErrorMessage($pagesResponse)]);
         }
 
@@ -129,7 +143,7 @@ class FacebookAuthController extends Controller
         $request->session()->put('facebook.pages', $pagesResponse->json('data', []));
 
         return redirect()
-            ->route('facebook.dashboard')
+            ->to($this->oauthSuccessRedirect($request))
             ->with('status', 'Facebook account connected successfully.');
     }
 
@@ -358,15 +372,21 @@ class FacebookAuthController extends Controller
 
     public function disconnect(Request $request): RedirectResponse
     {
+        $origin = $request->input('origin');
+
         $request->session()->forget([
             'facebook.oauth_state',
+            'facebook.oauth_success_redirect',
+            'facebook.oauth_error_redirect',
             'facebook.user_access_token',
             'facebook.user',
             'facebook.pages',
         ]);
 
+        $redirectRoute = $origin === 'admin-bot-settings' ? 'admin.bot-settings' : 'facebook.oauth';
+
         return redirect()
-            ->route('facebook.oauth')
+            ->route($redirectRoute)
             ->with('status', 'Facebook session data cleared.');
     }
 
@@ -438,5 +458,18 @@ class FacebookAuthController extends Controller
         ];
 
         return array_keys(array_filter($required, static fn ($value) => blank($value)));
+    }
+
+    private function oauthErrorRedirect(Request $request): string
+    {
+        return $request->session()->get('facebook.oauth_error_redirect', route('facebook.oauth'));
+    }
+
+    private function oauthSuccessRedirect(Request $request): string
+    {
+        $successRedirect = $request->session()->pull('facebook.oauth_success_redirect', route('facebook.dashboard'));
+        $request->session()->forget('facebook.oauth_error_redirect');
+
+        return $successRedirect;
     }
 }
