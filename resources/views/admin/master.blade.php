@@ -136,8 +136,6 @@
         </div>
 
         <div class="header-right">
-          <button class="header-btn" id="themeToggle">🌙</button>
-
           <div class="dropdown">
             <button class="header-btn" type="button">
               🔔

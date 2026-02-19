@@ -118,7 +118,6 @@ Route::prefix('admin')->name('admin.')->group(function () {
     // bot-settings
     Route::get('/bot-settings', [BotSettingsController::class, 'index'])->name('bot-settings');
     Route::get('/bot-settings/facebook/connect', [BotSettingsController::class, 'connectFacebook'])->name('bot-settings.facebook.connect');
-    Route::get('/bot-settings/facebook/page-assign', [BotSettingsController::class, 'assignPageFacebook'])->name('bot-settings.facebook.page-assign');
     Route::get('/bot-settings/facebook/disconnect', [BotSettingsController::class, 'disconnectFacebook'])->name('bot-settings.facebook.disconnect');
     Route::get('/bot-settings/facebook/callback', [BotSettingsController::class, 'callbackFacebook'])->name('bot-settings.facebook.callback');
 

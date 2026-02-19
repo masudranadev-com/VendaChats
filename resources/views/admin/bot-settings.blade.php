@@ -67,16 +67,8 @@
       }
     }
 
-    $enabledMessengerCount = 0;
-    foreach ($messengerFeatures as $feature) {
-      if ((bool) ($feature['enabled'] ?? false)) {
-        $enabledMessengerCount++;
-      }
-    }
-
-    $totalMessengerFeatures = count($messengerFeatures);
-    $totalMessengerFeatures = max(1, $totalMessengerFeatures);
-    $messengerProgress = (int) round(($enabledMessengerCount / $totalMessengerFeatures) * 100);
+    $safeTotalFeatures = max(1, $totalFeatures);
+    $automationProgress = (int) round(($enabledFeatures / $safeTotalFeatures) * 100);
 
     $selectedFacebookPageName = null;
     foreach ($facebookPages ?? [] as $page) {
@@ -96,12 +88,12 @@
     </div>
 
     <div class="bot-header-chip">
-      <div class="bot-chip-label">Messenger Intelligence</div>
-      <div class="bot-chip-value" data-enabled-count data-total="{{ $totalMessengerFeatures }}">
-        {{ $enabledMessengerCount }}/{{ $totalMessengerFeatures }} enabled
+      <div class="bot-chip-label">Automation Intelligence</div>
+      <div class="bot-chip-value" data-enabled-count data-total="{{ $totalFeatures }}">
+        {{ $enabledFeatures }}/{{ $totalFeatures }} enabled
       </div>
       <div class="bot-chip-progress">
-        <span data-enabled-meter style="width: {{ $messengerProgress }}%"></span>
+        <span data-enabled-meter style="width: {{ $automationProgress }}%"></span>
       </div>
     </div>
   </div>
@@ -129,7 +121,7 @@
 
   <div class="bot-settings-alert" role="status">
     <span>i</span>
-    <span>Bot feature toggles are frontend preview. Facebook connect and page selection are active.</span>
+    <span>Bot feature toggles are frontend preview. Facebook connection works with one-time setup.</span>
   </div>
 
   <section class="card bot-facebook-card mt-xl">
@@ -140,7 +132,7 @@
       </span>
     </div>
     <p class="bot-facebook-guide">
-      Simple setup: 1) Connect Facebook 2) Select Page 3) Activate. Messenger + Auto Reply are always enabled.
+      One-time setup: connect Facebook once. The system auto-activates your first page with Messenger and auto comment reply.
     </p>
 
     @if ($facebookUser)
@@ -151,65 +143,44 @@
         </div>
 
         <div class="bot-facebook-actions">
-          <a href="{{ route('admin.bot-settings.facebook.connect') }}" class="btn btn-secondary btn-sm">
-            Reconnect
-          </a>
-
           <a href="{{ route('admin.bot-settings.facebook.disconnect') }}" class="btn btn-danger btn-sm">
             Disconnect
           </a>
         </div>
       </div>
 
-      @if (count($facebookPages) > 0)
-        <form action="{{ route('admin.bot-settings.facebook.page-assign') }}" method="GET" class="bot-facebook-form">
-          <div class="form-group mb-0">
-            <label for="facebook_page_id" class="form-label">Select Facebook Page</label>
-            <select id="facebook_page_id" name="page_id" class="form-select" required>
-              @foreach ($facebookPages as $page)
-                <option value="{{ $page['id'] }}" {{ $selectedFacebookPageId === $page['id'] ? 'selected' : '' }}>
-                  {{ $page['name'] }}
-                </option>
-              @endforeach
-            </select>
-          </div>
+      <div class="bot-facebook-services">
+        <label class="bot-service-check locked" aria-disabled="true">
+          <input
+            type="checkbox"
+            checked
+            disabled
+          >
+          <span>Enable Messenger service (Always On)</span>
+        </label>
 
-          <div class="bot-facebook-services">
-            <label class="bot-service-check locked" aria-disabled="true">
-              <input
-                type="checkbox"
-                checked
-                disabled
-              >
-              <span>Enable Messenger service (Always On)</span>
-            </label>
+        <label class="bot-service-check locked" aria-disabled="true">
+          <input
+            type="checkbox"
+            checked
+            disabled
+          >
+          <span>Enable auto reply to comments (Always On)</span>
+        </label>
+      </div>
 
-            <label class="bot-service-check locked" aria-disabled="true">
-              <input
-                type="checkbox"
-                checked
-                disabled
-              >
-              <span>Enable auto reply to comments (Always On)</span>
-            </label>
-          </div>
-
-          <button type="submit" class="btn btn-primary">Activate Selected Page</button>
-        </form>
-
-        @if ($selectedFacebookPageName)
-          <div class="bot-selected-page mt-md">
-            Active page: <strong>{{ $selectedFacebookPageName }}</strong>
-          </div>
-        @endif
+      @if ($selectedFacebookPageName)
+        <div class="bot-selected-page mt-md">
+          Active page: <strong>{{ $selectedFacebookPageName }}</strong>
+        </div>
       @else
         <p class="bot-facebook-empty">
-          No Facebook pages found in this session. Reconnect and ensure your app has `pages_show_list` permission.
+          Facebook connected, but no pages were found in your account yet.
         </p>
       @endif
     @else
       <p class="bot-facebook-empty">
-        Connect Facebook to select the page where Messenger and comment auto-reply should run.
+        Connect Facebook once to start Messenger and comment auto-reply automatically.
       </p>
       <a href="{{ route('admin.bot-settings.facebook.connect') }}" class="btn btn-primary">
         Connect Facebook
@@ -342,7 +313,7 @@
         <span class="badge badge-warning">Requires Facebook Page</span>
       </div>
       <div class="card-body">
-        <p>Connect Facebook and select a page to unlock <strong>Bot Settings</strong>, <strong>Automation Overview</strong>, and <strong>Messenger Settings</strong>.</p>
+        <p>Connect Facebook to unlock <strong>Bot Settings</strong>, <strong>Automation Overview</strong>, and <strong>Messenger Settings</strong>.</p>
       </div>
     </section>
   @endif

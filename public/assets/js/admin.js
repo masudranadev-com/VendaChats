@@ -372,8 +372,8 @@ function initBotSettings() {
   const enabledMeter = document.querySelector('[data-enabled-meter]');
   const totalEnabledNode = document.querySelector('[data-total-enabled]');
   const totalDisabledNode = document.querySelector('[data-total-disabled]');
-  const totalMessengerFeatures = Number(enabledCountNode?.dataset.total || 0);
   const totalFeatures = toggles.length;
+  const totalChipFeatures = Number(enabledCountNode?.dataset.total || totalFeatures);
   const initialState = Array.from(toggles).map(toggle => toggle.checked);
   let isDirty = false;
 
@@ -396,7 +396,6 @@ function initBotSettings() {
   };
 
   const updateUi = () => {
-    let messengerEnabled = 0;
     let allEnabled = 0;
 
     toggles.forEach(toggle => {
@@ -412,18 +411,15 @@ function initBotSettings() {
 
       if (isChecked) {
         allEnabled++;
-        if (toggle.dataset.group === 'messenger') {
-          messengerEnabled++;
-        }
       }
     });
 
     if (enabledCountNode) {
-      enabledCountNode.textContent = `${messengerEnabled}/${totalMessengerFeatures} enabled`;
+      enabledCountNode.textContent = `${allEnabled}/${totalChipFeatures} enabled`;
     }
 
-    if (enabledMeter && totalMessengerFeatures > 0) {
-      const percentage = Math.round((messengerEnabled / totalMessengerFeatures) * 100);
+    if (enabledMeter && totalChipFeatures > 0) {
+      const percentage = Math.round((allEnabled / totalChipFeatures) * 100);
       enabledMeter.style.width = `${percentage}%`;
     }
 
