@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\Admin\BotSettingsController;
 use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
 use App\Http\Controllers\User\AccountController;
 use App\Http\Controllers\User\DataDeletionController;
@@ -60,7 +61,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
     Route::get('/conversations', [AdminDashboardController::class, 'conversations'])->name('conversations');
     Route::get('/customers', [AdminDashboardController::class, 'customers'])->name('customers');
     Route::get('/products', [AdminDashboardController::class, 'products'])->name('products');
-    Route::get('/bot-settings', [AdminDashboardController::class, 'botSettings'])->name('bot-settings');
+    Route::get('/bot-settings', [BotSettingsController::class, 'index'])->name('bot-settings');
     Route::get('/bargaining', [AdminDashboardController::class, 'bargaining'])->name('bargaining');
     Route::get('/whatsapp-recovery', [AdminDashboardController::class, 'whatsappRecovery'])->name('whatsapp-recovery');
     Route::get('/campaigns', [AdminDashboardController::class, 'campaigns'])->name('campaigns');

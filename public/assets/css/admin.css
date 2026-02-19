@@ -1040,6 +1040,270 @@ ul, ol { list-style: none; }
 }
 
 /* ══════════════════════════════════════════
+   BOT SETTINGS
+══════════════════════════════════════════ */
+.bot-page-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--spacing-lg);
+}
+
+.bot-header-chip {
+  min-width: 250px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+  box-shadow: var(--shadow-sm);
+}
+
+.bot-chip-label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-weight: 700;
+  color: var(--text-tertiary);
+  margin-bottom: 4px;
+}
+
+.bot-chip-value {
+  font-family: 'Syne', sans-serif;
+  font-size: 20px;
+  font-weight: 700;
+  margin-bottom: 10px;
+}
+
+.bot-chip-progress {
+  width: 100%;
+  height: 8px;
+  background: var(--bg-tertiary);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.bot-chip-progress span {
+  display: block;
+  height: 100%;
+  width: 0;
+  background: var(--gradient-success);
+  border-radius: inherit;
+  transition: width var(--transition);
+}
+
+.bot-settings-alert {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: var(--spacing-lg);
+  padding: 10px 14px;
+  border-radius: var(--radius-sm);
+  border: 1px solid rgba(16,185,129,0.2);
+  background: rgba(16,185,129,0.1);
+  color: var(--brand-success);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.bot-settings-grid .card {
+  height: 100%;
+}
+
+.bot-settings-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.bot-section-description {
+  margin-top: -8px;
+  margin-bottom: var(--spacing-lg);
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.bot-settings-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.bot-setting-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 14px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 14px;
+  transition: all var(--transition);
+  cursor: pointer;
+}
+
+.bot-setting-row:hover {
+  border-color: var(--border-hover);
+  background: var(--bg-hover);
+}
+
+.bot-setting-row.frozen {
+  cursor: not-allowed;
+  opacity: 0.7;
+  background: var(--bg-tertiary);
+  border-style: dashed;
+}
+
+.bot-setting-row.frozen:hover {
+  border-color: var(--border);
+  background: var(--bg-tertiary);
+}
+
+.bot-setting-info h4 {
+  font-size: 14px;
+  font-weight: 700;
+  margin-bottom: 2px;
+}
+
+.bot-setting-info p {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.bot-setting-state {
+  min-width: 44px;
+  text-align: center;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 999px;
+}
+
+.bot-setting-state.on {
+  color: var(--brand-success);
+  background: rgba(16,185,129,0.12);
+}
+
+.bot-setting-state.off {
+  color: var(--text-secondary);
+  background: var(--bg-tertiary);
+}
+
+.bot-switch {
+  position: relative;
+  width: 52px;
+  height: 30px;
+}
+
+.bot-toggle-input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.bot-toggle-input:disabled {
+  cursor: not-allowed;
+}
+
+.bot-switch-ui {
+  display: block;
+  width: 52px;
+  height: 30px;
+  border-radius: 999px;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border);
+  position: relative;
+  transition: all var(--transition);
+}
+
+.bot-switch-ui::after {
+  content: '';
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--bg-card);
+  box-shadow: var(--shadow-sm);
+  transition: transform var(--transition);
+}
+
+.bot-toggle-input:checked + .bot-switch-ui {
+  background: rgba(16,185,129,0.24);
+  border-color: rgba(16,185,129,0.45);
+}
+
+.bot-toggle-input:checked + .bot-switch-ui::after {
+  transform: translateX(22px);
+}
+
+.bot-toggle-input:focus-visible + .bot-switch-ui {
+  box-shadow: 0 0 0 3px rgba(19,82,220,0.18);
+}
+
+.bot-toggle-input:disabled + .bot-switch-ui {
+  background: var(--bg-tertiary);
+  border-color: var(--border);
+}
+
+.bot-toggle-input:disabled + .bot-switch-ui::after {
+  box-shadow: none;
+}
+
+.bot-overview-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--spacing-sm);
+  margin-bottom: var(--spacing-lg);
+}
+
+.bot-mini-stat {
+  padding: 14px 12px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+}
+
+.bot-mini-label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-tertiary);
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+
+.bot-mini-value {
+  font-family: 'Syne', sans-serif;
+  font-size: 24px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.bot-overview-copy {
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.bot-actions {
+  align-items: center;
+}
+
+.bot-unsaved-badge {
+  display: none;
+  padding: 8px 12px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--brand-warning);
+  background: rgba(245,166,35,0.12);
+  border: 1px solid rgba(245,166,35,0.25);
+}
+
+.bot-unsaved-badge.visible {
+  display: inline-flex;
+}
+
+/* ══════════════════════════════════════════
    RESPONSIVE
 ══════════════════════════════════════════ */
 @media (max-width: 1024px) {
@@ -1069,6 +1333,19 @@ ul, ol { list-style: none; }
   .search-bar {
     display: none;
   }
+
+  .bot-page-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .bot-header-chip {
+    width: 100%;
+  }
+
+  .bot-settings-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 @media (max-width: 768px) {
@@ -1095,6 +1372,32 @@ ul, ol { list-style: none; }
   .page-actions {
     flex-direction: column;
     align-items: stretch;
+  }
+
+  .bot-overview-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .bot-setting-row {
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      'info switch'
+      'state switch';
+    align-items: start;
+  }
+
+  .bot-setting-info {
+    grid-area: info;
+  }
+
+  .bot-setting-state {
+    grid-area: state;
+    justify-self: start;
+  }
+
+  .bot-switch {
+    grid-area: switch;
+    margin-top: 2px;
   }
 }
 

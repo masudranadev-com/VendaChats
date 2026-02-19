@@ -36,11 +36,6 @@ class DashboardController extends Controller
         return $this->page('Products', 'Control catalog, inventory, and pricing from one place.');
     }
 
-    public function botSettings()
-    {
-        return $this->page('Bot Settings', 'Configure reply rules, tone, and automation priorities.');
-    }
-
     public function bargaining()
     {
         return $this->page('Bargaining Rules', 'Set floor price, negotiation steps, and approval boundaries.');
