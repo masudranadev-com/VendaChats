@@ -139,6 +139,9 @@
         {{ $facebookUser ? 'Connected' : 'Not Connected' }}
       </span>
     </div>
+    <p class="bot-facebook-guide">
+      Simple setup: 1) Connect Facebook 2) Select Page 3) Activate. Messenger + Auto Reply are always enabled.
+    </p>
 
     @if ($facebookUser)
       <div class="bot-facebook-top">
@@ -148,22 +151,18 @@
         </div>
 
         <div class="bot-facebook-actions">
-          <a href="{{ route('facebook.auth.redirect', ['origin' => 'admin-bot-settings']) }}" class="btn btn-secondary btn-sm">
+          <a href="{{ route('admin.bot-settings.facebook.connect') }}" class="btn btn-secondary btn-sm">
             Reconnect
           </a>
 
-          <form action="{{ route('facebook.disconnect') }}" method="POST">
-            @csrf
-            <input type="hidden" name="origin" value="admin-bot-settings">
-            <button type="submit" class="btn btn-danger btn-sm">Disconnect</button>
-          </form>
+          <a href="{{ route('admin.bot-settings.facebook.disconnect') }}" class="btn btn-danger btn-sm">
+            Disconnect
+          </a>
         </div>
       </div>
 
       @if (count($facebookPages) > 0)
-        <form action="{{ route('admin.bot-settings.facebook-page') }}" method="POST" class="bot-facebook-form">
-          @csrf
-
+        <form action="{{ route('admin.bot-settings.facebook.page-assign') }}" method="GET" class="bot-facebook-form">
           <div class="form-group mb-0">
             <label for="facebook_page_id" class="form-label">Select Facebook Page</label>
             <select id="facebook_page_id" name="page_id" class="form-select" required>
@@ -176,24 +175,18 @@
           </div>
 
           <div class="bot-facebook-services">
-            <input type="hidden" name="service_messenger" value="1">
             <label class="bot-service-check locked" aria-disabled="true">
               <input
                 type="checkbox"
-                name="service_messenger"
-                value="1"
                 checked
                 disabled
               >
               <span>Enable Messenger service (Always On)</span>
             </label>
 
-            <input type="hidden" name="service_comments" value="1">
             <label class="bot-service-check locked" aria-disabled="true">
               <input
                 type="checkbox"
-                name="service_comments"
-                value="1"
                 checked
                 disabled
               >
@@ -201,7 +194,7 @@
             </label>
           </div>
 
-          <button type="submit" class="btn btn-primary">Save Facebook Page Services</button>
+          <button type="submit" class="btn btn-primary">Activate Selected Page</button>
         </form>
 
         @if ($selectedFacebookPageName)

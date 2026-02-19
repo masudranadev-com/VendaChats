@@ -1121,6 +1121,12 @@ ul, ol { list-style: none; }
   margin-bottom: var(--spacing-xl);
 }
 
+.bot-facebook-guide {
+  margin-bottom: var(--spacing-lg);
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
 .bot-facebook-top {
   display: flex;
   align-items: center;
