@@ -15,26 +15,26 @@
     <section class="section">
       <div class="container">
         <div class="fd-card">
-          <h3>1. শর্তাবলি গ্রহণ</h3>
-          <p>Venda Motion Bot ব্যবহার করলে আপনি এই Terms and Conditions মেনে নিচ্ছেন। শর্তাবলি মেনে না নিলে প্ল্যাটফর্ম ব্যবহার করবেন না।</p>
-          <h3>2. সেবা ব্যবহার</h3>
-          <p>আপনি কেবল বৈধ ব্যবসায়িক কাজে আমাদের সেবা ব্যবহার করতে পারবেন। বেআইনি, বিভ্রান্তিকর, বা ক্ষতিকর কনটেন্ট/ক্যাম্পেইন চালানো নিষিদ্ধ।</p>
-          <h3>3. অ্যাকাউন্ট দায়িত্ব</h3>
-          <p>আপনার লগইন তথ্য নিরাপদ রাখা আপনার দায়িত্ব। অননুমোদিত ব্যবহার দেখা গেলে দ্রুত আমাদের জানাতে হবে।</p>
-          <h3>4. সাবস্ক্রিপশন ও পেমেন্ট</h3>
-          <p>Paid plan ব্যবহার করলে নির্ধারিত ফি প্রযোজ্য হবে। নির্দিষ্ট সময়ের মধ্যে পেমেন্ট না হলে সেবা সীমিত বা স্থগিত হতে পারে।</p>
-          <h3>5. বুদ্ধিবৃত্তিক সম্পদ</h3>
-          <p>প্ল্যাটফর্ম, সফটওয়্যার, ডিজাইন, ও ব্র্যান্ডিং Venda Motion Bot এর সম্পত্তি। লিখিত অনুমতি ছাড়া কপি/বিতরণ করা যাবে না।</p>
-          <h3>6. সীমিত দায়বদ্ধতা</h3>
-          <p>আমরা সর্বোচ্চ চেষ্টা সত্ত্বেও নিরবিচ্ছিন্ন বা ত্রুটিমুক্ত সেবা নিশ্চয়তা দেই না। ব্যবসায়িক ক্ষতি বা পরোক্ষ ক্ষতির জন্য আইনসম্মত সীমার মধ্যে আমাদের দায় সীমিত থাকবে।</p>
-          <h3>7. সেবা পরিবর্তন</h3>
-          <p>প্রয়োজনে ফিচার, মূল্য, বা শর্তাবলি আপডেট করা হতে পারে। গুরুত্বপূর্ণ পরিবর্তন হলে ওয়েবসাইটে আপডেট করা হবে।</p>
-          <h3>8. অ্যাকাউন্ট স্থগিত/বন্ধ</h3>
-          <p>শর্ত ভঙ্গ, অপব্যবহার, বা নিরাপত্তা ঝুঁকি দেখা গেলে আমরা নোটিশসহ বা নোটিশ ছাড়া অ্যাকাউন্ট স্থগিত/বন্ধ করতে পারি।</p>
-          <h3>9. প্রযোজ্য আইন</h3>
-          <p>এই শর্তাবলি বাংলাদেশে প্রযোজ্য আইনের অধীন পরিচালিত হবে।</p>
-          <h3>10. যোগাযোগ</h3>
-          <p>কোনো প্রশ্ন থাকলে <a href="{{ route('contact.index') }}">Contact Page</a> থেকে যোগাযোগ করুন।</p>
+          <h3>1. Acceptance of Terms</h3>
+          <p>By using Venda Motion Bot, you agree to these Terms and Conditions. If you do not agree, please do not use the platform.</p>
+          <h3>2. Use of Service</h3>
+          <p>You may use our service only for lawful business activities. Illegal, misleading, or harmful campaigns/content are prohibited.</p>
+          <h3>3. Account Responsibilities</h3>
+          <p>You are responsible for keeping your login credentials secure. Please notify us immediately if you suspect unauthorized account activity.</p>
+          <h3>4. Subscription and Payments</h3>
+          <p>Paid plans require applicable subscription fees. If payment is not made on time, service access may be limited or suspended.</p>
+          <h3>5. Intellectual Property</h3>
+          <p>The platform, software, design, and branding are the property of Venda Motion Bot. You may not copy or distribute them without written permission.</p>
+          <h3>6. Limitation of Liability</h3>
+          <p>While we strive to provide reliable service, we do not guarantee uninterrupted or error-free operation. Our liability is limited to the extent permitted by law.</p>
+          <h3>7. Service Changes</h3>
+          <p>We may update features, pricing, or these terms when needed. Material changes will be posted on the website.</p>
+          <h3>8. Account Suspension or Termination</h3>
+          <p>We may suspend or terminate accounts, with or without notice, if there is a terms violation, misuse, or security risk.</p>
+          <h3>9. Governing Law</h3>
+          <p>These Terms and Conditions are governed by the applicable laws of Bangladesh.</p>
+          <h3>10. Contact</h3>
+          <p>If you have any questions about these terms, please contact us through the <a href="{{ route('contact.index') }}">Contact Page</a>.</p>
         </div>
       </div>
     </section>

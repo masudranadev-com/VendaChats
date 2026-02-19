@@ -15,28 +15,28 @@
     <section class="section">
       <div class="container">
         <div class="fd-card">
-          <h3>1. আমরা কোন তথ্য সংগ্রহ করি</h3>
-          <p>আমরা অ্যাকাউন্ট তথ্য (নাম, ইমেইল, ফোন), ব্যবহার সম্পর্কিত তথ্য (লগ, ডিভাইস, ব্রাউজার), এবং আপনার দেওয়া ব্যবসায়িক তথ্য সংগ্রহ করতে পারি।</p>
-          <h3>2. তথ্য ব্যবহারের উদ্দেশ্য</h3>
-          <p>সেবা প্রদান, পারফরম্যান্স উন্নয়ন, সাপোর্ট, নিরাপত্তা বজায় রাখা, এবং গুরুত্বপূর্ণ আপডেট পাঠানোর জন্য তথ্য ব্যবহার করা হয়।</p>
-          <h3>3. কুকি ও ট্র্যাকিং</h3>
-          <p>সাইট পারফরম্যান্স ও ব্যবহার বিশ্লেষণের জন্য কুকি বা অনুরূপ প্রযুক্তি ব্যবহৃত হতে পারে। ব্রাউজার সেটিংস থেকে কুকি নিয়ন্ত্রণ করতে পারেন।</p>
-          <h3>4. তথ্য শেয়ারিং</h3>
-          <p>আমরা আপনার ব্যক্তিগত তথ্য বিক্রি করি না। সেবা প্রদানের প্রয়োজনে বিশ্বস্ত সার্ভিস প্রোভাইডারের সাথে সীমিত তথ্য শেয়ার হতে পারে।</p>
-          <h3>5. ডাটা সিকিউরিটি</h3>
-          <p>আপনার তথ্য সুরক্ষায় যুক্তিসঙ্গত প্রযুক্তিগত ও প্রশাসনিক নিরাপত্তা ব্যবস্থা ব্যবহার করা হয়।</p>
-          <h3>6. ডাটা রিটেনশন</h3>
-          <p>আইনি বাধ্যবাধকতা, সেবা প্রয়োজন, বা বিরোধ নিষ্পত্তির জন্য প্রয়োজনীয় সময় পর্যন্ত তথ্য সংরক্ষণ করা হতে পারে।</p>
-          <h3>7. আপনার অধিকার</h3>
-          <p>আপনি আপনার ব্যক্তিগত তথ্য অ্যাক্সেস, সংশোধন, বা মুছে ফেলার অনুরোধ করতে পারেন, প্রযোজ্য আইন অনুযায়ী।</p>
-          <h3>8. তৃতীয় পক্ষের লিংক</h3>
-          <p>আমাদের সাইটে তৃতীয় পক্ষের লিংক থাকতে পারে। সেসব সাইটের নীতিমালার জন্য আমরা দায়ী নই।</p>
-          <h3>9. শিশুদের গোপনীয়তা</h3>
-          <p>১৩ বছরের কম বয়সী শিশুদের জন্য এই সেবা নয় এবং জেনেশুনে তাদের তথ্য সংগ্রহ করা হয় না।</p>
-          <h3>10. নীতিমালা আপডেট</h3>
-          <p>প্রয়োজনে এই Privacy Policy পরিবর্তন হতে পারে। পরিবর্তন হলে এই পেজে আপডেট তারিখ পরিবর্তন করা হবে।</p>
-          <h3>11. যোগাযোগ</h3>
-          <p>ডাটা বা প্রাইভেসি বিষয়ে জানতে <a href="{{ route('contact.index') }}">Contact Page</a> থেকে যোগাযোগ করুন।</p>
+          <h3>1. Information We Collect</h3>
+          <p>We may collect account information (name, email, and phone number), usage data (logs, device, and browser details), and business information you provide while using our services.</p>
+          <h3>2. How We Use Information</h3>
+          <p>We use information to deliver services, improve performance, provide support, maintain security, and send important updates related to your account and our platform.</p>
+          <h3>3. Cookies and Tracking</h3>
+          <p>We may use cookies and similar technologies to analyze site usage and improve performance. You can manage cookie settings from your browser.</p>
+          <h3>4. Information Sharing</h3>
+          <p>We do not sell your personal data. We may share limited data with trusted service providers when necessary to operate and deliver our services.</p>
+          <h3>5. Data Security</h3>
+          <p>We apply reasonable technical and organizational safeguards to protect your data from unauthorized access, alteration, or disclosure.</p>
+          <h3>6. Data Retention</h3>
+          <p>We retain data only as long as needed for legal obligations, service delivery, or dispute resolution.</p>
+          <h3>7. Your Rights</h3>
+          <p>Subject to applicable law, you may request access to, correction of, or deletion of your personal information.</p>
+          <h3>8. Third-Party Links</h3>
+          <p>Our website may contain links to third-party websites. We are not responsible for their privacy practices or content.</p>
+          <h3>9. Children's Privacy</h3>
+          <p>Our services are not intended for children under 13, and we do not knowingly collect personal information from them.</p>
+          <h3>10. Policy Updates</h3>
+          <p>We may update this Privacy Policy from time to time. When we do, the "Last updated" date on this page will be revised.</p>
+          <h3>11. Contact</h3>
+          <p>For questions about privacy or data handling, please contact us through the <a href="{{ route('contact.index') }}">Contact Page</a>.</p>
         </div>
       </div>
     </section>
