@@ -218,7 +218,7 @@
       <p class="bot-facebook-empty">
         Connect Facebook to select the page where Messenger and comment auto-reply should run.
       </p>
-      <a href="{{ route('facebook.auth.redirect', ['origin' => 'admin-bot-settings']) }}" class="btn btn-primary">
+      <a href="{{ route('admin.bot-settings.facebook.connect') }}" class="btn btn-primary">
         Connect Facebook
       </a>
     @endif

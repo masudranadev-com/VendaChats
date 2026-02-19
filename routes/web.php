@@ -114,8 +114,15 @@ Route::prefix('admin')->name('admin.')->group(function () {
     Route::get('/conversations', [AdminDashboardController::class, 'conversations'])->name('conversations');
     Route::get('/customers', [AdminDashboardController::class, 'customers'])->name('customers');
     Route::get('/products', [AdminDashboardController::class, 'products'])->name('products');
+
+    // bot-settings
     Route::get('/bot-settings', [BotSettingsController::class, 'index'])->name('bot-settings');
-    Route::post('/bot-settings/facebook-page', [BotSettingsController::class, 'saveFacebookPageServices'])->name('bot-settings.facebook-page');
+    // Route::post('/bot-settings/facebook-page', [BotSettingsController::class, 'saveFacebookPageServices'])->name('bot-settings.facebook-page');
+    Route::get('/bot-settings/facebook/connect', [BotSettingsController::class, 'connectFacebook'])->name('bot-settings.facebook.connect');
+    Route::get('/bot-settings/facebook/assign', [BotSettingsController::class, 'assignFacebookPage'])->name('bot-settings.facebook.assign');
+    Route::get('/bot-settings/facebook/disconnect', [BotSettingsController::class, 'disconnectFacebook'])->name('bot-settings.facebook.disconnect');
+    Route::get('/bot-settings/facebook/callback', [BotSettingsController::class, 'handleFacebookCallback'])->name('bot-settings.facebook.callback');
+
     Route::get('/bargaining', [AdminDashboardController::class, 'bargaining'])->name('bargaining');
     Route::get('/whatsapp-recovery', [AdminDashboardController::class, 'whatsappRecovery'])->name('whatsapp-recovery');
     Route::get('/campaigns', [AdminDashboardController::class, 'campaigns'])->name('campaigns');

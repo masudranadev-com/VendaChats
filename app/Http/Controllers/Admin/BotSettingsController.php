@@ -48,45 +48,6 @@ class BotSettingsController extends Controller
         ]);
     }
 
-    public function saveFacebookPageServices(Request $request): RedirectResponse
-    {
-        $availablePageIds = collect($request->session()->get('facebook.pages', []))
-            ->pluck('id')
-            ->filter()
-            ->values()
-            ->all();
-
-        if ($availablePageIds === []) {
-            return redirect()
-                ->route('admin.bot-settings')
-                ->withErrors(['facebook' => 'Connect your Facebook account first to select a page.']);
-        }
-
-        $validated = $request->validate([
-            'page_id' => ['required', 'string'],
-        ]);
-
-        $pageId = $validated['page_id'];
-        if (! in_array($pageId, $availablePageIds, true)) {
-            return redirect()
-                ->route('admin.bot-settings')
-                ->withErrors(['facebook' => 'Selected Facebook page is not available in this session.']);
-        }
-
-        $pageServices = $request->session()->get('bot_settings.page_services', []);
-        $pageServices[$pageId] = [
-            'service_messenger' => true,
-            'service_comments' => true,
-        ];
-
-        $request->session()->put('bot_settings.selected_page_id', $pageId);
-        $request->session()->put('bot_settings.page_services', $pageServices);
-
-        return redirect()
-            ->route('admin.bot-settings')
-            ->with('facebook_status', 'Facebook page and services updated.');
-    }
-
     /*
     ===========
     // Facebook
