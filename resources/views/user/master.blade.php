@@ -10,6 +10,8 @@
     'login.index' => 'login',
     'privacy.index' => 'privacy',
     'terms.index' => 'terms',
+    'data-deletion.index' => 'data-deletion',
+    'data-deletion.status' => 'data-deletion',
   ];
   $currentPage = $routeToPage[$routeName] ?? 'home';
 @endphp
@@ -75,7 +77,7 @@
       </div>
       <div class="footer-bottom">
         <p>&copy; 2026 Venda Motion Bot</p>
-        <p>All rights reserved &bull; <a href="{{ route('terms.index') }}">Terms &amp; Conditions</a> | <a href="{{ route('privacy.index') }}">Privacy Policy</a></p>
+        <p>All rights reserved &bull; <a href="{{ route('terms.index') }}">Terms &amp; Conditions</a> | <a href="{{ route('privacy.index') }}">Privacy Policy</a> | <a href="{{ route('data-deletion.index') }}">User Data Deletion</a></p>
       </div>
     </div>
   </footer><button class="back-to-top" id="backToTop" onclick="scrollToTop()" aria-label="উপরে যান">&uarr;</button> <button class="chat-fab" id="chatFab" aria-label="চ্যাট খুলুন" aria-expanded="false" aria-controls="chatWidget"><span class="chat-fab-label">হ্যালো, ডেমো দেখতে এখানে ক্লিক করুন</span> <span class="chat-fab-icon chat-fab-open" aria-hidden="true">💬</span> <span class="chat-fab-icon chat-fab-close" aria-hidden="true">✕</span></button>

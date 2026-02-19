@@ -3,6 +3,7 @@
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
 use App\Http\Controllers\User\AccountController;
+use App\Http\Controllers\User\DataDeletionController;
 use App\Http\Controllers\User\FacebookAuthController;
 use App\Http\Controllers\User\HomeController;
 use App\Http\Controllers\User\InfoController;
@@ -29,6 +30,9 @@ Route::get('/contact', [InfoController::class, 'contact'])->name('contact.index'
 Route::get('/login', [AccountController::class, 'index'])->name('login.index');
 Route::get('/privacy-policy', [InfoController::class, 'privacy'])->name('privacy.index');
 Route::get('/terms-and-conditions', [InfoController::class, 'terms'])->name('terms.index');
+Route::get('/user-data-deletion', [DataDeletionController::class, 'index'])->name('data-deletion.index');
+Route::post('/facebook/data-deletion', [DataDeletionController::class, 'callback'])->name('data-deletion.callback');
+Route::get('/facebook/data-deletion/status/{code}', [DataDeletionController::class, 'status'])->name('data-deletion.status');
 
 // webhook
 Route::any('/webhook', [HomeController::class, 'webhook'])->name('home.webhook');

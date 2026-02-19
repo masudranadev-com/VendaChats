@@ -9,7 +9,7 @@
       <div class="container">
         <span class="section-tag">Legal</span>
         <h1 class="page-hero-title">Privacy <span class="gradient-text">Policy</span></h1>
-        <p class="page-hero-sub">Last updated: February 17, 2026</p>
+        <p class="page-hero-sub">Last updated: February 19, 2026</p>
       </div>
     </section>
     <section class="section">
@@ -37,6 +37,8 @@
           <p>We may update this Privacy Policy from time to time. When we do, the "Last updated" date on this page will be revised.</p>
           <h3>11. Contact</h3>
           <p>For questions about privacy or data handling, please contact us through the <a href="{{ route('contact.index') }}">Contact Page</a>.</p>
+          <h3>12. Facebook User Data Deletion</h3>
+          <p>If you used Facebook Login, you can request data deletion from Facebook settings. For full instructions and request status details, visit our <a href="{{ route('data-deletion.index') }}">User Data Deletion</a> page.</p>
         </div>
       </div>
     </section>

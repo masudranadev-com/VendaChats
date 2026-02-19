@@ -14,5 +14,6 @@ class VerifyCsrfToken extends Middleware
     protected $except = [
         'webhook',
         'facebook/webhook',
+        'facebook/data-deletion',
     ];
 }
