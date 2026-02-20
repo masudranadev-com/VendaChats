@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
@@ -36,6 +37,7 @@ class FacebookAuthController extends Controller
 
         $state = Str::random(40);
         $request->session()->put('facebook.oauth_state', $state);
+        Cache::put($this->oauthStateCacheKey($state), true, now()->addMinutes(10));
 
         $query = http_build_query([
             'client_id' => $this->facebookConfig('app_id'),
@@ -61,9 +63,24 @@ class FacebookAuthController extends Controller
                 ->withErrors(['facebook' => $message]);
         }
 
-        $expectedState = $request->session()->pull('facebook.oauth_state');
-        $incomingState = $request->query('state');
-        if (! $expectedState || ! $incomingState || ! hash_equals($expectedState, $incomingState)) {
+        $incomingState = (string) $request->query('state', '');
+        if ($incomingState === '') {
+            return redirect()
+                ->route('facebook.oauth')
+                ->withErrors(['facebook' => 'OAuth state is missing. Please start login again from this same domain.']);
+        }
+
+        $expectedState = (string) $request->session()->pull('facebook.oauth_state', '');
+        $matchesSession = $expectedState !== '' && hash_equals($expectedState, $incomingState);
+        $matchesCache = Cache::pull($this->oauthStateCacheKey($incomingState), false) === true;
+
+        if (! $matchesSession && ! $matchesCache) {
+            Log::warning('Invalid Facebook OAuth state on callback.', [
+                'host' => $request->getHost(),
+                'has_session_state' => $expectedState !== '',
+                'incoming_state_prefix' => Str::substr($incomingState, 0, 8),
+            ]);
+
             return redirect()
                 ->route('facebook.oauth')
                 ->withErrors(['facebook' => 'Invalid OAuth state. Please try again.']);
@@ -438,5 +455,10 @@ class FacebookAuthController extends Controller
         ];
 
         return array_keys(array_filter($required, static fn ($value) => blank($value)));
+    }
+
+    private function oauthStateCacheKey(string $state): string
+    {
+        return 'facebook:oauth_state:'.$state;
     }
 }
