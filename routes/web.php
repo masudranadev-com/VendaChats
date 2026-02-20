@@ -9,6 +9,7 @@ use App\Http\Controllers\Admin\AdminPostController;
 use App\Http\Controllers\Admin\CompetitionController;
 use App\Http\Controllers\Admin\CoachController;
 use App\Http\Controllers\Admin\CourierController;
+use App\Http\Controllers\Admin\ProfileController;
 use App\Http\Controllers\Admin\ShopSettingsController;
 use App\Http\Controllers\User\AccountController;
 use App\Http\Controllers\User\DataDeletionController;
@@ -115,6 +116,8 @@ Route::prefix('facebook')->name('facebook.')->group(function () {
 Route::redirect('/admin', '/admin/dashboard');
 Route::prefix('admin')->name('admin.')->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+    Route::get('/profile', [ProfileController::class, 'index'])->name('profile');
+    Route::get('/settings', [ProfileController::class, 'settings'])->name('settings');
     Route::get('/analytics', [DashboardController::class, 'analytics'])->name('analytics');
     Route::get('/orders', [DashboardController::class, 'orders'])->name('orders');
     Route::get('/conversations', [DashboardController::class, 'conversations'])->name('conversations');

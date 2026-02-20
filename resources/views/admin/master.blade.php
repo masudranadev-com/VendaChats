@@ -2,6 +2,8 @@
   $routeName = request()->route()?->getName();
   $routeToPage = [
     'admin.dashboard' => 'dashboard',
+    'admin.profile' => 'profile',
+    'admin.settings' => 'profile',
     'admin.analytics' => 'analytics',
     'admin.orders' => 'orders',
     'admin.conversations' => 'conversations',
@@ -158,11 +160,11 @@
               </div>
             </div>
             <div class="dropdown-menu">
-              <div class="dropdown-item">👤 My Profile</div>
-              <div class="dropdown-item">⚙️ Settings</div>
-              <div class="dropdown-item">❓ Help Center</div>
+              <a href="{{ route('admin.profile') }}" class="dropdown-item">My Profile</a>
+              <a href="{{ route('admin.settings') }}" class="dropdown-item">Settings</a>
+              <a href="{{ route('admin.shop-settings') }}" class="dropdown-item">Shop Settings</a>
               <div class="dropdown-divider"></div>
-              <div class="dropdown-item">🚪 Logout</div>
+              <div class="dropdown-item">Logout</div>
             </div>
           </div>
         </div>
