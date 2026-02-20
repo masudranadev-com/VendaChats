@@ -14,9 +14,15 @@
     'admin.bargaining' => 'bargaining',
     'admin.campaigns' => 'campaigns',
     'admin.competition' => 'competition',
+    'admin.competition.view' => 'competition',
     'admin.coach' => 'coach',
     'admin.courier' => 'courier',
     'admin.settings' => 'settings',
+    'admin.settings.domain' => 'settings',
+    'admin.settings.theme' => 'settings',
+    'admin.settings.category' => 'settings',
+    'admin.settings.offers' => 'settings',
+    'admin.settings.content' => 'settings',
     'admin.billing' => 'billing',
   ];
   $currentPage = $routeToPage[$routeName] ?? 'dashboard';
@@ -57,16 +63,6 @@
           <a href="{{ route('admin.orders') }}" class="nav-item {{ $currentPage === 'orders' ? 'active' : '' }}">
             <span class="nav-icon">🛒</span>
             <span class="nav-label">Orders</span>
-            <span class="nav-badge">12</span>
-          </a>
-          <a href="{{ route('admin.conversations') }}" class="nav-item {{ $currentPage === 'conversations' ? 'active' : '' }}">
-            <span class="nav-icon">💬</span>
-            <span class="nav-label">Conversations</span>
-            <span class="nav-badge">5</span>
-          </a>
-          <a href="{{ route('admin.customers') }}" class="nav-item {{ $currentPage === 'customers' ? 'active' : '' }}">
-            <span class="nav-icon">👥</span>
-            <span class="nav-label">Customers</span>
           </a>
           <a href="{{ route('admin.products') }}" class="nav-item {{ $currentPage === 'products' ? 'active' : '' }}">
             <span class="nav-icon">📦</span>
@@ -116,10 +112,6 @@
             <span class="nav-icon">⚙️</span>
             <span class="nav-label">Shop Settings</span>
           </a>
-          <a href="{{ route('admin.billing') }}" class="nav-item {{ $currentPage === 'billing' ? 'active' : '' }}">
-            <span class="nav-icon">💳</span>
-            <span class="nav-label">Billing</span>
-          </a>
         </div>
       </nav>
     </aside>
@@ -138,7 +130,7 @@
         </div>
 
         <div class="header-right">
-          <div class="dropdown">
+          {{-- <div class="dropdown">
             <button class="header-btn" type="button">
               🔔
               <span class="badge">3</span>
@@ -159,7 +151,7 @@
               <div class="dropdown-divider"></div>
               <div class="dropdown-item">View all notifications</div>
             </div>
-          </div>
+          </div> --}}
 
           <div class="dropdown">
             <div class="user-menu">
@@ -178,6 +170,7 @@
             </div>
           </div>
         </div>
+
       </header>
 
       <main class="page-content">
