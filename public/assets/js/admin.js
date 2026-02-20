@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════════════════
-   SELLBUZZ AI ADMIN PANEL — MAIN JAVASCRIPT
+   A Metafy ADMIN PANEL — MAIN JAVASCRIPT
    All interactive functionality
 ═══════════════════════════════════════════════════════════ */
 
@@ -22,7 +22,7 @@ document.addEventListener('DOMContentLoaded', () => {
 // ══════════════════════════════════════════
 function initTheme() {
   applyTheme('light');
-  
+
   // Theme toggle button
   document.getElementById('themeToggle')?.addEventListener('click', () => applyTheme('light'));
 }
@@ -30,7 +30,7 @@ function initTheme() {
 function applyTheme(theme) {
   document.body.setAttribute('data-theme', 'light');
   localStorage.setItem('sellbuzz-theme', 'light');
-  
+
   const icon = document.getElementById('themeToggle');
   if (icon) {
     icon.textContent = '☀️';
@@ -48,7 +48,7 @@ function initSidebar() {
   const sidebar = document.querySelector('.sidebar');
   const menuToggle = document.getElementById('menuToggle');
   const mobileOverlay = document.getElementById('mobileOverlay');
-  
+
   // Toggle sidebar collapse (desktop)
   menuToggle?.addEventListener('click', () => {
     if (window.innerWidth > 1024) {
@@ -59,12 +59,12 @@ function initSidebar() {
       sidebar?.classList.toggle('mobile-open');
     }
   });
-  
+
   // Close mobile sidebar when clicking overlay
   mobileOverlay?.addEventListener('click', () => {
     sidebar?.classList.remove('mobile-open');
   });
-  
+
   // Restore collapsed state
   if (localStorage.getItem('sidebar-collapsed') === 'true') {
     sidebar?.classList.add('collapsed');
@@ -95,19 +95,19 @@ function resolveCurrentPage() {
 function initDropdowns() {
   document.querySelectorAll('.dropdown').forEach(dropdown => {
     const trigger = dropdown.querySelector('.dropdown-trigger') || dropdown.querySelector('.header-btn') || dropdown.querySelector('.user-menu');
-    
+
     trigger?.addEventListener('click', (e) => {
       e.stopPropagation();
-      
+
       // Close other dropdowns
       document.querySelectorAll('.dropdown.active').forEach(d => {
         if (d !== dropdown) d.classList.remove('active');
       });
-      
+
       dropdown.classList.toggle('active');
     });
   });
-  
+
   // Close dropdowns when clicking outside
   document.addEventListener('click', () => {
     document.querySelectorAll('.dropdown.active').forEach(d => d.classList.remove('active'));
@@ -125,21 +125,21 @@ function initModals() {
       openModal(modalId);
     });
   });
-  
+
   // Close modal buttons
   document.querySelectorAll('.modal-close, [data-modal-close]').forEach(btn => {
     btn.addEventListener('click', () => {
       closeAllModals();
     });
   });
-  
+
   // Close on overlay click
   document.querySelectorAll('.modal-overlay').forEach(overlay => {
     overlay.addEventListener('click', (e) => {
       if (e.target === overlay) closeAllModals();
     });
   });
-  
+
   // Close on Escape key
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') closeAllModals();
@@ -174,14 +174,14 @@ function initToasts() {
 
 function showToast(message, type = 'info', duration = 4000) {
   const container = document.querySelector('.toast-container');
-  
+
   const icons = {
     success: '✓',
     error: '✗',
     warning: '⚠',
     info: 'ℹ'
   };
-  
+
   const toast = document.createElement('div');
   toast.className = `toast ${type}`;
   toast.innerHTML = `
@@ -190,9 +190,9 @@ function showToast(message, type = 'info', duration = 4000) {
       <div class="toast-message">${message}</div>
     </div>
   `;
-  
+
   container.appendChild(toast);
-  
+
   setTimeout(() => {
     toast.style.animation = 'slideOut 0.3s forwards';
     setTimeout(() => toast.remove(), 300);
@@ -221,12 +221,12 @@ function initTables() {
       th.dataset.order = order;
     });
   });
-  
+
   // Selectable rows
   document.querySelectorAll('.table-checkbox').forEach(checkbox => {
     checkbox.addEventListener('change', updateSelectedCount);
   });
-  
+
   // Select all checkbox
   document.querySelectorAll('.select-all-checkbox').forEach(checkbox => {
     checkbox.addEventListener('change', (e) => {
@@ -242,18 +242,18 @@ function initTables() {
 function sortTable(table, column, order) {
   const tbody = table.querySelector('tbody');
   const rows = Array.from(tbody.querySelectorAll('tr'));
-  
+
   rows.sort((a, b) => {
     const aVal = a.cells[column].textContent.trim();
     const bVal = b.cells[column].textContent.trim();
-    
+
     if (order === 'asc') {
       return aVal.localeCompare(bVal, undefined, {numeric: true});
     } else {
       return bVal.localeCompare(aVal, undefined, {numeric: true});
     }
   });
-  
+
   rows.forEach(row => tbody.appendChild(row));
 }
 
@@ -299,9 +299,9 @@ function initCharts() {
 function validateForm(formId) {
   const form = document.getElementById(formId);
   if (!form) return false;
-  
+
   let isValid = true;
-  
+
   form.querySelectorAll('[required]').forEach(input => {
     if (!input.value.trim()) {
       input.classList.add('error');
@@ -310,7 +310,7 @@ function validateForm(formId) {
       input.classList.remove('error');
     }
   });
-  
+
   return isValid;
 }
 
@@ -320,15 +320,15 @@ function validateForm(formId) {
 function initTabs() {
   document.querySelectorAll('.tabs').forEach(tabContainer => {
     const tabs = tabContainer.querySelectorAll('.tab');
-    
+
     tabs.forEach(tab => {
       tab.addEventListener('click', () => {
         // Remove active from all tabs
         tabs.forEach(t => t.classList.remove('active'));
-        
+
         // Add active to clicked tab
         tab.classList.add('active');
-        
+
         // Show corresponding content
         const target = tab.dataset.tab;
         if (target) {
@@ -488,7 +488,7 @@ function initFileUpload() {
   document.querySelectorAll('.file-upload').forEach(upload => {
     const input = upload.querySelector('input[type="file"]');
     const preview = upload.querySelector('.file-preview');
-    
+
     input?.addEventListener('change', (e) => {
       const file = e.target.files[0];
       if (file && preview) {
@@ -512,13 +512,13 @@ function initFileUpload() {
 function setupPagination(totalItems, itemsPerPage = 10) {
   const totalPages = Math.ceil(totalItems / itemsPerPage);
   let currentPage = 1;
-  
+
   const pagination = document.createElement('div');
   pagination.className = 'pagination';
-  
+
   function render() {
     pagination.innerHTML = '';
-    
+
     // Previous button
     const prev = document.createElement('button');
     prev.textContent = '‹';
@@ -530,7 +530,7 @@ function setupPagination(totalItems, itemsPerPage = 10) {
       }
     };
     pagination.appendChild(prev);
-    
+
     // Page numbers
     for (let i = 1; i <= totalPages; i++) {
       const page = document.createElement('button');
@@ -542,7 +542,7 @@ function setupPagination(totalItems, itemsPerPage = 10) {
       };
       pagination.appendChild(page);
     }
-    
+
     // Next button
     const next = document.createElement('button');
     next.textContent = '›';
@@ -555,7 +555,7 @@ function setupPagination(totalItems, itemsPerPage = 10) {
     };
     pagination.appendChild(next);
   }
-  
+
   render();
   return pagination;
 }
@@ -630,4 +630,4 @@ const style = document.createElement('style');
 style.textContent = slideOutAnimation;
 document.head.appendChild(style);
 
-console.log('✓ SellBuzz AI Admin Panel loaded');
+console.log('✓ A Metafy Admin Panel loaded');

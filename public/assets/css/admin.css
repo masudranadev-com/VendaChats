@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════════════════
-   SELLBUZZ AI ADMIN PANEL — MASTER STYLESHEET
+   A Metafy ADMIN PANEL — MASTER STYLESHEET
    Complete styling for all 32 pages with light/dark theme
 ═══════════════════════════════════════════════════════════ */
 
@@ -12,17 +12,17 @@
   --radius: 12px;
   --radius-sm: 8px;
   --radius-lg: 16px;
-  
+
   /* Transitions */
   --transition: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   --transition-slow: 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-  
+
   /* Shadows */
   --shadow-sm: 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.06);
   --shadow-md: 0 4px 12px rgba(0,0,0,0.1), 0 2px 4px rgba(0,0,0,0.08);
   --shadow-lg: 0 10px 30px rgba(0,0,0,0.12), 0 4px 8px rgba(0,0,0,0.08);
   --shadow-xl: 0 20px 50px rgba(0,0,0,0.15), 0 8px 16px rgba(0,0,0,0.1);
-  
+
   /* Spacing */
   --spacing-xs: 4px;
   --spacing-sm: 8px;
@@ -41,16 +41,16 @@
   --bg-hover: #F0F4FF;
   --bg-active: #E8EEFF;
   --bg-input: #F5F7FA;
-  
+
   --text-primary: #0F172A;
   --text-secondary: #475569;
   --text-tertiary: #94A3B8;
   --text-inverse: #FFFFFF;
-  
+
   --border: #E2E8F0;
   --border-hover: #CBD5E1;
   --border-focus: #1352DC;
-  
+
   --brand-primary: #1352DC;
   --brand-secondary: #0EA271;
   --brand-accent: #F5A623;
@@ -58,11 +58,11 @@
   --brand-warning: #F59E0B;
   --brand-success: #10B981;
   --brand-info: #3B82F6;
-  
+
   --gradient-primary: linear-gradient(135deg, #1352DC 0%, #4B7BF5 100%);
   --gradient-success: linear-gradient(135deg, #10B981 0%, #34D399 100%);
   --gradient-danger: linear-gradient(135deg, #E53E3E 0%, #F87171 100%);
-  
+
   --chart-1: #1352DC;
   --chart-2: #0EA271;
   --chart-3: #F5A623;
@@ -79,16 +79,16 @@
   --bg-hover: #1F2937;
   --bg-active: #374151;
   --bg-input: #1F2937;
-  
+
   --text-primary: #F1F5F9;
   --text-secondary: #94A3B8;
   --text-tertiary: #64748B;
   --text-inverse: #0F172A;
-  
+
   --border: #1E293B;
   --border-hover: #334155;
   --border-focus: #4B7BF5;
-  
+
   --brand-primary: #4B7BF5;
   --brand-secondary: #10B981;
   --brand-accent: #FBBF24;
@@ -96,17 +96,17 @@
   --brand-warning: #FBBF24;
   --brand-success: #34D399;
   --brand-info: #60A5FA;
-  
+
   --gradient-primary: linear-gradient(135deg, #4B7BF5 0%, #6B8EFF 100%);
   --gradient-success: linear-gradient(135deg, #10B981 0%, #34D399 100%);
   --gradient-danger: linear-gradient(135deg, #F87171 0%, #FCA5A5 100%);
-  
+
   --chart-1: #4B7BF5;
   --chart-2: #10B981;
   --chart-3: #FBBF24;
   --chart-4: #A78BFA;
   --chart-5: #F472B6;
-  
+
   --shadow-sm: 0 1px 3px rgba(0,0,0,0.3), 0 1px 2px rgba(0,0,0,0.2);
   --shadow-md: 0 4px 12px rgba(0,0,0,0.4), 0 2px 4px rgba(0,0,0,0.3);
   --shadow-lg: 0 10px 30px rgba(0,0,0,0.5), 0 4px 8px rgba(0,0,0,0.3);
@@ -3671,7 +3671,7 @@ ul, ol { list-style: none; }
   .sidebar {
     transform: translateX(-100%);
   }
-  
+
   .sidebar.mobile-open {
     transform: translateX(0);
   }
@@ -3680,17 +3680,17 @@ ul, ol { list-style: none; }
     opacity: 1;
     visibility: visible;
   }
-  
+
   .main-content {
     margin-left: 0;
     width: 100%;
   }
-  
+
   .sidebar.collapsed ~ .main-content {
     margin-left: 0;
     width: 100%;
   }
-  
+
   .search-bar {
     display: none;
   }
@@ -3874,23 +3874,23 @@ ul, ol { list-style: none; }
   .page-content {
     padding: var(--spacing-lg);
   }
-  
+
   .stats-grid {
     grid-template-columns: 1fr;
   }
-  
+
   .header-right {
     gap: var(--spacing-sm);
   }
-  
+
   .user-info {
     display: none;
   }
-  
+
   .table-container {
     overflow-x: auto;
   }
-  
+
   .page-actions {
     flex-direction: column;
     align-items: stretch;
