@@ -4507,6 +4507,18 @@ body.products-attention-open {
 
 .text-center { text-align: center; }
 .text-right { text-align: right; }
+.text-primary { color: var(--brand-primary) !important; }
+.text-success { color: var(--brand-success) !important; }
+.text-danger { color: var(--brand-danger) !important; }
+.text-warning { color: var(--brand-warning) !important; }
+.text-info { color: var(--brand-info) !important; }
+.text-muted { color: var(--text-tertiary) !important; }
+
+.bg-primary { background: var(--brand-primary) !important; color: var(--text-inverse) !important; }
+.bg-success { background: var(--brand-success) !important; color: var(--text-inverse) !important; }
+.bg-danger { background: var(--brand-danger) !important; color: var(--text-inverse) !important; }
+.bg-warning { background: var(--brand-warning) !important; color: var(--text-primary) !important; }
+.bg-info { background: var(--brand-info) !important; color: var(--text-inverse) !important; }
 
 .mt-0 { margin-top: 0; }
 .mt-sm { margin-top: var(--spacing-sm); }
@@ -4561,7 +4573,7 @@ body.products-attention-open {
 
 .orders-kpi-grid {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: var(--spacing-md);
 }
 

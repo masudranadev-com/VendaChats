@@ -6,6 +6,7 @@ use App\Http\Controllers\Admin\BotSettingsController;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\AdminUsersController;
 use App\Http\Controllers\Admin\AdminPostController;
+use App\Http\Controllers\Admin\AdminOrderController;
 use App\Http\Controllers\Admin\CompetitionController;
 use App\Http\Controllers\Admin\CoachController;
 use App\Http\Controllers\Admin\CourierController;
@@ -112,18 +113,20 @@ Route::prefix('facebook')->name('facebook.')->group(function () {
     Route::post('/webhook', [FacebookAuthController::class, 'receiveWebhook'])->name('webhook.receive');
 });
 
-// Admin
+// Admin php artisan make:controller Admin/AdminOrderController
 Route::redirect('/admin', '/admin/dashboard');
 Route::prefix('admin')->name('admin.')->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
     Route::get('/profile', [ProfileController::class, 'index'])->name('profile');
     Route::get('/settings', [ProfileController::class, 'settings'])->name('settings');
     Route::get('/analytics', [DashboardController::class, 'analytics'])->name('analytics');
-    Route::get('/orders', [DashboardController::class, 'orders'])->name('orders');
     Route::get('/conversations', [DashboardController::class, 'conversations'])->name('conversations');
     Route::get('/customers', [DashboardController::class, 'customers'])->name('customers');
     Route::get('/products', [DashboardController::class, 'products'])->name('products');
     Route::get('/categories', [DashboardController::class, 'categories'])->name('categories');
+
+    // orders 
+    Route::get('/orders', [AdminOrderController::class, 'orders'])->name('orders');
 
     // bot-settings
     Route::get('/bot-settings', [BotSettingsController::class, 'index'])->name('bot-settings');

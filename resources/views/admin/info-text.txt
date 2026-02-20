@@ -1,0 +1,25 @@
+Order Placed
+Yes. User submitted checkout successfully.
+
+Order Confirmed
+Yes. Admin (or system auto-rule) accepted the order as valid.
+
+Order Processing
+Not courier handover yet.
+This is your internal work: verify payment, pick items, pack parcel, print invoice/label.
+
+Ready to Dispatch
+Not “courier ready” exactly.
+It means your warehouse is done and parcel is waiting for courier pickup/handover.
+
+Shipped / In Transit
+This starts after courier picks up parcel.
+Parcel is moving through courier network to customer.
+
+Delivered
+Not same as In Transit.
+In Transit = still moving.
+Delivered = courier says package reached customer address.
+
+Completed
+Usually yes: final closed state after successful delivery (and often after return/refund window ends, or admin marks complete).

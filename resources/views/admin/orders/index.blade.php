@@ -10,7 +10,6 @@
     </div>
 
     <div class="orders-header-actions">
-      <button type="button" class="btn btn-secondary">Export CSV</button>
       <button type="button" class="btn btn-primary">Create Manual Order</button>
     </div>
   </div>
@@ -51,8 +50,7 @@
     @foreach ($pipeline as $lane)
       <article class="orders-pipeline-card">
         <span>{{ $lane['name'] }}</span>
-        <strong>{{ $lane['count'] }}</strong>
-        <small class="badge badge-{{ $lane['tone'] }}">Active</small>
+        <a href="" class="text-{{ $lane['tone'] }}">{{ $lane['count'] }}</a>
       </article>
     @endforeach
   </section>
