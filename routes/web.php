@@ -128,6 +128,8 @@ Route::prefix('admin')->name('admin.')->group(function () {
     // orders 
     Route::get('/orders', [AdminOrderController::class, 'orders'])->name('orders');
     Route::get('/orders/{orderId}', [AdminOrderController::class, 'view'])->name('orders.view');
+    Route::post('/orders/{orderId}/discount', [AdminOrderController::class, 'applyDiscount'])->name('orders.discount.apply');
+    Route::post('/orders/{orderId}/discount/remove', [AdminOrderController::class, 'removeDiscount'])->name('orders.discount.remove');
     Route::post('/orders/{orderId}/confirm', [AdminOrderController::class, 'confirm'])->name('orders.confirm');
     Route::get('/orders/{orderId}/invoice', [AdminOrderController::class, 'invoice'])->name('orders.invoice');
 

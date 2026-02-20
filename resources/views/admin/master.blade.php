@@ -7,6 +7,8 @@
     'admin.analytics' => 'analytics',
     'admin.orders' => 'orders',
     'admin.orders.view' => 'orders',
+    'admin.orders.discount.apply' => 'orders',
+    'admin.orders.discount.remove' => 'orders',
     'admin.orders.invoice' => 'orders',
     'admin.conversations' => 'conversations',
     'admin.customers' => 'customers',

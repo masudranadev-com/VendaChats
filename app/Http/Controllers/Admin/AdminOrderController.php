@@ -11,7 +11,8 @@ class AdminOrderController extends Controller
 {
     public function orders(Request $request): View
     {
-        $orders = collect($this->ordersDataset());
+        $orders = collect($this->ordersDataset())
+            ->map(fn (array $order): array => $this->withManualDiscount($order));
         $customerFilter = trim((string) $request->query('customer_id', ''));
 
         if ($customerFilter !== '') {
@@ -86,6 +87,65 @@ class AdminOrderController extends Controller
         ]);
     }
 
+    public function applyDiscount(Request $request, string $orderId): RedirectResponse
+    {
+        $order = $this->findOrderById($orderId, false);
+        abort_unless($order !== null, 404);
+
+        $validated = $request->validate([
+            'coupon_code' => ['nullable', 'string', 'max:32'],
+            'discount_type' => ['required', 'in:fixed,percent'],
+            'discount_value' => ['required', 'numeric', 'min:0.01'],
+        ]);
+
+        $discountType = (string) $validated['discount_type'];
+        $discountValue = (float) $validated['discount_value'];
+
+        if ($discountType === 'percent' && $discountValue > 100) {
+            return redirect()
+                ->route('admin.orders.view', ['orderId' => $order['id']])
+                ->withErrors(['discount_value' => 'Percentage discount cannot be more than 100%.'])
+                ->withInput();
+        }
+
+        $manualAmount = $this->calculateManualDiscountAmount(
+            $order['totals'],
+            $discountType,
+            $discountValue
+        );
+
+        if ($manualAmount <= 0) {
+            return redirect()
+                ->route('admin.orders.view', ['orderId' => $order['id']])
+                ->withErrors(['discount_value' => 'Discount amount exceeds what can be applied to this order.'])
+                ->withInput();
+        }
+
+        $couponCode = strtoupper(trim((string) ($validated['coupon_code'] ?? '')));
+
+        $request->session()->put($this->discountSessionKey($order['id']), [
+            'coupon_code' => $couponCode !== '' ? $couponCode : null,
+            'type' => $discountType,
+            'value' => $discountValue,
+        ]);
+
+        return redirect()
+            ->route('admin.orders.view', ['orderId' => $order['id']])
+            ->with('success', "Manual discount applied to {$order['id']}.");
+    }
+
+    public function removeDiscount(Request $request, string $orderId): RedirectResponse
+    {
+        $order = $this->findOrderById($orderId, false);
+        abort_unless($order !== null, 404);
+
+        $request->session()->forget($this->discountSessionKey($order['id']));
+
+        return redirect()
+            ->route('admin.orders.view', ['orderId' => $order['id']])
+            ->with('success', "Manual discount removed from {$order['id']}.");
+    }
+
     public function confirm(string $orderId): RedirectResponse
     {
         $order = $this->findOrderById($orderId);
@@ -116,15 +176,70 @@ class AdminOrderController extends Controller
         ]);
     }
 
-    private function findOrderById(string $orderId): ?array
+    private function findOrderById(string $orderId, bool $withManualDiscount = true): ?array
     {
         foreach ($this->ordersDataset() as $order) {
             if (($order['id'] ?? '') === $orderId) {
-                return $order;
+                return $withManualDiscount ? $this->withManualDiscount($order) : $order;
             }
         }
 
         return null;
+    }
+
+    private function discountSessionKey(string $orderId): string
+    {
+        return "admin.orders.manual_discounts.{$orderId}";
+    }
+
+    private function withManualDiscount(array $order): array
+    {
+        $orderId = (string) ($order['id'] ?? '');
+        $manual = session($this->discountSessionKey($orderId), []);
+
+        if (! is_array($manual)) {
+            $manual = [];
+        }
+
+        $discountType = in_array(($manual['type'] ?? ''), ['fixed', 'percent'], true)
+            ? (string) $manual['type']
+            : 'fixed';
+        $discountValue = max(0, (float) ($manual['value'] ?? 0));
+        $manualAmount = $this->calculateManualDiscountAmount($order['totals'], $discountType, $discountValue);
+
+        $subtotal = max(0, (float) ($order['totals']['subtotal'] ?? 0));
+        $shippingFee = max(0, (float) ($order['totals']['shipping_fee'] ?? 0));
+        $baseDiscount = max(0, (float) ($order['totals']['discount'] ?? 0));
+        $totalDiscount = $baseDiscount + $manualAmount;
+
+        $couponCode = strtoupper(trim((string) ($manual['coupon_code'] ?? '')));
+
+        $order['totals']['discount'] = $totalDiscount;
+        $order['totals']['grand_total'] = max(0, $subtotal + $shippingFee - $totalDiscount);
+        $order['manual_discount'] = [
+            'is_applied' => $manualAmount > 0 || $couponCode !== '',
+            'coupon_code' => $couponCode !== '' ? $couponCode : null,
+            'type' => $discountType,
+            'value' => $discountValue,
+            'amount' => $manualAmount,
+        ];
+
+        return $order;
+    }
+
+    private function calculateManualDiscountAmount(array $totals, string $discountType, float $discountValue): float
+    {
+        $subtotal = max(0, (float) ($totals['subtotal'] ?? 0));
+        $shippingFee = max(0, (float) ($totals['shipping_fee'] ?? 0));
+        $baseDiscount = max(0, (float) ($totals['discount'] ?? 0));
+        $maxManualDiscount = max(0, $subtotal + $shippingFee - $baseDiscount);
+
+        $rawAmount = $discountType === 'percent'
+            ? $subtotal * ($discountValue / 100)
+            : $discountValue;
+        $roundedAmount = max(0, round($rawAmount));
+
+        return min($roundedAmount, $maxManualDiscount);
     }
 
     private function formatBdt(float $amount): string

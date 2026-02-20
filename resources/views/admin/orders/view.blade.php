@@ -30,6 +30,20 @@
     </div>
   </div>
 
+  @if (session('success'))
+    <div class="orders-confirm-message">
+      <span class="badge badge-success">{{ session('success') }}</span>
+    </div>
+  @endif
+
+  @if ($errors->any())
+    <div class="orders-confirm-message">
+      @foreach ($errors->all() as $error)
+        <span class="badge badge-danger">{{ $error }}</span>
+      @endforeach
+    </div>
+  @endif
+
   <div class="orders-detail-grid">
     <section class="card orders-customer-card">
       <div class="card-header">
@@ -92,6 +106,87 @@
 
   <section class="card mt-xl">
     <div class="card-header">
+      <h3 class="card-title">Coupon / Manual Discount</h3>
+      @if ($order['manual_discount']['is_applied'] ?? false)
+        <span class="badge badge-success">Applied</span>
+      @else
+        <span class="badge badge-warning">Not Applied</span>
+      @endif
+    </div>
+
+    <form action="{{ route('admin.orders.discount.apply', ['orderId' => $order['id']]) }}" method="POST">
+      @csrf
+      <div class="orders-discount-grid">
+        <div class="form-group">
+          <label class="form-label" for="coupon_code">Coupon Code (Optional)</label>
+          <input
+            id="coupon_code"
+            type="text"
+            name="coupon_code"
+            class="form-input"
+            placeholder="EID25, VIP-150..."
+            value="{{ old('coupon_code', $order['manual_discount']['coupon_code'] ?? '') }}"
+          >
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="discount_type">Discount Type</label>
+          <select id="discount_type" name="discount_type" class="form-select">
+            <option value="fixed" {{ old('discount_type', $order['manual_discount']['type'] ?? 'fixed') === 'fixed' ? 'selected' : '' }}>
+              Fixed Amount (BDT)
+            </option>
+            <option value="percent" {{ old('discount_type', $order['manual_discount']['type'] ?? 'fixed') === 'percent' ? 'selected' : '' }}>
+              Percentage (%)
+            </option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="discount_value">Discount Value</label>
+          <input
+            id="discount_value"
+            type="number"
+            name="discount_value"
+            class="form-input"
+            min="0.01"
+            step="0.01"
+            placeholder="100 or 10 for 10%"
+            value="{{ old('discount_value', ($order['manual_discount']['value'] ?? 0) > 0 ? $order['manual_discount']['value'] : '') }}"
+            required
+          >
+        </div>
+      </div>
+
+      <div class="orders-discount-actions">
+        <button type="submit" class="btn btn-primary">Apply Discount</button>
+      </div>
+    </form>
+
+    @if ($order['manual_discount']['is_applied'] ?? false)
+      <div class="orders-discount-summary">
+        <p>
+          Manual discount active:
+          <strong>- BDT {{ number_format($order['manual_discount']['amount']) }}</strong>
+          @if (($order['manual_discount']['coupon_code'] ?? null) !== null)
+            using coupon <strong>{{ $order['manual_discount']['coupon_code'] }}</strong>.
+          @endif
+        </p>
+        <form
+          action="{{ route('admin.orders.discount.remove', ['orderId' => $order['id']]) }}"
+          method="POST"
+          onsubmit="return confirm('Remove manual discount from this order?');"
+        >
+          @csrf
+          <button type="submit" class="btn btn-secondary btn-sm">Remove Manual Discount</button>
+        </form>
+      </div>
+    @endif
+
+    <p class="orders-discount-help">
+      Tip: use Percentage for coupon campaigns and Fixed Amount for direct negotiation discounts.
+    </p>
+  </section>
+
+  <section class="card mt-xl">
+    <div class="card-header">
       <h3 class="card-title">Current Order Products</h3>
       <span class="badge badge-info">{{ count($order['products']) }} products</span>
     </div>
@@ -144,6 +239,9 @@
       <div>
         <span>Discount</span>
         <strong>- BDT {{ number_format($order['totals']['discount']) }}</strong>
+        @if (($order['manual_discount']['amount'] ?? 0) > 0)
+          <small class="orders-discount-inline-note">Includes manual discount: - BDT {{ number_format($order['manual_discount']['amount']) }}</small>
+        @endif
       </div>
       <div class="orders-total-grand">
         <span>Grand Total</span>

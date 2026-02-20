@@ -123,6 +123,12 @@
         <span>Discount</span>
         <strong>- {{ $invoice['discount_text'] }}</strong>
       </div>
+      @if ($order['manual_discount']['is_applied'] ?? false)
+        <div>
+          <span>Coupon</span>
+          <strong>{{ $order['manual_discount']['coupon_code'] ?? 'Manual Discount' }}</strong>
+        </div>
+      @endif
       <div class="orders-total-grand">
         <span>Grand Total</span>
         <strong>{{ $invoice['grand_total_text'] }}</strong>
