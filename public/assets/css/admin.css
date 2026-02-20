@@ -3102,6 +3102,7 @@ ul, ol { list-style: none; }
   opacity: 1;
   visibility: visible;
   pointer-events: auto;
+  z-index: 10000;
 }
 
 .products-side-panel-actions {
@@ -3571,6 +3572,129 @@ body.products-attention-open {
   max-width: 100%;
 }
 
+.categories-delete-feedback {
+  display: none;
+  margin-bottom: var(--spacing-md);
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  border: 1px solid transparent;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.categories-delete-feedback.is-visible {
+  display: block;
+}
+
+.categories-delete-feedback.is-error {
+  color: var(--brand-danger);
+  background: rgba(229, 62, 62, 0.08);
+  border-color: rgba(229, 62, 62, 0.28);
+}
+
+.categories-delete-feedback.is-success {
+  color: var(--brand-success);
+  background: rgba(16, 185, 129, 0.08);
+  border-color: rgba(16, 185, 129, 0.28);
+}
+
+.categories-description-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-sm);
+}
+
+.categories-create-panel.is-hidden {
+  display: none;
+}
+
+.categories-edit-panel {
+  display: none;
+}
+
+.categories-edit-panel.is-visible {
+  display: block;
+}
+
+.categories-edit-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: var(--spacing-sm);
+}
+
+.categories-description-head .form-label {
+  margin-bottom: 0;
+}
+
+.categories-ai-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 700;
+  transition: all var(--transition);
+}
+
+.categories-ai-btn:hover {
+  border-color: var(--brand-primary);
+  color: var(--brand-primary);
+  background: var(--bg-hover);
+}
+
+.categories-ai-btn:disabled {
+  opacity: 0.62;
+  cursor: not-allowed;
+}
+
+.categories-ai-icon {
+  color: var(--brand-primary);
+  font-size: 12px;
+  line-height: 1;
+}
+
+.categories-ai-btn.is-processing .categories-ai-icon {
+  animation: categories-ai-pulse 1s ease-in-out infinite;
+}
+
+@keyframes categories-ai-pulse {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.24); opacity: 0.45; }
+}
+
+.categories-ai-status {
+  display: block;
+  margin-top: 8px;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.categories-ai-status.is-processing {
+  color: var(--brand-info);
+}
+
+.categories-ai-status.is-error {
+  color: var(--brand-danger);
+}
+
+.categories-ai-status.is-success {
+  color: var(--brand-success);
+}
+
+[data-category-add-button]:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+  box-shadow: none;
+  transform: none;
+}
+
 .categories-table .categories-share-cell {
   min-width: 200px;
 }
@@ -3583,8 +3707,19 @@ body.products-attention-open {
   font-weight: 700;
 }
 
+.categories-parent-note {
+  display: block;
+  margin-top: 4px;
+  font-size: 12px;
+  color: var(--text-tertiary);
+}
+
 .categories-share-track {
   min-width: 160px;
+}
+
+.categories-suggestion-reset {
+  margin-top: 8px;
 }
 
 .settings-content-grid {

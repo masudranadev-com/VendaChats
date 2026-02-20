@@ -15,6 +15,9 @@ document.addEventListener('DOMContentLoaded', () => {
   initSearch();
   initBotSettings();
   initProductsAttentionPanel();
+  initCategoryAiWriter();
+  initCategoryEditor();
+  initCategoryDeleteGuards();
   setActivePage();
 });
 
@@ -519,6 +522,292 @@ function initProductsAttentionPanel() {
     if (event.key === 'Escape' && panel.classList.contains('is-open')) {
       setOpen(false);
     }
+  });
+}
+
+// ══════════════════════════════════════════
+// CATEGORIES: AI DESCRIPTION WRITER (DEMO UI)
+// ══════════════════════════════════════════
+function initCategoryAiWriter() {
+  const trigger = document.querySelector('[data-category-ai-generate]');
+  const categoryNameInput = document.querySelector('[data-category-name-input]');
+  const descriptionInput = document.querySelector('[data-category-description-input]');
+  const addCategoryButton = document.querySelector('[data-category-add-button]');
+  const statusNode = document.querySelector('[data-category-ai-status]');
+
+  if (!trigger || !categoryNameInput || !descriptionInput) return;
+
+  let processingTimer = null;
+  const defaultAddButtonText = addCategoryButton?.textContent?.trim() || '+ Add Category';
+
+  const setStatus = (message, tone = '') => {
+    if (!statusNode) return;
+    statusNode.textContent = message;
+    statusNode.className = `categories-ai-status${tone ? ` is-${tone}` : ''}`;
+  };
+
+  const buildDemoDescription = (categoryName) => {
+    const safeName = categoryName.trim();
+    return `${safeName} brings curated, high-demand items with clear quality standards, consistent pricing, and fast delivery support for everyday buyers.`;
+  };
+
+  trigger.addEventListener('click', () => {
+    const categoryName = categoryNameInput.value.trim();
+
+    if (!categoryName) {
+      setStatus('Please add category name to write this.', 'error');
+      showWarning('Please add category name to write this.');
+      return;
+    }
+
+    if (processingTimer) {
+      clearTimeout(processingTimer);
+      processingTimer = null;
+    }
+
+    trigger.disabled = true;
+    trigger.classList.add('is-processing');
+
+    if (addCategoryButton) {
+      addCategoryButton.disabled = true;
+      addCategoryButton.textContent = 'Processing...';
+    }
+
+    setStatus(`AI is generating a short description for "${categoryName}"...`, 'processing');
+
+    processingTimer = window.setTimeout(() => {
+      descriptionInput.value = buildDemoDescription(categoryName);
+      trigger.disabled = false;
+      trigger.classList.remove('is-processing');
+
+      if (addCategoryButton) {
+        addCategoryButton.disabled = false;
+        addCategoryButton.textContent = defaultAddButtonText;
+      }
+
+      setStatus(`Description generated for "${categoryName}".`, 'success');
+      showSuccess('AI description generated (demo).');
+      processingTimer = null;
+    }, 1400);
+  });
+}
+
+// ══════════════════════════════════════════
+// CATEGORIES: EDIT PANEL (DEMO UI)
+// ══════════════════════════════════════════
+function initCategoryEditor() {
+  const createPanel = document.querySelector('[data-category-create-panel]');
+  const editPanel = document.querySelector('[data-category-edit-panel]');
+  const editButtons = Array.from(document.querySelectorAll('[data-category-edit]'));
+
+  if (!createPanel || !editPanel || !editButtons.length) return;
+
+  const titleNode = editPanel.querySelector('[data-category-edit-title]');
+  const nameInput = editPanel.querySelector('[data-category-edit-name]');
+  const slugInput = editPanel.querySelector('[data-category-edit-slug]');
+  const statusInput = editPanel.querySelector('[data-category-edit-status]');
+  const parentInput = editPanel.querySelector('[data-category-edit-parent]');
+  const descriptionInput = editPanel.querySelector('[data-category-edit-description]');
+  const productsNode = editPanel.querySelector('[data-category-edit-products]');
+  const shareNode = editPanel.querySelector('[data-category-edit-share]');
+  const updatedNode = editPanel.querySelector('[data-category-edit-updated]');
+  const cancelButton = editPanel.querySelector('[data-category-edit-cancel]');
+  const saveButton = editPanel.querySelector('[data-category-edit-save]');
+
+  let activeRow = null;
+
+  const setEditMode = (enabled) => {
+    createPanel.classList.toggle('is-hidden', enabled);
+    editPanel.classList.toggle('is-visible', enabled);
+    editPanel.setAttribute('aria-hidden', enabled ? 'false' : 'true');
+  };
+
+  const setSelectValue = (selectNode, value, fallback = '') => {
+    if (!selectNode) return;
+    const nextValue = value ?? fallback;
+    const hasOption = Array.from(selectNode.options).some(option => option.value === nextValue);
+    selectNode.value = hasOption ? nextValue : fallback;
+  };
+
+  const readRowData = (row) => ({
+    name: row.dataset.categoryName || '',
+    slug: row.dataset.categorySlug || '',
+    status: row.dataset.categoryStatus || 'Draft',
+    products: Number.parseInt(row.dataset.categoryProducts || '0', 10) || 0,
+    share: Number.parseInt(row.dataset.categoryShare || '0', 10) || 0,
+    parent: row.dataset.categoryParent || '',
+    updatedAt: row.dataset.categoryUpdated || '-',
+    description: row.dataset.categoryDescription || '',
+  });
+
+  const populateEditor = (row) => {
+    const category = readRowData(row);
+
+    if (titleNode) {
+      titleNode.textContent = `Edit Category: ${category.name}`;
+    }
+
+    if (nameInput) nameInput.value = category.name;
+    if (slugInput) slugInput.value = category.slug;
+    if (descriptionInput) descriptionInput.value = category.description;
+    setSelectValue(statusInput, category.status, 'Draft');
+    setSelectValue(parentInput, category.parent, '');
+
+    if (productsNode) productsNode.textContent = `Products: ${category.products}`;
+    if (shareNode) shareNode.textContent = `Share: ${category.share}%`;
+    if (updatedNode) updatedNode.textContent = `Updated: ${category.updatedAt}`;
+  };
+
+  const closeEditor = () => {
+    activeRow = null;
+    setEditMode(false);
+  };
+
+  editButtons.forEach(button => {
+    button.addEventListener('click', () => {
+      const row = button.closest('[data-category-row]');
+      if (!row) return;
+      activeRow = row;
+      populateEditor(row);
+      setEditMode(true);
+      editPanel.scrollIntoView({behavior: 'smooth', block: 'start'});
+    });
+  });
+
+  cancelButton?.addEventListener('click', () => {
+    closeEditor();
+    showInfo('Edit cancelled.');
+  });
+
+  saveButton?.addEventListener('click', () => {
+    if (!activeRow) return;
+
+    const nextName = nameInput?.value.trim() || '';
+    const nextSlug = slugInput?.value.trim() || '';
+    const nextStatus = statusInput?.value || 'Draft';
+    const nextParent = parentInput?.value || '';
+    const nextDescription = descriptionInput?.value.trim() || '';
+
+    if (!nextName) {
+      showError('Category name is required.');
+      nameInput?.focus();
+      return;
+    }
+
+    const categoryCell = activeRow.cells[0];
+    const slugCell = activeRow.cells[1];
+    const statusCell = activeRow.cells[4];
+    const updatedCell = activeRow.cells[5];
+
+    if (categoryCell) {
+      const titleNodeInRow = categoryCell.querySelector('strong');
+      if (titleNodeInRow) {
+        titleNodeInRow.textContent = nextName;
+      }
+
+      let parentNote = categoryCell.querySelector('.categories-parent-note');
+      if (nextParent) {
+        if (!parentNote) {
+          parentNote = document.createElement('small');
+          parentNote.className = 'categories-parent-note';
+          categoryCell.appendChild(parentNote);
+        }
+        parentNote.textContent = `Parent: ${nextParent}`;
+      } else if (parentNote) {
+        parentNote.remove();
+      }
+    }
+
+    if (slugCell) {
+      slugCell.textContent = nextSlug;
+    }
+
+    if (statusCell) {
+      statusCell.innerHTML = '';
+      const badge = document.createElement('span');
+      badge.className = `badge ${nextStatus === 'Active' ? 'badge-success' : 'badge-warning'}`;
+      badge.textContent = nextStatus;
+      statusCell.appendChild(badge);
+    }
+
+    if (updatedCell) {
+      updatedCell.textContent = 'Just now';
+    }
+
+    activeRow.dataset.categoryName = nextName;
+    activeRow.dataset.categorySlug = nextSlug;
+    activeRow.dataset.categoryStatus = nextStatus;
+    activeRow.dataset.categoryParent = nextParent;
+    activeRow.dataset.categoryDescription = nextDescription;
+    activeRow.dataset.categoryUpdated = 'Just now';
+
+    closeEditor();
+    showSuccess(`"${nextName}" updated (demo only).`);
+  });
+}
+
+// ══════════════════════════════════════════
+// CATEGORIES: DELETE GUARD (DEMO UI)
+// ══════════════════════════════════════════
+function initCategoryDeleteGuards() {
+  const getRows = () => Array.from(document.querySelectorAll('[data-category-row]'));
+  const deleteButtons = Array.from(document.querySelectorAll('[data-category-delete]'));
+  const feedback = document.querySelector('[data-categories-delete-feedback]');
+  const totalNode = document.querySelector('[data-categories-total]');
+
+  if (!deleteButtons.length) return;
+
+  const showFeedback = (message, type = 'error') => {
+    if (!feedback) {
+      if (type === 'success') {
+        showSuccess(message);
+      } else {
+        showError(message);
+      }
+      return;
+    }
+
+    feedback.textContent = message;
+    feedback.className = `categories-delete-feedback is-visible ${type === 'success' ? 'is-success' : 'is-error'}`;
+  };
+
+  const refreshTotal = () => {
+    if (!totalNode) return;
+    totalNode.textContent = `${getRows().length} total`;
+  };
+
+  deleteButtons.forEach(button => {
+    button.addEventListener('click', () => {
+      const row = button.closest('[data-category-row]');
+      if (!row) return;
+
+      const categoryName = row.dataset.categoryName || 'This category';
+      const productsCount = Number.parseInt(row.dataset.categoryProducts || '0', 10) || 0;
+      const childCount = getRows().filter(otherRow => {
+        if (otherRow === row) return false;
+        return (otherRow.dataset.categoryParent || '').trim() === categoryName;
+      }).length;
+
+      if (childCount > 0) {
+        showFeedback(
+          `Cannot delete "${categoryName}". It has ${childCount} child categories. Reassign child categories first.`,
+          'error'
+        );
+        return;
+      }
+
+      if (productsCount > 0) {
+        showFeedback(
+          `Cannot delete "${categoryName}". It has ${productsCount} products. Move products to another category first.`,
+          'error'
+        );
+        return;
+      }
+
+      row.remove();
+      refreshTotal();
+      showFeedback(`"${categoryName}" removed (demo only).`, 'success');
+    });
   });
 }
 
