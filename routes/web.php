@@ -3,7 +3,9 @@
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Admin\BotSettingsController;
-use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
+use App\Http\Controllers\Admin\DashboardController;
+use App\Http\Controllers\Admin\AdminUsersController;
+use App\Http\Controllers\Admin\AdminPostController;
 use App\Http\Controllers\User\AccountController;
 use App\Http\Controllers\User\DataDeletionController;
 use App\Http\Controllers\User\FacebookAuthController;
@@ -108,25 +110,32 @@ Route::prefix('facebook')->name('facebook.')->group(function () {
 // Admin
 Route::redirect('/admin', '/admin/dashboard');
 Route::prefix('admin')->name('admin.')->group(function () {
-    Route::get('/dashboard', [AdminDashboardController::class, 'index'])->name('dashboard');
-    Route::get('/analytics', [AdminDashboardController::class, 'analytics'])->name('analytics');
-    Route::get('/orders', [AdminDashboardController::class, 'orders'])->name('orders');
-    Route::get('/conversations', [AdminDashboardController::class, 'conversations'])->name('conversations');
-    Route::get('/customers', [AdminDashboardController::class, 'customers'])->name('customers');
-    Route::get('/products', [AdminDashboardController::class, 'products'])->name('products');
+    Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+    Route::get('/analytics', [DashboardController::class, 'analytics'])->name('analytics');
+    Route::get('/orders', [DashboardController::class, 'orders'])->name('orders');
+    Route::get('/conversations', [DashboardController::class, 'conversations'])->name('conversations');
+    Route::get('/customers', [DashboardController::class, 'customers'])->name('customers');
+    Route::get('/products', [DashboardController::class, 'products'])->name('products');
 
     // bot-settings
     Route::get('/bot-settings', [BotSettingsController::class, 'index'])->name('bot-settings');
     Route::get('/bot-settings/facebook/connect', [BotSettingsController::class, 'connectFacebook'])->name('bot-settings.facebook.connect');
     Route::get('/bot-settings/facebook/disconnect', [BotSettingsController::class, 'disconnectFacebook'])->name('bot-settings.facebook.disconnect');
     Route::get('/bot-settings/facebook/callback', [BotSettingsController::class, 'callbackFacebook'])->name('bot-settings.facebook.callback');
+    Route::get('/bot-settings/facebook/info', [BotSettingsController::class, 'infoFacebook'])->name('bot-settings.facebook.info');
 
-    Route::get('/bargaining', [AdminDashboardController::class, 'bargaining'])->name('bargaining');
-    Route::get('/whatsapp-recovery', [AdminDashboardController::class, 'whatsappRecovery'])->name('whatsapp-recovery');
-    Route::get('/campaigns', [AdminDashboardController::class, 'campaigns'])->name('campaigns');
-    Route::get('/competition', [AdminDashboardController::class, 'competition'])->name('competition');
-    Route::get('/coach', [AdminDashboardController::class, 'coach'])->name('coach');
-    Route::get('/courier', [AdminDashboardController::class, 'courier'])->name('courier');
-    Route::get('/settings', [AdminDashboardController::class, 'settings'])->name('settings');
-    Route::get('/billing', [AdminDashboardController::class, 'billing'])->name('billing');
+    // users
+    Route::get('/users', [AdminUsersController::class, 'users'])->name('users');
+
+    // posts
+    Route::get('/posts', [AdminPostController::class, 'posts'])->name('posts');
+
+    Route::get('/bargaining', [DashboardController::class, 'bargaining'])->name('bargaining');
+    Route::get('/whatsapp-recovery', [DashboardController::class, 'whatsappRecovery'])->name('whatsapp-recovery');
+    Route::get('/campaigns', [DashboardController::class, 'campaigns'])->name('campaigns');
+    Route::get('/competition', [DashboardController::class, 'competition'])->name('competition');
+    Route::get('/coach', [DashboardController::class, 'coach'])->name('coach');
+    Route::get('/courier', [DashboardController::class, 'courier'])->name('courier');
+    Route::get('/settings', [DashboardController::class, 'settings'])->name('settings');
+    Route::get('/billing', [DashboardController::class, 'billing'])->name('billing');
 });

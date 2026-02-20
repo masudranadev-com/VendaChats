@@ -251,4 +251,8 @@ class BotSettingsController extends Controller
             ->route('admin.bot-settings')
             ->with('facebook_status', 'Facebook disconnected successfully.');
     }
+
+    public function infoFacebook(Request $request)
+    {
+    }
 }
