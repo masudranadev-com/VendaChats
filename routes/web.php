@@ -127,6 +127,9 @@ Route::prefix('admin')->name('admin.')->group(function () {
 
     // orders 
     Route::get('/orders', [AdminOrderController::class, 'orders'])->name('orders');
+    Route::get('/orders/{orderId}', [AdminOrderController::class, 'view'])->name('orders.view');
+    Route::post('/orders/{orderId}/confirm', [AdminOrderController::class, 'confirm'])->name('orders.confirm');
+    Route::get('/orders/{orderId}/invoice', [AdminOrderController::class, 'invoice'])->name('orders.invoice');
 
     // bot-settings
     Route::get('/bot-settings', [BotSettingsController::class, 'index'])->name('bot-settings');

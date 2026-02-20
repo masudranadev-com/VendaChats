@@ -647,6 +647,12 @@ ul, ol { list-style: none; }
   box-shadow: 0 2px 8px rgba(16,185,129,0.3);
 }
 
+.btn-info {
+  background: linear-gradient(135deg, #3B82F6 0%, #60A5FA 100%);
+  color: white;
+  box-shadow: 0 2px 8px rgba(59,130,246,0.3);
+}
+
 .btn-danger {
   background: var(--gradient-danger);
   color: white;
@@ -4890,6 +4896,288 @@ body.products-attention-open {
   gap: 8px;
 }
 
+.orders-detail-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
+  gap: var(--spacing-md);
+}
+
+.orders-customer-card .card-header,
+.orders-fraud-card .card-header {
+  margin-bottom: var(--spacing-md);
+}
+
+.orders-customer-id {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: var(--spacing-md);
+}
+
+.orders-customer-id strong {
+  display: block;
+  font-size: 15px;
+}
+
+.orders-customer-id small {
+  color: var(--text-secondary);
+  font-size: 12px;
+}
+
+.orders-detail-lines {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin-bottom: var(--spacing-md);
+}
+
+.orders-detail-lines strong {
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+.orders-detail-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.orders-fraud-metric {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 12px;
+  margin-bottom: var(--spacing-md);
+  background: var(--bg-secondary);
+}
+
+.orders-fraud-metric span {
+  display: block;
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-bottom: 5px;
+}
+
+.orders-fraud-metric strong {
+  font-family: 'Syne', sans-serif;
+  font-size: 34px;
+  line-height: 1;
+}
+
+.orders-fraud-metric.is-danger {
+  border-color: rgba(229,62,62,0.3);
+  background: rgba(229,62,62,0.08);
+}
+
+.orders-fraud-metric.is-success {
+  border-color: rgba(16,185,129,0.3);
+  background: rgba(16,185,129,0.08);
+}
+
+.orders-fraud-stats {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.orders-fraud-stats > div {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 10px;
+  background: var(--bg-secondary);
+}
+
+.orders-fraud-stats span {
+  display: block;
+  font-size: 11px;
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+  margin-bottom: 5px;
+}
+
+.orders-fraud-stats strong {
+  font-size: 20px;
+  font-family: 'Syne', sans-serif;
+}
+
+.orders-fraud-note {
+  margin-top: var(--spacing-md);
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.orders-products-table-wrap {
+  overflow-x: auto;
+}
+
+.orders-products-table {
+  min-width: 100%;
+}
+
+.orders-line-product {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.orders-line-product-thumb {
+  width: 46px;
+  height: 46px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--bg-secondary);
+  overflow: hidden;
+  display: inline-flex;
+}
+
+.orders-line-product-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.orders-totals {
+  margin-top: var(--spacing-md);
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.orders-totals > div {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-secondary);
+  padding: 10px;
+}
+
+.orders-totals span {
+  display: block;
+  font-size: 11px;
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+  margin-bottom: 5px;
+}
+
+.orders-totals strong {
+  font-size: 15px;
+}
+
+.orders-total-grand {
+  border-color: rgba(19,82,220,0.24) !important;
+  background: rgba(19,82,220,0.08) !important;
+}
+
+.orders-invoice-card {
+  padding: var(--spacing-xl);
+}
+
+.orders-confirm-message {
+  margin-top: var(--spacing-md);
+}
+
+.orders-invoice-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--spacing-lg);
+  margin-bottom: var(--spacing-lg);
+}
+
+.orders-invoice-head h3 {
+  font-family: 'Syne', sans-serif;
+  font-size: 30px;
+  line-height: 1.1;
+  margin-bottom: 6px;
+}
+
+.orders-invoice-head p {
+  color: var(--text-secondary);
+  font-size: 13px;
+}
+
+.orders-invoice-meta {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-secondary);
+  padding: 10px 12px;
+  text-align: right;
+}
+
+.orders-invoice-meta span {
+  display: block;
+  font-size: 11px;
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+  margin-bottom: 4px;
+}
+
+.orders-invoice-meta strong {
+  font-family: 'Syne', sans-serif;
+  font-size: 22px;
+}
+
+.orders-invoice-party-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--spacing-md);
+}
+
+.orders-invoice-party {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-secondary);
+  padding: 12px;
+}
+
+.orders-invoice-party h4 {
+  margin-bottom: 6px;
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-tertiary);
+}
+
+.orders-invoice-party p {
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.orders-invoice-total-box {
+  margin-top: var(--spacing-md);
+  margin-left: auto;
+  width: min(420px, 100%);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-secondary);
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.orders-invoice-total-box > div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.orders-invoice-total-box span {
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.orders-invoice-total-box strong {
+  font-size: 14px;
+}
+
+.orders-invoice-note {
+  margin-top: var(--spacing-md);
+  font-size: 12px;
+  color: var(--text-tertiary);
+}
+
 @media (max-width: 1024px) {
   .orders-page-header {
     flex-direction: column;
@@ -4917,6 +5205,10 @@ body.products-attention-open {
     grid-template-columns: 1fr;
   }
 
+  .orders-detail-grid {
+    grid-template-columns: 1fr;
+  }
+
   .orders-filter-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -4926,6 +5218,23 @@ body.products-attention-open {
   .orders-header-actions {
     flex-direction: column;
     align-items: stretch;
+  }
+
+  .orders-totals {
+    grid-template-columns: 1fr;
+  }
+
+  .orders-invoice-head {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .orders-invoice-meta {
+    text-align: left;
+  }
+
+  .orders-invoice-party-grid {
+    grid-template-columns: 1fr;
   }
 
   .orders-kpi-grid,

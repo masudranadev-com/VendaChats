@@ -6,6 +6,8 @@
     'admin.settings' => 'profile',
     'admin.analytics' => 'analytics',
     'admin.orders' => 'orders',
+    'admin.orders.view' => 'orders',
+    'admin.orders.invoice' => 'orders',
     'admin.conversations' => 'conversations',
     'admin.customers' => 'customers',
     'admin.products' => 'products',
@@ -67,14 +69,14 @@
             <span class="nav-icon">📦</span>
             <span class="nav-label">Products</span>
           </a>
-        </div>
-
-        <div class="nav-group">
           <div class="nav-group-title">Automation</div>
            <a href="{{ route('admin.users') }}" class="nav-item {{ $currentPage === 'users' ? 'active' : '' }}">
             <span class="nav-icon">👥</span>
             <span class="nav-label">Customers</span>
           </a>
+        </div>
+
+        <div class="nav-group">
           <a href="{{ route('admin.posts') }}" class="nav-item {{ $currentPage === 'posts' ? 'active' : '' }}">
             <span class="nav-icon">💬</span>
             <span class="nav-label">Posts</span>

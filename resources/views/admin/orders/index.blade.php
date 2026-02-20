@@ -170,8 +170,17 @@
               </td>
               <td>
                 <div class="orders-table-actions">
-                  <button type="button" class="btn btn-ghost btn-sm">View</button>
-                  <button type="button" class="btn btn-secondary btn-sm">Update</button>
+                  <a href="{{ route('admin.orders.view', ['orderId' => $order['id']]) }}" class="btn btn-info btn-sm">
+                    View
+                  </a>
+                  <form
+                    action="{{ route('admin.orders.confirm', ['orderId' => $order['id']]) }}"
+                    method="POST"
+                    onsubmit="return confirm('Confirm this order and generate invoice now?');"
+                  >
+                    @csrf
+                    <button type="submit" class="btn btn-success btn-sm">Confirm</button>
+                  </form>
                 </div>
               </td>
             </tr>
