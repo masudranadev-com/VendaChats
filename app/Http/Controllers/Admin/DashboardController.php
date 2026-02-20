@@ -41,11 +41,6 @@ class DashboardController extends Controller
         return $this->page('Bargaining Rules', 'Set floor price, negotiation steps, and approval boundaries.');
     }
 
-    public function whatsappRecovery()
-    {
-        return $this->page('WhatsApp Recovery', 'Recover dropped buyers with timed follow-up sequences.');
-    }
-
     public function campaigns()
     {
         return $this->page('Campaigns', 'Create launch, retargeting, and upsell campaigns.');

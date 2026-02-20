@@ -132,7 +132,6 @@ Route::prefix('admin')->name('admin.')->group(function () {
     Route::get('/posts', [AdminPostController::class, 'posts'])->name('posts');
 
     Route::get('/bargaining', [DashboardController::class, 'bargaining'])->name('bargaining');
-    Route::get('/whatsapp-recovery', [DashboardController::class, 'whatsappRecovery'])->name('whatsapp-recovery');
     Route::get('/campaigns', [DashboardController::class, 'campaigns'])->name('campaigns');
     Route::get('/competition', [DashboardController::class, 'competition'])->name('competition');
     Route::get('/coach', [DashboardController::class, 'coach'])->name('coach');

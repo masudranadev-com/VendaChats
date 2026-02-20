@@ -12,7 +12,6 @@
     'admin.posts' => 'posts',
     'admin.bot-settings' => 'bot-settings',
     'admin.bargaining' => 'bargaining',
-    'admin.whatsapp-recovery' => 'whatsapp-recovery',
     'admin.campaigns' => 'campaigns',
     'admin.competition' => 'competition',
     'admin.coach' => 'coach',
@@ -88,10 +87,6 @@
           <a href="{{ route('admin.bot-settings') }}" class="nav-item {{ $currentPage === 'bot-settings' ? 'active' : '' }}">
             <span class="nav-icon">🤖</span>
             <span class="nav-label">Bot Settings</span>
-          </a>
-          <a href="{{ route('admin.whatsapp-recovery') }}" class="nav-item {{ $currentPage === 'whatsapp-recovery' ? 'active' : '' }}">
-            <span class="nav-icon">📱</span>
-            <span class="nav-label">WhatsApp Recovery</span>
           </a>
           <a href="{{ route('admin.campaigns') }}" class="nav-item {{ $currentPage === 'campaigns' ? 'active' : '' }}">
             <span class="nav-icon">🚀</span>
