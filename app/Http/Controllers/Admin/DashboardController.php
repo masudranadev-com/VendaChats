@@ -206,6 +206,61 @@ class DashboardController extends Controller
         ]);
     }
 
+    public function categories()
+    {
+        $categories = [
+            [
+                'name' => 'Apparel',
+                'slug' => 'apparel',
+                'products' => 84,
+                'share' => 46,
+                'status' => 'Active',
+                'updated_at' => '2h ago',
+            ],
+            [
+                'name' => 'Electronics',
+                'slug' => 'electronics',
+                'products' => 63,
+                'share' => 28,
+                'status' => 'Active',
+                'updated_at' => '5h ago',
+            ],
+            [
+                'name' => 'Footwear',
+                'slug' => 'footwear',
+                'products' => 41,
+                'share' => 16,
+                'status' => 'Active',
+                'updated_at' => '1d ago',
+            ],
+            [
+                'name' => 'Accessories',
+                'slug' => 'accessories',
+                'products' => 52,
+                'share' => 10,
+                'status' => 'Draft',
+                'updated_at' => '3d ago',
+            ],
+        ];
+
+        return view('admin.categories.index', [
+            'title' => 'Categories',
+            'subtitle' => 'Create and organize product categories in one place.',
+            'metrics' => [
+                ['label' => 'Total Categories', 'value' => (string) count($categories), 'meta' => '1 draft pending approval'],
+                ['label' => 'Catalog Coverage', 'value' => '96%', 'meta' => '4% products uncategorized'],
+                ['label' => 'Top Category', 'value' => 'Apparel', 'meta' => '46% share of catalog'],
+                ['label' => 'Updated Today', 'value' => '3', 'meta' => 'Last sync 2h ago'],
+            ],
+            'categories' => $categories,
+            'suggestions' => [
+                'Create a dedicated "New Arrival" category for faster product discovery.',
+                'Merge overlapping low-volume categories to reduce navigation clutter.',
+                'Review draft categories before the next campaign launch.',
+            ],
+        ]);
+    }
+
     public function bargaining()
     {
         return $this->page('Bargaining Rules', 'Set floor price, negotiation steps, and approval boundaries.');

@@ -486,8 +486,6 @@ function initBotSettings() {
 // PRODUCTS: NEEDS ATTENTION DRAWER
 // ══════════════════════════════════════════
 function initProductsAttentionPanel() {
-  if (resolveCurrentPage() !== 'products') return;
-
   const toggle = document.querySelector('[data-products-attention-toggle]');
   const panel = document.getElementById('productsAttentionPanel');
   const close = document.querySelector('[data-products-attention-close]');

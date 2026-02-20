@@ -9,6 +9,7 @@
     'admin.conversations' => 'conversations',
     'admin.customers' => 'customers',
     'admin.products' => 'products',
+    'admin.categories' => 'products',
     'admin.users' => 'users',
     'admin.users.views' => 'users',
     'admin.posts' => 'posts',

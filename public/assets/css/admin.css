@@ -3566,6 +3566,27 @@ body.products-attention-open {
   color: var(--text-secondary);
 }
 
+.categories-table-container {
+  overflow: auto;
+  max-width: 100%;
+}
+
+.categories-table .categories-share-cell {
+  min-width: 200px;
+}
+
+.categories-share-value {
+  display: inline-block;
+  margin-bottom: 6px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  font-weight: 700;
+}
+
+.categories-share-track {
+  min-width: 160px;
+}
+
 .settings-content-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));

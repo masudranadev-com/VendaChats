@@ -10,7 +10,7 @@
     </div>
 
     <div class="products-header-actions">
-      <button type="button" class="btn btn-secondary">Import Catalog</button>
+      <a href="{{ route('admin.categories') }}" class="btn btn-secondary">Add Category</a>
       <button type="button" class="btn btn-primary">+ Add New Product</button>
     </div>
   </div>
