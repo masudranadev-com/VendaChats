@@ -132,8 +132,14 @@
       word-break: break-word;
     }
 
+    .table-wrap {
+      overflow: auto;
+      max-width: 100%;
+    }
+
     table {
-      width: 100%;
+      width: max-content;
+      min-width: 100%;
       border-collapse: collapse;
       font-size: 13px;
     }
@@ -143,6 +149,8 @@
       text-align: left;
       padding: 8px;
       vertical-align: top;
+      white-space: nowrap;
+      word-wrap: normal;
     }
 
     th {
@@ -227,26 +235,28 @@
 
     <div class="card">
       <h2>Laravel Session Data</h2>
-      <table>
-        <thead>
-          <tr>
-            <th style="width: 32%;">Key</th>
-            <th>Value</th>
-          </tr>
-        </thead>
-        <tbody>
-          @forelse ($sessionData as $key => $value)
+      <div class="table-wrap">
+        <table>
+          <thead>
             <tr>
-              <td><code>{{ $key }}</code></td>
-              <td><pre>{{ json_encode($value, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) }}</pre></td>
+              <th style="width: 32%;">Key</th>
+              <th>Value</th>
             </tr>
-          @empty
-            <tr>
-              <td colspan="2">No session data currently stored.</td>
-            </tr>
-          @endforelse
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            @forelse ($sessionData as $key => $value)
+              <tr>
+                <td><code>{{ $key }}</code></td>
+                <td><pre>{{ json_encode($value, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) }}</pre></td>
+              </tr>
+            @empty
+              <tr>
+                <td colspan="2">No session data currently stored.</td>
+              </tr>
+            @endforelse
+          </tbody>
+        </table>
+      </div>
     </div>
 
     <div class="card">

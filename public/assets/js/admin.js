@@ -14,6 +14,7 @@ document.addEventListener('DOMContentLoaded', () => {
   initCharts();
   initSearch();
   initBotSettings();
+  initProductsAttentionPanel();
   setActivePage();
 });
 
@@ -479,6 +480,48 @@ function initBotSettings() {
     initialState[index] = toggle.checked;
   });
   updateUi();
+}
+
+// ══════════════════════════════════════════
+// PRODUCTS: NEEDS ATTENTION DRAWER
+// ══════════════════════════════════════════
+function initProductsAttentionPanel() {
+  if (resolveCurrentPage() !== 'products') return;
+
+  const toggle = document.querySelector('[data-products-attention-toggle]');
+  const panel = document.getElementById('productsAttentionPanel');
+  const close = document.querySelector('[data-products-attention-close]');
+  const backdrop = document.querySelector('[data-products-attention-backdrop]');
+
+  if (!toggle || !panel || !backdrop) return;
+
+  const setOpen = (isOpen) => {
+    panel.classList.toggle('is-open', isOpen);
+    backdrop.classList.toggle('is-visible', isOpen);
+    toggle.classList.toggle('is-active', isOpen);
+    toggle.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+    panel.setAttribute('aria-hidden', isOpen ? 'false' : 'true');
+    backdrop.setAttribute('aria-hidden', isOpen ? 'false' : 'true');
+    document.body.classList.toggle('products-attention-open', isOpen);
+  };
+
+  toggle.addEventListener('click', () => {
+    setOpen(!panel.classList.contains('is-open'));
+  });
+
+  close?.addEventListener('click', () => {
+    setOpen(false);
+  });
+
+  backdrop.addEventListener('click', () => {
+    setOpen(false);
+  });
+
+  document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape' && panel.classList.contains('is-open')) {
+      setOpen(false);
+    }
+  });
 }
 
 // ══════════════════════════════════════════

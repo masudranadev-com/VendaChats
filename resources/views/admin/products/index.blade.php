@@ -95,7 +95,7 @@
         <span class="products-filter-result">Showing {{ count($products) }} products</span>
       </div>
 
-      <div class="table-container">
+      <div class="table-container products-table-container">
         <table class="table">
           <thead>
             <tr>
@@ -103,6 +103,7 @@
               <th>Category</th>
               <th>Price</th>
               <th>Stock</th>
+              <th>Visitors</th>
               <th>Sales (7d)</th>
               <th>Status</th>
               <th>Action</th>
@@ -125,9 +126,15 @@
               <tr>
                 <td>
                   <div class="products-product-cell">
-                    <span class="products-product-thumb">{{ strtoupper(substr($product['name'], 0, 1)) }}</span>
+                    @if (!empty($product['image']))
+                      <span class="products-product-thumb">
+                        <img src="{{ $product['image'] }}" alt="{{ $product['name'] }}" loading="lazy">
+                      </span>
+                    @else
+                      <span class="products-product-thumb">{{ strtoupper(substr($product['name'], 0, 1)) }}</span>
+                    @endif
                     <div>
-                      <strong>{{ $product['name'] }}</strong>
+                      <strong title="{{ $product['name'] }}">{{ \Illuminate\Support\Str::limit($product['name'], 15, '...') }}</strong>
                       <small>{{ $product['sku'] }}</small>
                     </div>
                   </div>
@@ -142,6 +149,7 @@
                     </div>
                   </div>
                 </td>
+                <td>{{ number_format($product['visitors']) }}</td>
                 <td>{{ number_format($product['sales']) }}</td>
                 <td><span class="badge {{ $statusClass }}">{{ $product['status'] }}</span></td>
                 <td>
@@ -156,48 +164,66 @@
         </table>
       </div>
     </section>
-
-    <section class="card products-side-card">
-      <div class="card-header">
-        <h3 class="card-title">Needs Attention</h3>
-        <span class="badge badge-warning">{{ count($attentionItems) }} alerts</span>
-      </div>
-
-      <ul class="products-attention-list">
-        @foreach ($attentionItems as $item)
-          <li>
-            <strong>{{ $item['title'] }}</strong>
-            <p>{{ $item['note'] }}</p>
-          </li>
-        @endforeach
-      </ul>
-
-      <div class="products-divider"></div>
-
-      <div class="card-header products-inline-header">
-        <h3 class="card-title">Category Share</h3>
-        <span class="badge badge-success">Sales mix</span>
-      </div>
-
-      <div class="products-category-list">
-        @foreach ($categoryHealth as $category)
-          <div class="products-category-item">
-            <div class="flex-between">
-              <span>{{ $category['name'] }}</span>
-              <strong>{{ $category['share'] }}%</strong>
-            </div>
-            <div class="products-category-track">
-              <span style="width: {{ $category['share'] }}%"></span>
-            </div>
-          </div>
-        @endforeach
-      </div>
-
-      <div class="products-quick-actions">
-        <button type="button" class="btn btn-primary btn-sm">Restock Planner</button>
-        <button type="button" class="btn btn-secondary btn-sm">Price Bulk Update</button>
-        <button type="button" class="btn btn-ghost btn-sm">Export Product Sheet</button>
-      </div>
-    </section>
   </div>
+
+  <button
+    type="button"
+    class="products-side-toggle"
+    data-products-attention-toggle
+    aria-controls="productsAttentionPanel"
+    aria-expanded="false"
+    aria-label="Open Needs Attention panel"
+  >
+    <span class="products-side-toggle-icon">&#9888;</span>
+    <span class="products-side-toggle-text">Needs Attention</span>
+    <span class="products-side-toggle-count">{{ count($attentionItems) }}</span>
+  </button>
+
+  <div class="products-side-backdrop" data-products-attention-backdrop aria-hidden="true"></div>
+
+  <section class="card products-side-card products-side-panel" id="productsAttentionPanel" aria-hidden="true">
+    <div class="card-header products-side-panel-header">
+      <h3 class="card-title">Needs Attention</h3>
+      <div class="products-side-panel-actions">
+        <span class="badge badge-warning">{{ count($attentionItems) }} alerts</span>
+        <button type="button" class="products-side-close" data-products-attention-close aria-label="Close Needs Attention panel">&times;</button>
+      </div>
+    </div>
+
+    <ul class="products-attention-list">
+      @foreach ($attentionItems as $item)
+        <li>
+          <strong>{{ $item['title'] }}</strong>
+          <p>{{ $item['note'] }}</p>
+        </li>
+      @endforeach
+    </ul>
+
+    <div class="products-divider"></div>
+
+    <div class="card-header products-inline-header">
+      <h3 class="card-title">Category Share</h3>
+      <span class="badge badge-success">Sales mix</span>
+    </div>
+
+    <div class="products-category-list">
+      @foreach ($categoryHealth as $category)
+        <div class="products-category-item">
+          <div class="flex-between">
+            <span>{{ $category['name'] }}</span>
+            <strong>{{ $category['share'] }}%</strong>
+          </div>
+          <div class="products-category-track">
+            <span style="width: {{ $category['share'] }}%"></span>
+          </div>
+        </div>
+      @endforeach
+    </div>
+
+    <div class="products-quick-actions">
+      <button type="button" class="btn btn-primary btn-sm">Restock Planner</button>
+      <button type="button" class="btn btn-secondary btn-sm">Price Bulk Update</button>
+      <button type="button" class="btn btn-ghost btn-sm">Export Product Sheet</button>
+    </div>
+  </section>
 @endsection
