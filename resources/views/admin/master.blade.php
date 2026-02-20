@@ -17,12 +17,12 @@
     'admin.competition.view' => 'competition',
     'admin.coach' => 'coach',
     'admin.courier' => 'courier',
-    'admin.settings' => 'settings',
-    'admin.settings.domain' => 'settings',
-    'admin.settings.theme' => 'settings',
-    'admin.settings.category' => 'settings',
-    'admin.settings.offers' => 'settings',
-    'admin.settings.content' => 'settings',
+    'admin.shop-settings' => 'settings',
+    'admin.shop-settings.domain' => 'settings',
+    'admin.shop-settings.theme' => 'settings',
+    'admin.shop-settings.category' => 'settings',
+    'admin.shop-settings.offers' => 'settings',
+    'admin.shop-settings.content' => 'settings',
     'admin.billing' => 'billing',
   ];
   $currentPage = $routeToPage[$routeName] ?? 'dashboard';
@@ -51,10 +51,6 @@
           <a href="{{ route('admin.dashboard') }}" class="nav-item {{ $currentPage === 'dashboard' ? 'active' : '' }}">
             <span class="nav-icon">📊</span>
             <span class="nav-label">Dashboard</span>
-          </a>
-          <a href="{{ route('admin.analytics') }}" class="nav-item {{ $currentPage === 'analytics' ? 'active' : '' }}">
-            <span class="nav-icon">📈</span>
-            <span class="nav-label">Analytics</span>
           </a>
         </div>
 
@@ -108,7 +104,7 @@
 
         <div class="nav-group">
           <div class="nav-group-title">Settings</div>
-          <a href="{{ route('admin.settings') }}" class="nav-item {{ $currentPage === 'settings' ? 'active' : '' }}">
+          <a href="{{ route('admin.shop-settings') }}" class="nav-item {{ $currentPage === 'settings' ? 'active' : '' }}">
             <span class="nav-icon">⚙️</span>
             <span class="nav-label">Shop Settings</span>
           </a>

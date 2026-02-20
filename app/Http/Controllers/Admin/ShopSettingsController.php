@@ -10,7 +10,7 @@ class ShopSettingsController extends Controller
 {
     public function index(): RedirectResponse
     {
-        return redirect()->route('admin.settings.domain');
+        return redirect()->route('admin.shop-settings.domain');
     }
 
     public function domain(): View
@@ -63,7 +63,7 @@ class ShopSettingsController extends Controller
             ],
         };
 
-        return view('admin.settings.index', array_merge($this->baseData(), [
+        return view('admin.shop-settings.index', array_merge($this->baseData(), [
             'activeSection' => $activeSection,
             'sectionHeading' => $sectionMeta['heading'],
             'sectionSubtitle' => $sectionMeta['subtitle'],
@@ -76,11 +76,11 @@ class ShopSettingsController extends Controller
             'title' => 'Shop Settings',
             'subtitle' => 'Control domain, theme, category, offers, and website content data from one place.',
             'headerTabs' => [
-                ['key' => 'domain', 'label' => 'Domain', 'route' => 'admin.settings.domain'],
-                ['key' => 'theme', 'label' => 'Theme', 'route' => 'admin.settings.theme'],
-                ['key' => 'category', 'label' => 'Category', 'route' => 'admin.settings.category'],
-                ['key' => 'offers', 'label' => 'Offers', 'route' => 'admin.settings.offers'],
-                ['key' => 'content', 'label' => 'Website Content Data', 'route' => 'admin.settings.content'],
+                ['key' => 'domain', 'label' => 'Domain', 'route' => 'admin.shop-settings.domain'],
+                ['key' => 'theme', 'label' => 'Theme', 'route' => 'admin.shop-settings.theme'],
+                ['key' => 'category', 'label' => 'Category', 'route' => 'admin.shop-settings.category'],
+                ['key' => 'offers', 'label' => 'Offers', 'route' => 'admin.shop-settings.offers'],
+                ['key' => 'content', 'label' => 'Website Content Data', 'route' => 'admin.shop-settings.content'],
             ],
             'quickStats' => [
                 ['label' => 'Configuration Score', 'value' => '92%', 'note' => '2 items need review', 'tone' => 'primary'],

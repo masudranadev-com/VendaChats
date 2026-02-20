@@ -143,11 +143,12 @@ Route::prefix('admin')->name('admin.')->group(function () {
     Route::get('/competition/{competitor}/view', [CompetitionController::class, 'view'])->name('competition.view');
     Route::get('/coach', [CoachController::class, 'index'])->name('coach');
     Route::get('/courier', [CourierController::class, 'index'])->name('courier');
-    Route::get('/settings', [ShopSettingsController::class, 'index'])->name('settings');
-    Route::get('/settings/domain', [ShopSettingsController::class, 'domain'])->name('settings.domain');
-    Route::get('/settings/theme', [ShopSettingsController::class, 'theme'])->name('settings.theme');
-    Route::get('/settings/category', [ShopSettingsController::class, 'category'])->name('settings.category');
-    Route::get('/settings/offers', [ShopSettingsController::class, 'offers'])->name('settings.offers');
-    Route::get('/settings/content', [ShopSettingsController::class, 'content'])->name('settings.content');
-    Route::get('/billing', [DashboardController::class, 'billing'])->name('billing');
+
+    // Shop Settings 
+    Route::get('/shop-settings', [ShopSettingsController::class, 'index'])->name('shop-settings');
+    Route::get('/shop-settings/domain', [ShopSettingsController::class, 'domain'])->name('shop-settings.domain');
+    Route::get('/shop-settings/theme', [ShopSettingsController::class, 'theme'])->name('shop-settings.theme');
+    Route::get('/shop-settings/category', [ShopSettingsController::class, 'category'])->name('shop-settings.category');
+    Route::get('/shop-settings/offers', [ShopSettingsController::class, 'offers'])->name('shop-settings.offers');
+    Route::get('/shop-settings/content', [ShopSettingsController::class, 'content'])->name('shop-settings.content');
 });
