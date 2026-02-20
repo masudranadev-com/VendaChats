@@ -13,6 +13,7 @@ document.addEventListener('DOMContentLoaded', () => {
   initTables();
   initCharts();
   initSearch();
+  initBotSettings();
   setActivePage();
 });
 
@@ -350,6 +351,134 @@ function initSearch() {
     // Implement search logic here
     console.log('Searching for:', query);
   });
+}
+
+// ══════════════════════════════════════════
+// BOT SETTINGS
+// ══════════════════════════════════════════
+function initBotSettings() {
+  const form = document.querySelector('[data-bot-settings]');
+  if (!form) return;
+
+  const toggles = form.querySelectorAll('.bot-toggle-input');
+  if (!toggles.length) return;
+
+  const messengerMasterToggle = form.querySelector('#setting_messenger_bot');
+  const messengerFeatureToggles = Array.from(toggles).filter(toggle => toggle.dataset.group === 'messenger');
+  const saveButton = form.querySelector('[data-bot-save]');
+  const resetButton = form.querySelector('[data-bot-reset]');
+  const unsavedBadge = form.querySelector('[data-unsaved-badge]');
+  const enabledCountNode = document.querySelector('[data-enabled-count]');
+  const enabledMeter = document.querySelector('[data-enabled-meter]');
+  const totalEnabledNode = document.querySelector('[data-total-enabled]');
+  const totalDisabledNode = document.querySelector('[data-total-disabled]');
+  const totalFeatures = toggles.length;
+  const totalChipFeatures = Number(enabledCountNode?.dataset.total || totalFeatures);
+  const initialState = Array.from(toggles).map(toggle => toggle.checked);
+  let isDirty = false;
+
+  const syncMessengerDependency = () => {
+    if (!messengerMasterToggle) return;
+
+    const isMasterEnabled = messengerMasterToggle.checked;
+    messengerFeatureToggles.forEach(toggle => {
+      const row = toggle.closest('.bot-setting-row');
+
+      if (!isMasterEnabled) {
+        toggle.checked = false;
+        toggle.disabled = true;
+        row?.classList.add('frozen');
+      } else {
+        toggle.disabled = false;
+        row?.classList.remove('frozen');
+      }
+    });
+  };
+
+  const updateUi = () => {
+    let allEnabled = 0;
+
+    toggles.forEach(toggle => {
+      const isChecked = toggle.checked;
+      const row = toggle.closest('.bot-setting-row');
+      const stateNode = row?.querySelector(`[data-state-for="${toggle.id}"]`);
+
+      if (stateNode) {
+        stateNode.textContent = isChecked ? 'On' : 'Off';
+        stateNode.classList.toggle('on', isChecked);
+        stateNode.classList.toggle('off', !isChecked);
+      }
+
+      if (isChecked) {
+        allEnabled++;
+      }
+    });
+
+    if (enabledCountNode) {
+      enabledCountNode.textContent = `${allEnabled}/${totalChipFeatures} enabled`;
+    }
+
+    if (enabledMeter && totalChipFeatures > 0) {
+      const percentage = Math.round((allEnabled / totalChipFeatures) * 100);
+      enabledMeter.style.width = `${percentage}%`;
+    }
+
+    if (totalEnabledNode) {
+      totalEnabledNode.textContent = String(allEnabled);
+    }
+
+    if (totalDisabledNode) {
+      totalDisabledNode.textContent = String(Math.max(0, totalFeatures - allEnabled));
+    }
+
+    if (unsavedBadge) {
+      unsavedBadge.classList.toggle('visible', isDirty);
+    }
+  };
+
+  const refreshDirtyState = () => {
+    isDirty = Array.from(toggles).some((toggle, index) => toggle.checked !== initialState[index]);
+    updateUi();
+  };
+
+  toggles.forEach(toggle => {
+    toggle.addEventListener('change', () => {
+      syncMessengerDependency();
+      refreshDirtyState();
+    });
+  });
+
+  saveButton?.addEventListener('click', () => {
+    syncMessengerDependency();
+
+    Array.from(toggles).forEach((toggle, index) => {
+      initialState[index] = toggle.checked;
+    });
+
+    isDirty = false;
+    updateUi();
+    showSuccess('Bot settings preview updated. Frontend only.');
+  });
+
+  resetButton?.addEventListener('click', () => {
+    Array.from(toggles).forEach((toggle, index) => {
+      toggle.checked = initialState[index];
+    });
+
+    syncMessengerDependency();
+    refreshDirtyState();
+    showInfo('Toggles reset to the last saved preview state.');
+  });
+
+  form.addEventListener('submit', (e) => {
+    e.preventDefault();
+  });
+
+  syncMessengerDependency();
+  Array.from(toggles).forEach((toggle, index) => {
+    initialState[index] = toggle.checked;
+  });
+  updateUi();
 }
 
 // ══════════════════════════════════════════

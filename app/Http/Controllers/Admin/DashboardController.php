@@ -33,12 +33,79 @@ class DashboardController extends Controller
 
     public function products()
     {
-        return $this->page('Products', 'Control catalog, inventory, and pricing from one place.');
-    }
-
-    public function botSettings()
-    {
-        return $this->page('Bot Settings', 'Configure reply rules, tone, and automation priorities.');
+        return view('admin.products.index', [
+            'title' => 'Products',
+            'subtitle' => 'Manage catalog, pricing, stock risk, and product performance in one clear workspace.',
+            'metrics' => [
+                ['label' => 'Total Products', 'value' => '286', 'meta' => '+14 this month'],
+                ['label' => 'Live Products', 'value' => '249', 'meta' => '37 need review'],
+                ['label' => 'Low Stock Alert', 'value' => '18', 'meta' => 'Restock in 24h'],
+                ['label' => 'Avg Conversion', 'value' => '5.8%', 'meta' => '+0.9% this week'],
+            ],
+            'products' => [
+                [
+                    'name' => 'Premium Cotton T-Shirt',
+                    'sku' => 'SKU-TS-2109',
+                    'category' => 'Apparel',
+                    'price' => 'BDT 1,150',
+                    'stock' => 84,
+                    'stock_label' => 'In Stock',
+                    'sales' => 146,
+                    'status' => 'Active',
+                ],
+                [
+                    'name' => 'Smart Casual Hoodie',
+                    'sku' => 'SKU-HD-1231',
+                    'category' => 'Apparel',
+                    'price' => 'BDT 1,890',
+                    'stock' => 22,
+                    'stock_label' => 'Low Stock',
+                    'sales' => 67,
+                    'status' => 'Active',
+                ],
+                [
+                    'name' => 'Wireless Earbuds Pro',
+                    'sku' => 'SKU-EB-4412',
+                    'category' => 'Electronics',
+                    'price' => 'BDT 3,250',
+                    'stock' => 56,
+                    'stock_label' => 'In Stock',
+                    'sales' => 201,
+                    'status' => 'Active',
+                ],
+                [
+                    'name' => 'Leather Office Backpack',
+                    'sku' => 'SKU-BP-9920',
+                    'category' => 'Accessories',
+                    'price' => 'BDT 2,780',
+                    'stock' => 11,
+                    'stock_label' => 'Critical',
+                    'sales' => 39,
+                    'status' => 'Draft',
+                ],
+                [
+                    'name' => 'AirFlex Running Shoes',
+                    'sku' => 'SKU-SH-3318',
+                    'category' => 'Footwear',
+                    'price' => 'BDT 2,450',
+                    'stock' => 73,
+                    'stock_label' => 'In Stock',
+                    'sales' => 128,
+                    'status' => 'Active',
+                ],
+            ],
+            'attentionItems' => [
+                ['title' => '11 units left on Leather Office Backpack', 'note' => 'Top wishlist item. Create urgent restock request.'],
+                ['title' => 'Hoodie return rate increased to 6.2%', 'note' => 'Check size chart and fabric details on product page.'],
+                ['title' => '3 products missing size variation', 'note' => 'Publish size options to reduce drop-off on checkout.'],
+            ],
+            'categoryHealth' => [
+                ['name' => 'Apparel', 'share' => 46],
+                ['name' => 'Electronics', 'share' => 28],
+                ['name' => 'Footwear', 'share' => 16],
+                ['name' => 'Accessories', 'share' => 10],
+            ],
+        ]);
     }
 
     public function bargaining()
@@ -46,29 +113,12 @@ class DashboardController extends Controller
         return $this->page('Bargaining Rules', 'Set floor price, negotiation steps, and approval boundaries.');
     }
 
-    public function whatsappRecovery()
-    {
-        return $this->page('WhatsApp Recovery', 'Recover dropped buyers with timed follow-up sequences.');
-    }
-
     public function campaigns()
     {
-        return $this->page('Campaigns', 'Create launch, retargeting, and upsell campaigns.');
-    }
-
-    public function competition()
-    {
-        return $this->page('Competition Monitor', 'Track market movement and competitor pricing signals.');
-    }
-
-    public function coach()
-    {
-        return $this->page('Performance Coach', 'Review weekly recommendations and growth actions.');
-    }
-
-    public function courier()
-    {
-        return $this->page('Courier Manager', 'Compare shipping options and dispatch performance.');
+        return view('admin.campaigns.index', [
+            'title' => 'Campaigns',
+            'subtitle' => 'Design, schedule, and monitor product-focused marketing campaigns.',
+        ]);
     }
 
     public function settings()

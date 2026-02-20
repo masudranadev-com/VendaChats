@@ -1,7 +1,15 @@
 <?php
 
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
+use App\Http\Controllers\Admin\BotSettingsController;
+use App\Http\Controllers\Admin\DashboardController;
+use App\Http\Controllers\Admin\AdminUsersController;
+use App\Http\Controllers\Admin\AdminPostController;
+use App\Http\Controllers\Admin\CompetitionController;
+use App\Http\Controllers\Admin\CoachController;
+use App\Http\Controllers\Admin\CourierController;
+use App\Http\Controllers\Admin\ShopSettingsController;
 use App\Http\Controllers\User\AccountController;
 use App\Http\Controllers\User\DataDeletionController;
 use App\Http\Controllers\User\FacebookAuthController;
@@ -34,6 +42,58 @@ Route::get('/user-data-deletion', [DataDeletionController::class, 'index'])->nam
 Route::post('/facebook/data-deletion', [DataDeletionController::class, 'callback'])->name('data-deletion.callback');
 Route::get('/facebook/data-deletion/status/{code}', [DataDeletionController::class, 'status'])->name('data-deletion.status');
 
+if (app()->environment('local')) {
+    Route::prefix('_debug')->name('debug.')->group(function () {
+        Route::get('/session', function (Request $request) {
+            $sessionData = $request->session()->all();
+            ksort($sessionData);
+
+            return view('debug.session-inspector', [
+                'sessionData' => $sessionData,
+                'sessionId' => $request->session()->getId(),
+                'sessionDriver' => config('session.driver'),
+            ]);
+        })->name('session.index');
+
+        Route::post('/session/set', function (Request $request) {
+            $validated = $request->validate([
+                'key' => ['required', 'string', 'max:255'],
+                'value' => ['nullable', 'string'],
+            ]);
+
+            $rawValue = $validated['value'] ?? '';
+            $decoded = json_decode($rawValue, true);
+            $value = json_last_error() === JSON_ERROR_NONE ? $decoded : $rawValue;
+
+            $request->session()->put($validated['key'], $value);
+
+            return redirect()
+                ->route('debug.session.index')
+                ->with('status', "Session key '{$validated['key']}' updated.");
+        })->name('session.set');
+
+        Route::post('/session/forget', function (Request $request) {
+            $validated = $request->validate([
+                'key' => ['required', 'string', 'max:255'],
+            ]);
+
+            $request->session()->forget($validated['key']);
+
+            return redirect()
+                ->route('debug.session.index')
+                ->with('status', "Session key '{$validated['key']}' removed.");
+        })->name('session.forget');
+
+        Route::post('/session/flush', function (Request $request) {
+            $request->session()->flush();
+
+            return redirect()
+                ->route('debug.session.index')
+                ->with('status', 'Session flushed.');
+        })->name('session.flush');
+    });
+}
+
 // webhook
 Route::any('/webhook', [HomeController::class, 'webhook'])->name('home.webhook');
 Route::prefix('facebook')->name('facebook.')->group(function () {
@@ -54,19 +114,40 @@ Route::prefix('facebook')->name('facebook.')->group(function () {
 // Admin
 Route::redirect('/admin', '/admin/dashboard');
 Route::prefix('admin')->name('admin.')->group(function () {
-    Route::get('/dashboard', [AdminDashboardController::class, 'index'])->name('dashboard');
-    Route::get('/analytics', [AdminDashboardController::class, 'analytics'])->name('analytics');
-    Route::get('/orders', [AdminDashboardController::class, 'orders'])->name('orders');
-    Route::get('/conversations', [AdminDashboardController::class, 'conversations'])->name('conversations');
-    Route::get('/customers', [AdminDashboardController::class, 'customers'])->name('customers');
-    Route::get('/products', [AdminDashboardController::class, 'products'])->name('products');
-    Route::get('/bot-settings', [AdminDashboardController::class, 'botSettings'])->name('bot-settings');
-    Route::get('/bargaining', [AdminDashboardController::class, 'bargaining'])->name('bargaining');
-    Route::get('/whatsapp-recovery', [AdminDashboardController::class, 'whatsappRecovery'])->name('whatsapp-recovery');
-    Route::get('/campaigns', [AdminDashboardController::class, 'campaigns'])->name('campaigns');
-    Route::get('/competition', [AdminDashboardController::class, 'competition'])->name('competition');
-    Route::get('/coach', [AdminDashboardController::class, 'coach'])->name('coach');
-    Route::get('/courier', [AdminDashboardController::class, 'courier'])->name('courier');
-    Route::get('/settings', [AdminDashboardController::class, 'settings'])->name('settings');
-    Route::get('/billing', [AdminDashboardController::class, 'billing'])->name('billing');
+    Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+    Route::get('/analytics', [DashboardController::class, 'analytics'])->name('analytics');
+    Route::get('/orders', [DashboardController::class, 'orders'])->name('orders');
+    Route::get('/conversations', [DashboardController::class, 'conversations'])->name('conversations');
+    Route::get('/customers', [DashboardController::class, 'customers'])->name('customers');
+    Route::get('/products', [DashboardController::class, 'products'])->name('products');
+
+    // bot-settings
+    Route::get('/bot-settings', [BotSettingsController::class, 'index'])->name('bot-settings');
+    Route::get('/bot-settings/facebook/connect', [BotSettingsController::class, 'connectFacebook'])->name('bot-settings.facebook.connect');
+    Route::get('/bot-settings/facebook/disconnect', [BotSettingsController::class, 'disconnectFacebook'])->name('bot-settings.facebook.disconnect');
+    Route::get('/bot-settings/facebook/callback', [BotSettingsController::class, 'callbackFacebook'])->name('bot-settings.facebook.callback');
+    Route::get('/bot-settings/facebook/info', [BotSettingsController::class, 'infoFacebook'])->name('bot-settings.facebook.info');
+
+    // users
+    Route::get('/users', [AdminUsersController::class, 'users'])->name('users');
+    Route::get('/users/views', [AdminUsersController::class, 'usersViews'])->name('users.views');
+
+    // posts
+    Route::get('/posts', [AdminPostController::class, 'posts'])->name('posts');
+
+    Route::get('/bargaining', [DashboardController::class, 'bargaining'])->name('bargaining');
+    Route::get('/campaigns', [DashboardController::class, 'campaigns'])->name('campaigns');
+    Route::get('/competition', [CompetitionController::class, 'index'])->name('competition');
+    Route::post('/competition/competitors', [CompetitionController::class, 'store'])->name('competition.store');
+    Route::post('/competition/{competitor}/sync', [CompetitionController::class, 'sync'])->name('competition.sync');
+    Route::get('/competition/{competitor}/view', [CompetitionController::class, 'view'])->name('competition.view');
+    Route::get('/coach', [CoachController::class, 'index'])->name('coach');
+    Route::get('/courier', [CourierController::class, 'index'])->name('courier');
+    Route::get('/settings', [ShopSettingsController::class, 'index'])->name('settings');
+    Route::get('/settings/domain', [ShopSettingsController::class, 'domain'])->name('settings.domain');
+    Route::get('/settings/theme', [ShopSettingsController::class, 'theme'])->name('settings.theme');
+    Route::get('/settings/category', [ShopSettingsController::class, 'category'])->name('settings.category');
+    Route::get('/settings/offers', [ShopSettingsController::class, 'offers'])->name('settings.offers');
+    Route::get('/settings/content', [ShopSettingsController::class, 'content'])->name('settings.content');
+    Route::get('/billing', [DashboardController::class, 'billing'])->name('billing');
 });
