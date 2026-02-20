@@ -6,10 +6,6 @@
     demo: {
       categoriesJsonUrl: '/assets/js/APIs/json/categories.json',
       latencyMs: 420
-    },
-    api: {
-      baseUrl: '/api/v1/admin',
-      tokenStorageKey: 'admin_api_token'
     }
   };
 
@@ -87,14 +83,6 @@
     };
   }
 
-  function resolveErrorMessage(payload, fallback) {
-    if (payload && typeof payload.message === 'string' && payload.message.trim()) {
-      return payload.message.trim();
-    }
-
-    return fallback || 'Request failed.';
-  }
-
   function slugify(input) {
     return String(input || '')
       .trim()
@@ -108,81 +96,6 @@
   function toPositiveInteger(value) {
     const numeric = Number.parseInt(String(value), 10);
     return Number.isFinite(numeric) && numeric > 0 ? numeric : null;
-  }
-
-  function createHttpClient(config) {
-    function readToken() {
-      if (!config.api.tokenStorageKey) return '';
-      try {
-        return window.localStorage.getItem(config.api.tokenStorageKey) || '';
-      } catch (error) {
-        return '';
-      }
-    }
-
-    function buildUrl(path, query) {
-      const base = String(config.api.baseUrl || '').replace(/\/$/, '');
-      const cleanPath = String(path || '').startsWith('/') ? String(path || '') : `/${String(path || '')}`;
-      const url = new URL(`${base}${cleanPath}`, window.location.origin);
-
-      if (isObject(query)) {
-        Object.entries(query).forEach(([key, value]) => {
-          if (value === undefined || value === null || value === '') return;
-          url.searchParams.set(key, String(value));
-        });
-      }
-
-      return url.toString();
-    }
-
-    async function request(path, options) {
-      const params = isObject(options) ? options : {};
-      const method = String(params.method || 'GET').toUpperCase();
-      const headers = Object.assign(
-        {
-          Accept: 'application/json'
-        },
-        isObject(params.headers) ? params.headers : {}
-      );
-
-      const token = readToken();
-      if (token) {
-        headers.Authorization = `Bearer ${token}`;
-      }
-
-      const fetchOptions = {
-        method,
-        headers
-      };
-
-      if (params.body !== undefined && params.body !== null && method !== 'GET' && method !== 'HEAD') {
-        headers['Content-Type'] = 'application/json';
-        fetchOptions.body = JSON.stringify(params.body);
-      }
-
-      const response = await window.fetch(buildUrl(path, params.query), fetchOptions);
-      const text = await response.text();
-      let parsed = {};
-
-      if (text) {
-        try {
-          parsed = JSON.parse(text);
-        } catch (error) {
-          parsed = { message: text };
-        }
-      }
-      const envelope = normalizeEnvelope(parsed, response.ok ? 'Request completed.' : 'Request failed.');
-
-      if (!response.ok || envelope.success === false) {
-        throw new ApiError(resolveErrorMessage(envelope, 'Request failed.'), response.status, envelope);
-      }
-
-      return envelope;
-    }
-
-    return {
-      request
-    };
   }
 
   function createDemoCategoriesController(config) {
@@ -575,72 +488,8 @@
     };
   }
 
-  function createLiveCategoriesController(httpClient) {
-    return {
-      bootstrap: function () {
-        return httpClient.request('/categories/page-data', { method: 'GET' });
-      },
-      createCategory: function (payload) {
-        return httpClient.request('/categories', { method: 'POST', body: payload });
-      },
-      updateCategory: function (categoryId, payload) {
-        return httpClient.request(`/categories/${encodeURIComponent(String(categoryId))}`, {
-          method: 'PUT',
-          body: payload
-        });
-      },
-      deleteCategory: function (categoryId) {
-        return httpClient.request(`/categories/${encodeURIComponent(String(categoryId))}`, {
-          method: 'DELETE'
-        });
-      },
-      generateDescription: function (payload) {
-        return httpClient.request('/categories/ai-description', {
-          method: 'POST',
-          body: payload
-        });
-      },
-      saveSetup: function (payload) {
-        return httpClient.request('/categories/setup/commit', {
-          method: 'POST',
-          body: payload
-        });
-      }
-    };
-  }
-
-  function createProxyController(config, demoController, liveController) {
-    function controller() {
-      return config.mode === 'api' ? liveController : demoController;
-    }
-
-    return {
-      bootstrap: function () {
-        return controller().bootstrap();
-      },
-      createCategory: function (payload) {
-        return controller().createCategory(payload);
-      },
-      updateCategory: function (categoryId, payload) {
-        return controller().updateCategory(categoryId, payload);
-      },
-      deleteCategory: function (categoryId) {
-        return controller().deleteCategory(categoryId);
-      },
-      generateDescription: function (payload) {
-        return controller().generateDescription(payload);
-      },
-      saveSetup: function (payload) {
-        return controller().saveSetup(payload);
-      }
-    };
-  }
-
   const runtimeConfig = deepMerge(DEFAULT_CONFIG, window.__APP_API_CONFIG || {});
-  const httpClient = createHttpClient(runtimeConfig);
-  const demoCategoriesController = createDemoCategoriesController(runtimeConfig);
-  const liveCategoriesController = createLiveCategoriesController(httpClient);
-  const categoriesController = createProxyController(runtimeConfig, demoCategoriesController, liveCategoriesController);
+  const categoriesController = createDemoCategoriesController(runtimeConfig);
 
   const api = {
     ApiError,
@@ -648,13 +497,10 @@
     getConfig: function () {
       return deepClone(runtimeConfig);
     },
-    setMode: function (mode) {
-      if (mode === 'demo' || mode === 'api') {
-        runtimeConfig.mode = mode;
-      }
+    setMode: function () {
+      runtimeConfig.mode = 'demo';
       return runtimeConfig.mode;
     },
-    request: httpClient.request,
     controllers: {
       categories: categoriesController
     },

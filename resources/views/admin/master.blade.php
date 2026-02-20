@@ -182,14 +182,9 @@
     window.__ADMIN_PAGE = @json($currentPage);
     window.__ADMIN_ROUTE_NAME = @json($routeName);
     window.__APP_API_CONFIG = {
-      // Use "demo" to bypass API and use static file directly.
-      mode: 'api',
+      mode: 'demo',
       demo: {
         categoriesJsonUrl: @json(asset('assets/js/APIs/json/categories.json'))
-      },
-      api: {
-        baseUrl: '/api/v1/demo/admin',
-        tokenStorageKey: 'admin_api_token'
       }
     };
   </script>
