@@ -8,6 +8,7 @@
     'admin.customers' => 'customers',
     'admin.products' => 'products',
     'admin.users' => 'users',
+    'admin.users.views' => 'users',
     'admin.posts' => 'posts',
     'admin.bot-settings' => 'bot-settings',
     'admin.bargaining' => 'bargaining',
@@ -77,22 +78,16 @@
         <div class="nav-group">
           <div class="nav-group-title">Automation</div>
            <a href="{{ route('admin.users') }}" class="nav-item {{ $currentPage === 'users' ? 'active' : '' }}">
-            <span class="nav-icon">🛒</span>
-            <span class="nav-label">Users</span>
-            <span class="nav-badge">12</span>
+            <span class="nav-icon">👥</span>
+            <span class="nav-label">Customers</span>
           </a>
           <a href="{{ route('admin.posts') }}" class="nav-item {{ $currentPage === 'posts' ? 'active' : '' }}">
             <span class="nav-icon">💬</span>
             <span class="nav-label">Posts</span>
-            <span class="nav-badge">5</span>
           </a>
           <a href="{{ route('admin.bot-settings') }}" class="nav-item {{ $currentPage === 'bot-settings' ? 'active' : '' }}">
             <span class="nav-icon">🤖</span>
             <span class="nav-label">Bot Settings</span>
-          </a>
-          <a href="{{ route('admin.bargaining') }}" class="nav-item {{ $currentPage === 'bargaining' ? 'active' : '' }}">
-            <span class="nav-icon">💰</span>
-            <span class="nav-label">Bargaining Rules</span>
           </a>
           <a href="{{ route('admin.whatsapp-recovery') }}" class="nav-item {{ $currentPage === 'whatsapp-recovery' ? 'active' : '' }}">
             <span class="nav-icon">📱</span>

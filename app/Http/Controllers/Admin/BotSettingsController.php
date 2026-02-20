@@ -3,10 +3,12 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Validator;
 use Illuminate\View\View;
 
 class BotSettingsController extends Controller
@@ -252,7 +254,73 @@ class BotSettingsController extends Controller
             ->with('facebook_status', 'Facebook disconnected successfully.');
     }
 
-    public function infoFacebook(Request $request)
+    public function infoFacebook(Request $request): JsonResponse
     {
+        $validator = Validator::make($request->query(), [
+            'sender_id' => ['required', 'string'],
+            'page_id' => ['nullable', 'string'],
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'message' => $validator->errors()->first(),
+                'errors' => $validator->errors(),
+            ], 422);
+        }
+
+        $validated = $validator->validated();
+        $senderId = (string) $validated['sender_id'];
+        $pageId = $validated['page_id'] ?? $request->session()->get('bot_settings.selected_page_id');
+
+        if (! $pageId) {
+            return response()->json([
+                'message' => 'Missing page_id. Provide page_id or reconnect Facebook in bot settings.',
+            ], 422);
+        }
+
+        $pages = $request->session()->get('facebook.pages', []);
+        $pageToken = null;
+
+        foreach ($pages as $page) {
+            if (($page['id'] ?? null) === $pageId) {
+                $pageToken = $page['access_token'] ?? null;
+                break;
+            }
+        }
+
+        if (! $pageToken) {
+            return response()->json([
+                'message' => 'Page access token not found in session. Reconnect Facebook and try again.',
+            ], 422);
+        }
+
+        $graphVersion = config('services.facebook.graph_version', 'v22.0');
+        $response = Http::acceptJson()->get(
+            "https://graph.facebook.com/{$graphVersion}/{$senderId}",
+            [
+                'fields' => 'id,first_name,last_name,name,profile_pic',
+                'access_token' => $pageToken,
+            ]
+        );
+
+        if ($response->failed()) {
+            return response()->json([
+                'message' => $response->json('error.message') ?: $response->body(),
+                'error' => $response->json('error'),
+            ], $response->status() ?: 500);
+        }
+
+        $profile = $response->json();
+
+        return response()->json([
+            'data' => [
+                'sender_id' => $profile['id'] ?? $senderId,
+                'first_name' => $profile['first_name'] ?? null,
+                'last_name' => $profile['last_name'] ?? null,
+                'name' => $profile['name'] ?? trim(($profile['first_name'] ?? '').' '.($profile['last_name'] ?? '')),
+                'profile_pic' => $profile['profile_pic'] ?? null,
+                'page_id' => $pageId,
+            ],
+        ]);
     }
 }

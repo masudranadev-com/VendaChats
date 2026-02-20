@@ -126,6 +126,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
 
     // users
     Route::get('/users', [AdminUsersController::class, 'users'])->name('users');
+    Route::get('/users/views', [AdminUsersController::class, 'usersViews'])->name('users.views');
 
     // posts
     Route::get('/posts', [AdminPostController::class, 'posts'])->name('posts');
