@@ -47,124 +47,122 @@
     </div>
   </section>
 
-  <div class="products-layout mt-xl">
-    <section class="card">
-      <div class="card-header">
-        <h3 class="card-title">Product List</h3>
-        <span class="badge badge-info">Demo Data</span>
-      </div>
+  <section class="card mt-xl">
+    <div class="card-header">
+      <h3 class="card-title">Product List</h3>
+      <span class="badge badge-info">Demo Data</span>
+    </div>
 
-      <div class="products-filter-grid">
-        <div class="form-group">
-          <label class="form-label">Search Product</label>
-          <input type="text" class="form-input" placeholder="Search by name or SKU">
-        </div>
-        <div class="form-group">
-          <label class="form-label">Category</label>
-          <select class="form-select">
-            <option>All Categories</option>
-            <option>Apparel</option>
-            <option>Electronics</option>
-            <option>Footwear</option>
-            <option>Accessories</option>
-          </select>
-        </div>
-        <div class="form-group">
-          <label class="form-label">Stock State</label>
-          <select class="form-select">
-            <option>All</option>
-            <option>In Stock</option>
-            <option>Low Stock</option>
-            <option>Critical</option>
-          </select>
-        </div>
-        <div class="form-group">
-          <label class="form-label">Sort By</label>
-          <select class="form-select">
-            <option>Latest Updated</option>
-            <option>Highest Sales (7d)</option>
-            <option>Lowest Stock</option>
-            <option>Price: High to Low</option>
-          </select>
-        </div>
+    <div class="products-filter-grid">
+      <div class="form-group">
+        <label class="form-label">Search Product</label>
+        <input type="text" class="form-input" placeholder="Search by name or SKU">
       </div>
-
-      <div class="products-filter-actions">
-        <button type="button" class="btn btn-primary btn-sm">Apply Filter</button>
-        <button type="button" class="btn btn-ghost btn-sm">Reset</button>
-        <span class="products-filter-result">Showing {{ count($products) }} products</span>
+      <div class="form-group">
+        <label class="form-label">Category</label>
+        <select class="form-select">
+          <option>All Categories</option>
+          <option>Apparel</option>
+          <option>Electronics</option>
+          <option>Footwear</option>
+          <option>Accessories</option>
+        </select>
       </div>
+      <div class="form-group">
+        <label class="form-label">Stock State</label>
+        <select class="form-select">
+          <option>All</option>
+          <option>In Stock</option>
+          <option>Low Stock</option>
+          <option>Critical</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Sort By</label>
+        <select class="form-select">
+          <option>Latest Updated</option>
+          <option>Highest Sales (7d)</option>
+          <option>Lowest Stock</option>
+          <option>Price: High to Low</option>
+        </select>
+      </div>
+    </div>
 
-      <div class="table-container products-table-container">
-        <table class="table">
-          <thead>
+    <div class="products-filter-actions">
+      <button type="button" class="btn btn-primary btn-sm">Apply Filter</button>
+      <button type="button" class="btn btn-ghost btn-sm">Reset</button>
+      <span class="products-filter-result">Showing {{ count($products) }} products</span>
+    </div>
+
+    <div class="table-container products-table-container">
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Product</th>
+            <th>Category</th>
+            <th>Price</th>
+            <th>Stock</th>
+            <th>Visitors</th>
+            <th>Sales (7d)</th>
+            <th>Status</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          @foreach ($products as $product)
+            @php
+              $stockClass = match ($product['stock_label']) {
+                'Critical' => 'badge-danger',
+                'Low Stock' => 'badge-warning',
+                default => 'badge-success',
+              };
+
+              $statusClass = match ($product['status']) {
+                'Draft' => 'badge-warning',
+                default => 'badge-primary',
+              };
+            @endphp
             <tr>
-              <th>Product</th>
-              <th>Category</th>
-              <th>Price</th>
-              <th>Stock</th>
-              <th>Visitors</th>
-              <th>Sales (7d)</th>
-              <th>Status</th>
-              <th>Action</th>
+              <td>
+                <div class="products-product-cell">
+                  @if (!empty($product['image']))
+                    <span class="products-product-thumb">
+                      <img src="{{ $product['image'] }}" alt="{{ $product['name'] }}" loading="lazy">
+                    </span>
+                  @else
+                    <span class="products-product-thumb">{{ strtoupper(substr($product['name'], 0, 1)) }}</span>
+                  @endif
+                  <div>
+                    <strong title="{{ $product['name'] }}">{{ \Illuminate\Support\Str::limit($product['name'], 15, '...') }}</strong>
+                    <small>{{ $product['sku'] }}</small>
+                  </div>
+                </div>
+              </td>
+              <td>{{ $product['category'] }}</td>
+              <td class="products-cell-strong">{{ $product['price'] }}</td>
+              <td>
+                <div class="products-stock-wrap">
+                  <span class="badge {{ $stockClass }}">{{ $product['stock_label'] }}</span>
+                  <div class="products-stock-track">
+                    <span style="width: {{ $product['stock'] }}%"></span>
+                  </div>
+                </div>
+              </td>
+              <td>{{ number_format($product['visitors']) }}</td>
+              <td>{{ number_format($product['sales']) }}</td>
+              <td><span class="badge {{ $statusClass }}">{{ $product['status'] }}</span></td>
+              <td>
+                <div class="products-table-actions">
+                  <button type="button" class="btn btn-ghost btn-sm">View</button>
+                  <button type="button" class="btn btn-secondary btn-sm">Edit</button>
+                </div>
+              </td>
             </tr>
-          </thead>
-          <tbody>
-            @foreach ($products as $product)
-              @php
-                $stockClass = match ($product['stock_label']) {
-                  'Critical' => 'badge-danger',
-                  'Low Stock' => 'badge-warning',
-                  default => 'badge-success',
-                };
-
-                $statusClass = match ($product['status']) {
-                  'Draft' => 'badge-warning',
-                  default => 'badge-primary',
-                };
-              @endphp
-              <tr>
-                <td>
-                  <div class="products-product-cell">
-                    @if (!empty($product['image']))
-                      <span class="products-product-thumb">
-                        <img src="{{ $product['image'] }}" alt="{{ $product['name'] }}" loading="lazy">
-                      </span>
-                    @else
-                      <span class="products-product-thumb">{{ strtoupper(substr($product['name'], 0, 1)) }}</span>
-                    @endif
-                    <div>
-                      <strong title="{{ $product['name'] }}">{{ \Illuminate\Support\Str::limit($product['name'], 15, '...') }}</strong>
-                      <small>{{ $product['sku'] }}</small>
-                    </div>
-                  </div>
-                </td>
-                <td>{{ $product['category'] }}</td>
-                <td class="products-cell-strong">{{ $product['price'] }}</td>
-                <td>
-                  <div class="products-stock-wrap">
-                    <span class="badge {{ $stockClass }}">{{ $product['stock_label'] }}</span>
-                    <div class="products-stock-track">
-                      <span style="width: {{ $product['stock'] }}%"></span>
-                    </div>
-                  </div>
-                </td>
-                <td>{{ number_format($product['visitors']) }}</td>
-                <td>{{ number_format($product['sales']) }}</td>
-                <td><span class="badge {{ $statusClass }}">{{ $product['status'] }}</span></td>
-                <td>
-                  <div class="products-table-actions">
-                    <button type="button" class="btn btn-ghost btn-sm">View</button>
-                    <button type="button" class="btn btn-secondary btn-sm">Edit</button>
-                  </div>
-                </td>
-              </tr>
-            @endforeach
-          </tbody>
-        </table>
-      </div>
-    </section>
-  </div>
+          @endforeach
+        </tbody>
+      </table>
+    </div>
+  </section>
 
   <button
     type="button"
