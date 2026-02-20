@@ -11,26 +11,16 @@
 
     <div class="settings-header-actions">
       <a href="{{ route('admin.products') }}" class="btn btn-ghost">Back to Products</a>
-      <button type="button" class="btn btn-primary">Save Category Setup</button>
+      <button type="button" class="btn btn-primary" data-category-save-setup>Save Category Setup</button>
     </div>
   </div>
 
-  <section class="settings-stats-grid">
-    @foreach ($metrics as $metric)
-      @php
-        $toneClass = match ($loop->index) {
-          0 => 'is-primary',
-          1 => 'is-info',
-          2 => 'is-success',
-          default => 'is-warning',
-        };
-      @endphp
-      <article class="settings-stat-card {{ $toneClass }}">
-        <span>{{ $metric['label'] }}</span>
-        <strong>{{ $metric['value'] }}</strong>
-        <small>{{ $metric['meta'] }}</small>
-      </article>
-    @endforeach
+  <section class="settings-stats-grid" data-categories-metrics>
+    <article class="settings-stat-card is-info">
+      <span>Loading...</span>
+      <strong>--</strong>
+      <small>Please wait</small>
+    </article>
   </section>
 
   <article class="card settings-panel mt-xl categories-create-panel" data-category-create-panel>
@@ -50,27 +40,24 @@
           type="text"
           class="form-input"
           data-category-name-input
-          placeholder="e.g. Beauty & Personal Care"
+          placeholder="e.g. Beauty &amp; Personal Care"
         >
       </div>
       <div class="form-group">
-        <label class="form-label">Category Slug</label>
-        <input type="text" class="form-input" placeholder="beauty-personal-care">
+        <label class="form-label" for="categorySlugInput">Category Slug</label>
+        <input id="categorySlugInput" type="text" class="form-input" data-category-slug-input placeholder="beauty-personal-care">
       </div>
       <div class="form-group">
-        <label class="form-label">Visibility</label>
-        <select class="form-select">
-          <option>Active</option>
-          <option>Draft</option>
+        <label class="form-label" for="categoryVisibilityInput">Visibility</label>
+        <select id="categoryVisibilityInput" class="form-select" data-category-status-input>
+          <option value="Active">Active</option>
+          <option value="Draft">Draft</option>
         </select>
       </div>
       <div class="form-group">
-        <label class="form-label">Parent Category</label>
-        <select class="form-select">
-          <option>None (Top level)</option>
-          @foreach ($categories as $category)
-            <option>{{ $category['name'] }}</option>
-          @endforeach
+        <label class="form-label" for="categoryParentInput">Parent Category</label>
+        <select id="categoryParentInput" class="form-select" data-category-parent-input>
+          <option value="">None (Top level)</option>
         </select>
       </div>
     </div>
@@ -137,9 +124,6 @@
         <label class="form-label" for="editCategoryParentInput">Parent Category</label>
         <select id="editCategoryParentInput" class="form-select" data-category-edit-parent>
           <option value="">None (Top level)</option>
-          @foreach ($categories as $category)
-            <option value="{{ $category['name'] }}">{{ $category['name'] }}</option>
-          @endforeach
         </select>
       </div>
     </div>
@@ -160,9 +144,9 @@
     <div class="card-header">
       <div>
         <h3 class="card-title">All Categories</h3>
-        <p class="settings-panel-subtitle">Complete category list from demo controller data.</p>
+        <p class="settings-panel-subtitle">Complete category list from demo API data.</p>
       </div>
-      <span class="badge badge-info" data-categories-total>{{ count($categories) }} total</span>
+      <span class="badge badge-info" data-categories-total>0 total</span>
     </div>
 
     <div class="categories-delete-feedback" data-categories-delete-feedback aria-live="polite"></div>
@@ -180,46 +164,10 @@
             <th>Action</th>
           </tr>
         </thead>
-        <tbody>
-          @foreach ($categories as $category)
-            @php
-              $statusClass = $category['status'] === 'Active' ? 'badge-success' : 'badge-warning';
-            @endphp
-            <tr
-              data-category-row
-              data-category-name="{{ $category['name'] }}"
-              data-category-slug="{{ $category['slug'] }}"
-              data-category-status="{{ $category['status'] }}"
-              data-category-products="{{ (int) $category['products'] }}"
-              data-category-share="{{ (int) $category['share'] }}"
-              data-category-parent="{{ $category['parent'] ?? '' }}"
-              data-category-updated="{{ $category['updated_at'] }}"
-              data-category-description="{{ $category['description'] }}"
-            >
-              <td>
-                <strong class="settings-cell-strong">{{ $category['name'] }}</strong>
-                @if (!empty($category['parent']))
-                  <small class="categories-parent-note">Parent: {{ $category['parent'] }}</small>
-                @endif
-              </td>
-              <td>{{ $category['slug'] }}</td>
-              <td>{{ number_format($category['products']) }}</td>
-              <td class="categories-share-cell">
-                <span class="categories-share-value">{{ $category['share'] }}%</span>
-                <div class="settings-category-track categories-share-track">
-                  <span style="width: {{ $category['share'] }}%"></span>
-                </div>
-              </td>
-              <td><span class="badge {{ $statusClass }}">{{ $category['status'] }}</span></td>
-              <td>{{ $category['updated_at'] }}</td>
-              <td>
-                <div class="products-table-actions">
-                  <button type="button" class="btn btn-secondary btn-sm" data-category-edit>Edit</button>
-                  <button type="button" class="btn btn-danger btn-sm" data-category-delete>Delete</button>
-                </div>
-              </td>
-            </tr>
-          @endforeach
+        <tbody data-categories-table-body>
+          <tr>
+            <td colspan="7">Loading categories...</td>
+          </tr>
         </tbody>
       </table>
     </div>
@@ -235,7 +183,7 @@
   >
     <span class="products-side-toggle-icon">&#10024;</span>
     <span class="products-side-toggle-text">AI Suggestions</span>
-    <span class="products-side-toggle-count">{{ count($suggestions) }}</span>
+    <span class="products-side-toggle-count" data-suggestions-count>0</span>
   </button>
 
   <div class="products-side-backdrop" data-products-attention-backdrop aria-hidden="true"></div>
@@ -244,18 +192,16 @@
     <div class="card-header products-side-panel-header">
       <h3 class="card-title">Suggestions</h3>
       <div class="products-side-panel-actions">
-        <span class="badge badge-info">Next reset {{ $suggestionSchedule['next_reset_in'] }}</span>
+        <span class="badge badge-info" data-suggestions-next-reset>Next reset -</span>
         <button type="button" class="products-side-close" data-products-attention-close aria-label="Close Suggestions panel">&times;</button>
       </div>
     </div>
 
-    <ul class="products-attention-list">
-      @foreach ($suggestions as $suggestion)
-        <li>
-          <strong>{{ $suggestion['title'] }}</strong>
-          <p>{{ $suggestion['note'] }}</p>
-        </li>
-      @endforeach
+    <ul class="products-attention-list" data-suggestions-list>
+      <li>
+        <strong>Loading suggestions...</strong>
+        <p>Please wait.</p>
+      </li>
     </ul>
   </section>
 @endsection

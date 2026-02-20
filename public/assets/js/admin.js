@@ -15,9 +15,6 @@ document.addEventListener('DOMContentLoaded', () => {
   initSearch();
   initBotSettings();
   initProductsAttentionPanel();
-  initCategoryAiWriter();
-  initCategoryEditor();
-  initCategoryDeleteGuards();
   setActivePage();
 });
 
