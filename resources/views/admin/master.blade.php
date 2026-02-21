@@ -13,6 +13,7 @@
     'admin.conversations' => 'conversations',
     'admin.customers' => 'customers',
     'admin.products' => 'products',
+    'admin.products.create' => 'products',
     'admin.categories' => 'products',
     'admin.users' => 'users',
     'admin.users.views' => 'users',
@@ -71,7 +72,6 @@
             <span class="nav-icon">📦</span>
             <span class="nav-label">Products</span>
           </a>
-          <div class="nav-group-title">Automation</div>
            <a href="{{ route('admin.users') }}" class="nav-item {{ $currentPage === 'users' ? 'active' : '' }}">
             <span class="nav-icon">👥</span>
             <span class="nav-label">Customers</span>
@@ -79,6 +79,7 @@
         </div>
 
         <div class="nav-group">
+          <div class="nav-group-title">Automation</div>
           <a href="{{ route('admin.posts') }}" class="nav-item {{ $currentPage === 'posts' ? 'active' : '' }}">
             <span class="nav-icon">💬</span>
             <span class="nav-label">Posts</span>
@@ -103,14 +104,16 @@
             <span class="nav-icon">📊</span>
             <span class="nav-label">Performance Coach</span>
           </a>
-          <a href="{{ route('admin.courier') }}" class="nav-item {{ $currentPage === 'courier' ? 'active' : '' }}">
-            <span class="nav-icon">🚚</span>
-            <span class="nav-label">Courier Manager</span>
-          </a>
+          
         </div>
 
         <div class="nav-group">
           <div class="nav-group-title">Settings</div>
+          <a href="{{ route('admin.courier') }}" class="nav-item {{ $currentPage === 'courier' ? 'active' : '' }}">
+            <span class="nav-icon">🚚</span>
+            <span class="nav-label">Courier Manager</span>
+          </a>
+
           <a href="{{ route('admin.shop-settings') }}" class="nav-item {{ $currentPage === 'settings' ? 'active' : '' }}">
             <span class="nav-icon">⚙️</span>
             <span class="nav-label">Shop Settings</span>

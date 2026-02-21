@@ -96,6 +96,7 @@
           <tr>
             <th>Profile</th>
             <th>Name</th>
+            <th>Channel</th>
             <th>WhatsApp</th>
             <th>Emotions</th>
             <th>User Type</th>
@@ -123,6 +124,18 @@
                 <div class="users-name-block">
                   <div class="users-name">{{ $user['name'] }}</div>
                   <div class="users-sub-id">{{ $user['user_id'] }}</div>
+                </div>
+              </td>
+
+              <td>
+                <div class="users-channels">
+                  @forelse (($user['channels'] ?? []) as $channel)
+                    <span class="badge users-channel-badge users-channel-{{ \Illuminate\Support\Str::slug($channel) }}">
+                      {{ $channel }}
+                    </span>
+                  @empty
+                    <span class="badge">N/A</span>
+                  @endforelse
                 </div>
               </td>
 
@@ -163,7 +176,7 @@
                     <button type="button" class="btn btn-secondary btn-sm" disabled>Message</button>
                   @endif
 
-                  <a href="{{ route('admin.users.views', ['user_id' => $user['user_id']]) }}" class="btn btn-ghost btn-sm">
+                  <a href="{{ route('admin.users.views', ['user_id' => $user['user_id']]) }}" class="btn btn-info btn-sm">
                     View
                   </a>
                 </div>
@@ -171,7 +184,7 @@
             </tr>
           @empty
             <tr>
-              <td colspan="6" class="users-empty">
+              <td colspan="7" class="users-empty">
                 No users found for the selected filters.
               </td>
             </tr>

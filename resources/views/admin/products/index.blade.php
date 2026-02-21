@@ -11,7 +11,7 @@
 
     <div class="products-header-actions">
       <a href="{{ route('admin.categories') }}" class="btn btn-secondary">Add Category</a>
-      <button type="button" class="btn btn-primary">+ Add New Product</button>
+      <a href="{{ route('admin.products.create') }}" class="btn btn-primary">+ Add New Product</a>
     </div>
   </div>
 

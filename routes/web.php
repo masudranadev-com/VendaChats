@@ -123,6 +123,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
     Route::get('/conversations', [DashboardController::class, 'conversations'])->name('conversations');
     Route::get('/customers', [DashboardController::class, 'customers'])->name('customers');
     Route::get('/products', [DashboardController::class, 'products'])->name('products');
+    Route::get('/products/create', [DashboardController::class, 'productCreate'])->name('products.create');
     Route::get('/categories', [DashboardController::class, 'categories'])->name('categories');
 
     // orders 

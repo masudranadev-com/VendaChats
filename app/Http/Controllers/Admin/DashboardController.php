@@ -113,6 +113,18 @@ class DashboardController extends Controller
         ]);
     }
 
+    public function productCreate()
+    {
+        return view('admin.products.create', [
+            'title' => 'Add Product',
+            'subtitle' => 'Set core product details, pricing, stock, media, and channel visibility before publishing.',
+            'categories' => ['Apparel', 'Electronics', 'Footwear', 'Accessories'],
+            'brands' => ['A Metafy', 'Vendor Partner', 'Generic'],
+            'channels' => ['Website', 'Facebook', 'Messenger', 'WhatsApp', 'Instagram'],
+            'shippingProfiles' => ['Standard', 'Express', 'Fragile Item', 'Outside Dhaka'],
+        ]);
+    }
+
     public function categories()
     {
         $categories = [
