@@ -4818,6 +4818,107 @@ body.products-attention-open {
   color: var(--text-primary);
 }
 
+.courier-matrix-toolbar {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+  margin-bottom: var(--spacing-md);
+}
+
+.courier-matrix-table td {
+  vertical-align: middle;
+}
+
+.courier-row-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.courier-zone-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--spacing-md);
+}
+
+.courier-zone-form-grid .form-group {
+  margin-bottom: 0;
+}
+
+.courier-zone-form-span-2 {
+  grid-column: span 2;
+}
+
+.courier-zone-form-note {
+  margin-top: var(--spacing-md);
+  font-size: 12px;
+  color: var(--text-tertiary);
+}
+
+.courier-empty-row {
+  text-align: center;
+  color: var(--text-secondary);
+  padding: var(--spacing-lg) var(--spacing-sm);
+}
+
+.courier-table-footer {
+  margin-top: var(--spacing-md);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-sm);
+  flex-wrap: wrap;
+}
+
+.courier-pagination-summary {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-secondary);
+}
+
+.courier-pagination-controls {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.courier-page-btn {
+  min-width: 34px;
+  height: 34px;
+  padding: 0 10px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all var(--transition);
+}
+
+.courier-page-btn:hover {
+  border-color: var(--border-hover);
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.courier-page-btn.is-active {
+  border-color: rgba(19,82,220,0.35);
+  background: rgba(19,82,220,0.12);
+  color: var(--brand-primary);
+}
+
+.courier-page-btn.is-disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
 /* ══════════════════════════════════════════
    RESPONSIVE
 ══════════════════════════════════════════ */
@@ -5462,6 +5563,14 @@ body.products-attention-open {
 
   .courier-provider-grid {
     grid-template-columns: 1fr;
+  }
+
+  .courier-zone-form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .courier-zone-form-span-2 {
+    grid-column: auto;
   }
 
   .courier-provider-actions {

@@ -8,30 +8,7 @@
       <h1 class="page-title">{{ $title }}</h1>
       <p class="page-subtitle">{{ $subtitle }}</p>
     </div>
-
-    <div class="settings-header-actions">
-      <button type="button" class="btn btn-secondary">Preview Site</button>
-      <button type="button" class="btn btn-primary">Save Changes</button>
-    </div>
   </div>
-
-  <section class="settings-stats-grid">
-    @foreach ($quickStats as $stat)
-      @php
-        $toneClass = match ($stat['tone']) {
-          'success' => 'is-success',
-          'warning' => 'is-warning',
-          'info' => 'is-info',
-          default => 'is-primary',
-        };
-      @endphp
-      <article class="settings-stat-card {{ $toneClass }}">
-        <span>{{ $stat['label'] }}</span>
-        <strong>{{ $stat['value'] }}</strong>
-        <small>{{ $stat['note'] }}</small>
-      </article>
-    @endforeach
-  </section>
 
   <section class="settings-tab-row">
     @foreach ($headerTabs as $tab)

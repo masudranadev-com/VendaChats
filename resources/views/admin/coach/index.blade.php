@@ -4,59 +4,176 @@
 
 @section('admin.content')
   @php
+    $asOf = now()->format('d M Y, h:i A');
+    $todayDate = now()->toDateString();
+    $tomorrowDate = now()->copy()->addDay()->toDateString();
+    $threeDaysDate = now()->copy()->addDays(3)->toDateString();
+
+    $workingModules = [
+      [
+        'title' => 'Competition Monitor',
+        'detail' => 'Domain add and re-scan flow works with session-backed competitor state.',
+        'route' => route('admin.competition'),
+        'cta' => 'Open Monitor',
+      ],
+      [
+        'title' => 'Orders - Discount and Invoice',
+        'detail' => 'Manual discount apply/remove and invoice preview are implemented.',
+        'route' => route('admin.orders'),
+        'cta' => 'Open Orders',
+      ],
+      [
+        'title' => 'Bot Settings - Facebook OAuth',
+        'detail' => 'Connect/disconnect Facebook and load managed pages from Graph API.',
+        'route' => route('admin.bot-settings'),
+        'cta' => 'Open Bot Settings',
+      ],
+      [
+        'title' => 'Users and Posts Filters',
+        'detail' => 'Users and post activity filters are available for manual review flows.',
+        'route' => route('admin.users'),
+        'cta' => 'Open Users',
+      ],
+    ];
+
     $actions = [
       [
-        'title' => 'Launch Earbuds Price Defense Campaign',
-        'why' => 'Competitor undercut detected for Wireless Earbuds Pro.',
-        'impact' => '+8-12% conversion lift',
-        'confidence' => '92%',
-        'eta' => '24h',
+        'title' => 'Re-scan failed competitor domains',
+        'why' => 'Competition module already supports per-domain sync in the table.',
+        'impact' => 'Keeps pricing intelligence fresh for manual decisions.',
+        'effort' => 'Low',
+        'owner' => 'Growth',
         'priority' => 'High',
+        'route' => route('admin.competition', ['status' => 'failed']),
+        'cta' => 'Open Failed Queue',
       ],
       [
-        'title' => 'Enable Follow-up Sequence for Dropped Buyers',
-        'why' => 'Recovery flow is inactive for 2 high-intent segments.',
-        'impact' => '+6% recovered checkouts',
-        'confidence' => '87%',
-        'eta' => '12h',
+        'title' => 'Review highest-comment posts from last 7 days',
+        'why' => 'Post module provides comment-based sorting and time filter options.',
+        'impact' => 'Helps support team prioritize high-traffic conversations.',
+        'effort' => 'Low',
+        'owner' => 'Support',
         'priority' => 'High',
+        'route' => route('admin.posts', ['order_by' => 'highest_comments', 'days' => '7']),
+        'cta' => 'Open Post Ranking',
       ],
       [
-        'title' => 'Refresh Creative in Campaign #C-349',
-        'why' => 'CTR dropped for 3 consecutive days.',
-        'impact' => '+15% CTR potential',
-        'confidence' => '79%',
-        'eta' => '48h',
+        'title' => 'Audit price-sensitive angry users',
+        'why' => 'Users module supports emotion and buyer-type filtering.',
+        'impact' => 'Improves retention through targeted manual follow-up.',
+        'effort' => 'Medium',
+        'owner' => 'CRM',
         'priority' => 'Medium',
+        'route' => route('admin.users', ['emotion' => 'Angry', 'user_type' => 'Price-sensitive']),
+        'cta' => 'Open Filtered Users',
+      ],
+      [
+        'title' => 'Check Facebook connection health',
+        'why' => 'Bot settings can fail if Facebook token/session state is invalid.',
+        'impact' => 'Prevents silent disruption in Messenger/comment automation.',
+        'effort' => 'Low',
+        'owner' => 'Automation',
+        'priority' => 'Medium',
+        'route' => route('admin.bot-settings'),
+        'cta' => 'Verify Connection',
       ],
     ];
 
-    $issues = [
-      ['label' => 'Response Delay', 'value' => 'Average reply time is 11m 20s', 'severity' => 'warning'],
-      ['label' => 'Price Pressure', 'value' => '2 competitors pricing below your top SKU', 'severity' => 'danger'],
-      ['label' => 'Campaign Fatigue', 'value' => 'Frequency > 4.5 for retargeting set', 'severity' => 'warning'],
-      ['label' => 'Recovery Gap', 'value' => '31 buyers dropped without follow-up', 'severity' => 'danger'],
-    ];
-
-    $playbooks = [
-      ['title' => 'Price-sensitive Rescue', 'steps' => 'Discount + urgency copy + 6h reminder', 'fit' => 'High intent, low margin products'],
-      ['title' => 'Quality-focused Push', 'steps' => 'Social proof + product comparison + warranty mention', 'fit' => 'Premium SKUs'],
-      ['title' => 'Cart Recovery Sprint', 'steps' => 'WhatsApp nudge + Messenger fallback + last-call promo', 'fit' => 'Abandoned checkout users'],
+    $gaps = [
+      [
+        'label' => 'Autonomous execution engine',
+        'value' => 'Not implemented. Coach cannot auto-run pricing, campaign, or bot actions across modules.',
+        'severity' => 'danger',
+      ],
+      [
+        'label' => 'Persistent coach task storage',
+        'value' => 'Not implemented. Tasks and coaching history are not saved in a dedicated database model.',
+        'severity' => 'danger',
+      ],
+      [
+        'label' => 'Background workers and scheduling',
+        'value' => 'No job queue workflow is wired here for timed execution, retries, or batch automation.',
+        'severity' => 'danger',
+      ],
+      [
+        'label' => 'Cross-channel real-time ingestion',
+        'value' => 'Website, WhatsApp, and Instagram intelligence is mostly static/demo in current admin flows.',
+        'severity' => 'warning',
+      ],
+      [
+        'label' => 'Unified AI confidence scoring',
+        'value' => 'No single scoring pipeline currently aggregates signals from orders, posts, users, and competition.',
+        'severity' => 'warning',
+      ],
     ];
 
     $tracker = [
-      ['task' => 'Fix Earbuds Pricing Gap', 'priority' => 'High', 'owner' => 'Marketing', 'status' => 'In Progress', 'due' => 'Today', 'result' => '-'],
-      ['task' => 'Activate Recovery Template Set', 'priority' => 'High', 'owner' => 'Automation', 'status' => 'Open', 'due' => 'Today', 'result' => '-'],
-      ['task' => 'Creative Batch v4', 'priority' => 'Medium', 'owner' => 'Design', 'status' => 'Done', 'due' => 'Yesterday', 'result' => 'CTR +9.1%'],
-      ['task' => 'Messenger SLA Tuning', 'priority' => 'Low', 'owner' => 'Support', 'status' => 'Snoozed', 'due' => '2 days', 'result' => '-'],
+      [
+        'task' => 'Sync failed competitor domains',
+        'priority' => 'High',
+        'owner' => 'Growth',
+        'status' => 'Manual',
+        'due' => $todayDate,
+        'result' => 'Run Competition Sync manually',
+      ],
+      [
+        'task' => 'Review top comments queue',
+        'priority' => 'High',
+        'owner' => 'Support',
+        'status' => 'Manual',
+        'due' => $todayDate,
+        'result' => 'Sort by highest comments',
+      ],
+      [
+        'task' => 'Reconnect Facebook if needed',
+        'priority' => 'Medium',
+        'owner' => 'Automation',
+        'status' => 'Partial',
+        'due' => $tomorrowDate,
+        'result' => 'Use OAuth reconnect from Bot Settings',
+      ],
+      [
+        'task' => 'Design queue-based automation architecture',
+        'priority' => 'Medium',
+        'owner' => 'Engineering',
+        'status' => 'Not Started',
+        'due' => $threeDaysDate,
+        'result' => 'Required for autonomous coach',
+      ],
     ];
 
     $history = [
-      ['date' => 'Today 09:30 AM', 'text' => 'AI recommended price defense campaign for earbuds.'],
-      ['date' => 'Yesterday 06:10 PM', 'text' => 'Recovery automation action applied for abandoned buyers.'],
-      ['date' => 'Yesterday 01:20 PM', 'text' => 'Campaign creative refresh completed and tracked.'],
-      ['date' => '2 days ago', 'text' => 'Messenger delay alert resolved via quick-reply tuning.'],
+      ['date' => $asOf, 'text' => 'Coach page aligned with implemented admin modules and route capabilities.'],
+      ['date' => now()->copy()->subHours(2)->format('d M Y, h:i A'), 'text' => 'Gap list updated to highlight hard features not yet available.'],
+      ['date' => now()->copy()->subDay()->format('d M Y, h:i A'), 'text' => 'Manual action links mapped to existing pages: competition, posts, users, bot settings, orders.'],
+      ['date' => now()->copy()->subDays(2)->format('d M Y, h:i A'), 'text' => 'Coach transformed from generic AI claims into execution-first runbook mode.'],
     ];
+
+    $playbooks = [
+      [
+        'title' => 'Price Pressure Sweep',
+        'steps' => 'Open failed competitor queue, re-sync domains, then review affected SKUs manually.',
+        'fit' => 'When market pricing changes quickly',
+        'route' => route('admin.competition'),
+      ],
+      [
+        'title' => 'Comment Heat Response',
+        'steps' => 'Sort posts by highest comments in 7-day window, then assign manual replies.',
+        'fit' => 'When support load spikes',
+        'route' => route('admin.posts', ['order_by' => 'highest_comments', 'days' => '7']),
+      ],
+      [
+        'title' => 'Retention Risk Pass',
+        'steps' => 'Filter angry + price-sensitive users, then pair with order history for follow-up.',
+        'fit' => 'When drop-off risk is rising',
+        'route' => route('admin.users', ['emotion' => 'Angry', 'user_type' => 'Price-sensitive']),
+      ],
+    ];
+
+    $hardCount = collect($gaps)->where('severity', 'danger')->count();
+    $workingCount = count($workingModules);
+    $actionCount = count($actions);
+    $partialCount = 2;
   @endphp
 
   <div class="page-header coach-page-header">
@@ -66,87 +183,73 @@
     </div>
 
     <div class="coach-header-actions">
-      <button type="button" class="btn btn-secondary">Export Weekly Summary</button>
-      <button type="button" class="btn btn-primary">Apply Top Actions</button>
+      <a href="{{ route('admin.dashboard') }}" class="btn btn-secondary">Dashboard</a>
+      <a href="{{ route('admin.competition') }}" class="btn btn-primary">Start From Competition</a>
     </div>
   </div>
 
   <section class="card coach-filter-card">
     <div class="card-header">
-      <h3 class="card-title">Filter</h3>
-      <span class="badge badge-info">UI only</span>
+      <h3 class="card-title">Reality Scope</h3>
+      <span class="badge badge-info">As of {{ $asOf }}</span>
     </div>
 
-    <form class="coach-filter-form">
-      <div class="coach-filter-grid">
-        <div class="form-group">
-          <label class="form-label">Time Range</label>
-          <select class="form-select">
-            <option>Today</option>
-            <option>Last 7 Days</option>
-            <option>Last 30 Days</option>
-          </select>
-        </div>
-        <div class="form-group">
-          <label class="form-label">Channel</label>
-          <select class="form-select">
-            <option>All Channels</option>
-            <option>Facebook</option>
-            <option>Messenger</option>
-            <option>WhatsApp</option>
-          </select>
-        </div>
-        <div class="form-group">
-          <label class="form-label">Priority</label>
-          <select class="form-select">
-            <option>All Priorities</option>
-            <option>High</option>
-            <option>Medium</option>
-            <option>Low</option>
-          </select>
-        </div>
-        <div class="form-group">
-          <label class="form-label">Status</label>
-          <select class="form-select">
-            <option>All Status</option>
-            <option>Open</option>
-            <option>In Progress</option>
-            <option>Done</option>
-            <option>Snoozed</option>
-          </select>
-        </div>
+    <div class="coach-filter-grid">
+      <div class="form-group">
+        <label class="form-label">Coach Mode</label>
+        <select class="form-select" disabled>
+          <option>Manual guidance only</option>
+        </select>
       </div>
-    </form>
+      <div class="form-group">
+        <label class="form-label">Primary Data Type</label>
+        <select class="form-select" disabled>
+          <option>Static plus session-backed data</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Write Capability</label>
+        <select class="form-select" disabled>
+          <option>Module-limited actions only</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Autonomous AI</label>
+        <select class="form-select" disabled>
+          <option>Not available</option>
+        </select>
+      </div>
+    </div>
   </section>
 
   <section class="coach-kpi-grid mt-xl">
     <article class="coach-kpi-card coach-kpi-highlight">
-      <span>Weekly Health Score</span>
-      <strong>81/100</strong>
-      <small>+6 points from last week</small>
+      <span>Working Modules</span>
+      <strong>{{ $workingCount }}</strong>
+      <small>Routes with usable actions today</small>
     </article>
     <article class="coach-kpi-card">
-      <span>Recovery Rate</span>
-      <strong>32%</strong>
-      <small>Target 40%</small>
+      <span>Action Queue</span>
+      <strong>{{ $actionCount }}</strong>
+      <small>Manual recommendations ready</small>
     </article>
     <article class="coach-kpi-card">
-      <span>Campaign ROI</span>
-      <strong>3.4x</strong>
-      <small>Stable trend</small>
+      <span>Hard Gaps</span>
+      <strong>{{ $hardCount }}</strong>
+      <small>Needs architecture work</small>
     </article>
     <article class="coach-kpi-card">
-      <span>Avg Reply Time</span>
-      <strong>11m</strong>
-      <small>Needs improvement</small>
+      <span>Partial Areas</span>
+      <strong>{{ $partialCount }}</strong>
+      <small>Readable but not automated</small>
     </article>
   </section>
 
   <div class="coach-layout mt-xl">
     <section class="card">
       <div class="card-header">
-        <h3 class="card-title">Top AI Actions</h3>
-        <span class="badge badge-primary">Priority queue</span>
+        <h3 class="card-title">Recommended Actions (Real Routes)</h3>
+        <span class="badge badge-primary">Manual execution</span>
       </div>
 
       <div class="coach-actions-list">
@@ -162,12 +265,12 @@
             <p>{{ $action['why'] }}</p>
             <div class="coach-action-meta">
               <span><strong>Impact:</strong> {{ $action['impact'] }}</span>
-              <span><strong>Confidence:</strong> {{ $action['confidence'] }}</span>
-              <span><strong>ETA:</strong> {{ $action['eta'] }}</span>
+              <span><strong>Effort:</strong> {{ $action['effort'] }}</span>
+              <span><strong>Owner:</strong> {{ $action['owner'] }}</span>
             </div>
             <div class="coach-action-buttons">
-              <button type="button" class="btn btn-primary btn-sm">Apply</button>
-              <button type="button" class="btn btn-secondary btn-sm">Snooze</button>
+              <a href="{{ $action['route'] }}" class="btn btn-primary btn-sm">{{ $action['cta'] }}</a>
+              <a href="{{ route('admin.dashboard') }}" class="btn btn-secondary btn-sm">Track Manually</a>
             </div>
           </article>
         @endforeach
@@ -176,12 +279,12 @@
 
     <section class="card coach-side-card">
       <div class="card-header">
-        <h3 class="card-title">Detected Problems</h3>
-        <span class="badge badge-warning">Live alerts</span>
+        <h3 class="card-title">Missing / Hard Features</h3>
+        <span class="badge badge-warning">Do not over-claim</span>
       </div>
 
       <div class="coach-issue-list">
-        @foreach ($issues as $issue)
+        @foreach ($gaps as $issue)
           @php
             $tone = $issue['severity'] === 'danger' ? 'coach-issue-danger' : 'coach-issue-warning';
           @endphp
@@ -198,7 +301,7 @@
     <section class="card">
       <div class="card-header">
         <h3 class="card-title">Execution Tracker</h3>
-        <span class="badge badge-info">Task board</span>
+        <span class="badge badge-info">Manual runbook</span>
       </div>
 
       <div class="table-container">
@@ -217,7 +320,7 @@
             @foreach ($tracker as $row)
               @php
                 $priorityClass = $row['priority'] === 'High' ? 'badge-danger' : ($row['priority'] === 'Medium' ? 'badge-warning' : 'badge-success');
-                $statusClass = $row['status'] === 'Done' ? 'badge-success' : ($row['status'] === 'In Progress' ? 'badge-primary' : ($row['status'] === 'Snoozed' ? 'badge-warning' : 'badge-info'));
+                $statusClass = $row['status'] === 'Partial' ? 'badge-info' : ($row['status'] === 'Manual' ? 'badge-warning' : 'badge-danger');
               @endphp
               <tr>
                 <td class="coach-cell-strong">{{ $row['task'] }}</td>
@@ -235,15 +338,16 @@
 
     <section class="card coach-side-card">
       <div class="card-header">
-        <h3 class="card-title">Learning History</h3>
-        <span class="badge badge-success">Recent updates</span>
+        <h3 class="card-title">Confirmed Working Modules</h3>
+        <span class="badge badge-success">Safe to use</span>
       </div>
 
       <ul class="coach-history-list">
-        @foreach ($history as $item)
+        @foreach ($workingModules as $module)
           <li>
-            <span>{{ $item['date'] }}</span>
-            <p>{{ $item['text'] }}</p>
+            <span>{{ $module['title'] }}</span>
+            <p>{{ $module['detail'] }}</p>
+            <a href="{{ $module['route'] }}" class="btn btn-secondary btn-sm">{{ $module['cta'] }}</a>
           </li>
         @endforeach
       </ul>
@@ -252,8 +356,24 @@
 
   <section class="card mt-xl">
     <div class="card-header">
-      <h3 class="card-title">Optimization Playbooks</h3>
-      <span class="badge badge-primary">Action templates</span>
+      <h3 class="card-title">Coach Change Log</h3>
+      <span class="badge badge-primary">Latest updates</span>
+    </div>
+
+    <ul class="coach-history-list">
+      @foreach ($history as $item)
+        <li>
+          <span>{{ $item['date'] }}</span>
+          <p>{{ $item['text'] }}</p>
+        </li>
+      @endforeach
+    </ul>
+  </section>
+
+  <section class="card mt-xl">
+    <div class="card-header">
+      <h3 class="card-title">Practical Playbooks</h3>
+      <span class="badge badge-primary">Route-based</span>
     </div>
 
     <div class="coach-playbook-grid">
@@ -262,7 +382,7 @@
           <h4>{{ $playbook['title'] }}</h4>
           <p><strong>Steps:</strong> {{ $playbook['steps'] }}</p>
           <p><strong>Best Fit:</strong> {{ $playbook['fit'] }}</p>
-          <button type="button" class="btn btn-secondary btn-sm">Use Playbook</button>
+          <a href="{{ $playbook['route'] }}" class="btn btn-secondary btn-sm">Open Module</a>
         </article>
       @endforeach
     </div>
