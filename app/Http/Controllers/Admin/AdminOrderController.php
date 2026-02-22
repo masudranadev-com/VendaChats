@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\View\View;
 
 class AdminOrderController extends Controller
@@ -35,7 +36,22 @@ class AdminOrderController extends Controller
                 'status' => $order['status'],
                 'progress' => (int) $order['progress'],
             ];
-        })->all();
+        })->values();
+
+        $perPage = 3;
+        $currentPage = max(1, (int) $request->query('page', 1));
+        $lastPage = max(1, (int) ceil($ordersForList->count() / $perPage));
+        $currentPage = min($currentPage, $lastPage);
+        $ordersPaginator = new LengthAwarePaginator(
+            $ordersForList->forPage($currentPage, $perPage)->values()->all(),
+            $ordersForList->count(),
+            $perPage,
+            $currentPage,
+            [
+                'path' => $request->url(),
+                'query' => $request->query(),
+            ]
+        );
 
         return view('admin.orders.index', [
             'title' => 'Orders',
@@ -51,7 +67,7 @@ class AdminOrderController extends Controller
                 ['name' => 'Pending Order', 'count' => 43, 'tone' => 'warning'],
                 ['name' => 'Completed Order', 'count' => 6, 'tone' => 'success'],
             ],
-            'orders' => $ordersForList,
+            'orders' => $ordersPaginator,
             'watchlist' => [
                 ['title' => '6 orders in exception queue need courier reassignment.', 'note' => 'Focus on Rajshahi and Sylhet lanes before 3:00 PM.'],
                 ['title' => '4 COD orders above BDT 5,000 require call confirmation.', 'note' => 'Mark as verified before assigning riders.'],

@@ -18,16 +18,11 @@
         <span>Total Comments</span>
         <strong>{{ number_format($totalComments) }}</strong>
       </div>
-      <div class="posts-meta-card">
-        <span>Highest Comments</span>
-        <strong>{{ number_format($highestCommentCount) }}</strong>
-      </div>
     </div>
   </div>
 
   <section class="card posts-countdown-card">
     <div class="posts-countdown-copy">
-      <div class="posts-countdown-label">Very Necessary Option</div>
       <h3>Next auto reply will execute:</h3>
       <p>(count down)</p>
     </div>
@@ -76,45 +71,47 @@
     </form>
   </section>
 
-  <section class="card mt-xl">
-    <div class="card-header">
-      <h3 class="card-title">Posts Table</h3>
-      <span class="badge badge-primary">Live Feed</span>
-    </div>
+  @if ($showPostsTable)
+    <section class="card mt-xl">
+      <div class="card-header">
+        <h3 class="card-title">Posts Table</h3>
+        <span class="badge badge-primary">Live Feed</span>
+      </div>
 
-    <div class="table-container posts-table-wrap">
-      <table class="table">
-        <thead>
-          <tr>
-            <th>Post Title</th>
-            <th>Total Comments</th>
-            <th>Time</th>
-          </tr>
-        </thead>
-        <tbody>
-          @forelse ($posts as $post)
+      <div class="table-container posts-table-wrap">
+        <table class="table">
+          <thead>
             <tr>
-              <td class="posts-title-cell" title="{{ $post['title'] }}">
-                {{ \Illuminate\Support\Str::limit($post['title'], 25, '...') }}
-              </td>
-              <td>
-                <span class="posts-comment-count">{{ number_format($post['total_comments']) }}</span>
-              </td>
-              <td>
-                <span class="posts-time">{{ $post['time_ago'] }}</span>
-              </td>
+              <th>Post Title</th>
+              <th>Total Comments</th>
+              <th>Time</th>
             </tr>
-          @empty
-            <tr>
-              <td colspan="3" class="posts-empty">
-                No posts found for the selected filter.
-              </td>
-            </tr>
-          @endforelse
-        </tbody>
-      </table>
-    </div>
-  </section>
+          </thead>
+          <tbody>
+            @forelse ($posts as $post)
+              <tr>
+                <td class="posts-title-cell" title="{{ $post['title'] }}">
+                  {{ \Illuminate\Support\Str::limit($post['title'], 25, '...') }}
+                </td>
+                <td>
+                  <span class="posts-comment-count">{{ number_format($post['total_comments']) }}</span>
+                </td>
+                <td>
+                  <span class="posts-time">{{ $post['time_ago'] }}</span>
+                </td>
+              </tr>
+            @empty
+              <tr>
+                <td colspan="3" class="posts-empty">
+                  No posts found for the selected filter.
+                </td>
+              </tr>
+            @endforelse
+          </tbody>
+        </table>
+      </div>
+    </section>
+  @endif
 
   <script>
     document.addEventListener('DOMContentLoaded', () => {

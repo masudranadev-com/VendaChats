@@ -11,6 +11,8 @@ class AdminPostController extends Controller
 {
     public function posts(Request $request): View
     {
+        $showPostsTable = $request->query->has('order_by') || $request->query->has('days');
+
         $filters = [
             'order_by' => (string) $request->query('order_by', 'latest'),
             'days' => (string) $request->query('days', 'all'),
@@ -53,6 +55,7 @@ class AdminPostController extends Controller
             'subtitle' => 'Review post activity and prioritize reply opportunities by time and engagement.',
             'posts' => $posts->all(),
             'filters' => $filters,
+            'showPostsTable' => $showPostsTable,
             'totalPosts' => $allPosts->count(),
             'totalComments' => $allPosts->sum('total_comments'),
             'highestCommentCount' => (int) $allPosts->max('total_comments'),

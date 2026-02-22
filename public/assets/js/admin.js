@@ -13,10 +13,12 @@ document.addEventListener('DOMContentLoaded', () => {
   initTables();
   initCharts();
   initSearch();
+  initCampaignBuilder();
   initOrdersManualOrder();
   initBotSettings();
   initProductsAttentionPanel();
   initProductCreateSliderControl();
+  initProductCreateDiscountOfferControl();
   initProductCreateAiWriter();
   setActivePage();
 });
@@ -355,6 +357,236 @@ function initSearch() {
     // Implement search logic here
     console.log('Searching for:', query);
   });
+}
+
+function initCampaignBuilder() {
+  const form = document.querySelector('[data-campaign-builder-form]');
+  if (!form) return;
+
+  const modeInputs = Array.from(form.querySelectorAll('[data-campaign-mode]'));
+  const scheduleFields = form.querySelector('[data-campaign-schedule-fields]');
+  const startDateInput = form.querySelector('[data-campaign-start-date]');
+  const startTimeInput = form.querySelector('[data-campaign-start-time]');
+  const statusNode = form.querySelector('[data-campaign-builder-status]');
+  const submitButton = form.querySelector('[data-campaign-submit-action]');
+  const draftButton = form.querySelector('[data-campaign-save-draft]');
+  const previewButton = form.querySelector('[data-campaign-preview]');
+  const scheduleQueueList = document.querySelector('[data-campaign-schedule-list]');
+
+  if (!modeInputs.length || !submitButton) return;
+
+  const requiredFields = [
+    form.querySelector('#campaignName'),
+    form.querySelector('#campaignProduct'),
+    form.querySelector('#campaignAudience'),
+    form.querySelector('#campaignTemplate'),
+  ].filter(Boolean);
+
+  const pad = (value) => String(value).padStart(2, '0');
+  const escapeHtml = (value) => String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+  const getMode = () => modeInputs.find((input) => input.checked)?.value || 'instant';
+  const isScheduledMode = () => getMode() === 'scheduled';
+
+  const setStatus = (message, tone = '') => {
+    if (!statusNode) return;
+    statusNode.textContent = message;
+    statusNode.className = `campaign-builder-status${tone ? ` is-${tone}` : ''}`;
+  };
+
+  const formatDateTimeForMessage = (dateValue, timeValue) => {
+    const composedDate = new Date(`${dateValue}T${timeValue}`);
+    if (Number.isNaN(composedDate.getTime())) {
+      return `${dateValue} ${timeValue}`;
+    }
+
+    return composedDate.toLocaleString('en-BD', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
+    });
+  };
+
+  const formatTimeLabel = (timeValue) => {
+    if (!timeValue) return '--:--';
+    const sampleDate = new Date(`2000-01-01T${timeValue}`);
+    if (Number.isNaN(sampleDate.getTime())) return timeValue;
+    return sampleDate.toLocaleTimeString('en-BD', {
+      hour: 'numeric',
+      minute: '2-digit',
+    });
+  };
+
+  const prependScheduleQueueItem = () => {
+    if (!scheduleQueueList) return;
+
+    const campaignName = String(form.querySelector('#campaignName')?.value || 'New Scheduled Campaign').trim();
+    const productName = String(form.querySelector('#campaignProduct')?.value || 'Selected Product').trim();
+    const timeLabel = formatTimeLabel(startTimeInput?.value || '');
+
+    const entry = `
+      <li>
+        <div class="campaign-schedule-time">${escapeHtml(timeLabel)}</div>
+        <div class="campaign-schedule-copy">
+          <strong>${escapeHtml(campaignName)}</strong>
+          <span>${escapeHtml(productName)}</span>
+        </div>
+      </li>
+    `;
+
+    scheduleQueueList.insertAdjacentHTML('afterbegin', entry);
+  };
+
+  const getTodayDateValue = () => {
+    const now = new Date();
+    return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+  };
+
+  const seedScheduleStart = () => {
+    if (!startDateInput || !startTimeInput) return;
+    if (startDateInput.value && startTimeInput.value) return;
+
+    const seed = new Date();
+    seed.setMinutes(seed.getMinutes() + 30);
+
+    startDateInput.value = `${seed.getFullYear()}-${pad(seed.getMonth() + 1)}-${pad(seed.getDate())}`;
+    startTimeInput.value = `${pad(seed.getHours())}:${pad(seed.getMinutes())}`;
+  };
+
+  const updateDateConstraints = () => {
+    const today = getTodayDateValue();
+
+    if (startDateInput) {
+      startDateInput.min = today;
+    }
+  };
+
+  const updateModeUi = () => {
+    const scheduled = isScheduledMode();
+
+    scheduleFields?.classList.toggle('hidden', !scheduled);
+    [startDateInput, startTimeInput].forEach((input) => {
+      if (!input) return;
+      input.disabled = !scheduled;
+    });
+
+    if (scheduled) {
+      seedScheduleStart();
+      submitButton.textContent = 'Create Schedule';
+      setStatus('Scheduled mode enabled. Set start date and time.', 'warning');
+    } else {
+      submitButton.textContent = 'Launch Instant';
+      setStatus('Instant mode enabled. Campaign will launch immediately.', '');
+    }
+
+    updateDateConstraints();
+  };
+
+  const validateCampaignForm = () => {
+    for (const field of requiredFields) {
+      const value = String(field.value || '').trim();
+      if (!value) {
+        field.focus();
+        return {
+          valid: false,
+          message: `Please complete "${field.closest('.form-group')?.querySelector('.form-label')?.textContent || 'required field'}".`,
+        };
+      }
+    }
+
+    if (!isScheduledMode()) {
+      return {valid: true};
+    }
+
+    const startDateValue = String(startDateInput?.value || '').trim();
+    const startTimeValue = String(startTimeInput?.value || '').trim();
+
+    if (!startDateValue || !startTimeValue) {
+      startDateInput?.focus();
+      return {valid: false, message: 'Start date and start time are required for scheduled campaigns.'};
+    }
+
+    const startDateTime = new Date(`${startDateValue}T${startTimeValue}`);
+    if (Number.isNaN(startDateTime.getTime())) {
+      startDateInput?.focus();
+      return {valid: false, message: 'Invalid schedule start date/time. Please recheck your input.'};
+    }
+
+    if (startDateTime.getTime() <= Date.now()) {
+      startDateInput?.focus();
+      return {valid: false, message: 'Scheduled start date/time must be in the future.'};
+    }
+
+    return {valid: true};
+  };
+
+  const runPreview = () => {
+    const validation = validateCampaignForm();
+    if (!validation.valid) {
+      setStatus(validation.message, 'error');
+      showWarning(validation.message);
+      return;
+    }
+
+    if (!isScheduledMode()) {
+      setStatus('Preview ready: campaign will launch instantly.', 'success');
+      showInfo('Preview ready for instant campaign launch.');
+      return;
+    }
+
+    const launchAt = formatDateTimeForMessage(startDateInput?.value || '', startTimeInput?.value || '');
+    setStatus(`Preview ready: campaign will run on ${launchAt}.`, 'success');
+    showInfo('Scheduled campaign preview is ready.');
+  };
+
+  draftButton?.addEventListener('click', () => {
+    setStatus('Campaign draft saved (demo).', 'success');
+    showSuccess('Campaign draft saved (demo).');
+  });
+
+  previewButton?.addEventListener('click', runPreview);
+
+  modeInputs.forEach((input) => {
+    input.addEventListener('change', updateModeUi);
+  });
+
+  [startDateInput, startTimeInput].forEach((input) => {
+    input?.addEventListener('change', () => {
+      updateDateConstraints();
+    });
+  });
+
+  form.addEventListener('submit', (event) => {
+    event.preventDefault();
+
+    const validation = validateCampaignForm();
+    if (!validation.valid) {
+      setStatus(validation.message, 'error');
+      showError(validation.message);
+      return;
+    }
+
+    if (isScheduledMode()) {
+      const launchAt = formatDateTimeForMessage(startDateInput?.value || '', startTimeInput?.value || '');
+
+      setStatus(`Campaign scheduled for ${launchAt}.`, 'success');
+      prependScheduleQueueItem();
+      showSuccess('Campaign schedule created (demo).');
+      return;
+    }
+
+    setStatus('Campaign launched instantly (demo).', 'success');
+    showSuccess('Campaign launched instantly (demo).');
+  });
+
+  updateModeUi();
+  updateDateConstraints();
 }
 
 function initOrdersManualOrder() {
@@ -1192,6 +1424,10 @@ function initProductCreateSliderControl() {
   const coverList = document.querySelector('[data-product-cover-list]');
   const sliderMediaTypeInputs = Array.from(document.querySelectorAll('[data-product-slider-media-type]'));
   const sliderItemInput = document.querySelector('[data-product-slider-item-input]');
+  const sliderUploadGroup = document.querySelector('[data-product-slider-upload-group]');
+  const sliderYoutubeGroup = document.querySelector('[data-product-slider-youtube-group]');
+  const sliderYoutubeInput = document.querySelector('[data-product-slider-youtube-input]');
+  const sliderYoutubeAddButton = document.querySelector('[data-product-slider-youtube-add]');
   const sliderList = document.querySelector('[data-product-slider-list]');
   const validationModal = document.getElementById('productsMediaValidationModal');
   const validationTitleNode = validationModal?.querySelector('[data-media-dialog-title]');
@@ -1222,6 +1458,40 @@ function initProductCreateSliderControl() {
 
   const getCurrentSliderMediaType = () => sliderMediaTypeInputs.find((input) => input.checked)?.value || 'image';
   const getSliderImageCount = () => sliderItems.filter((item) => item.type === 'image').length;
+  const getYouTubeEmbedUrl = (videoId) => `https://www.youtube.com/embed/${videoId}`;
+
+  const parseYouTubeVideoId = (urlValue) => {
+    const rawValue = String(urlValue || '').trim();
+    if (!rawValue) return null;
+
+    try {
+      const parsedUrl = new URL(rawValue);
+      const host = parsedUrl.hostname.toLowerCase().replace(/^www\./, '').replace(/^m\./, '');
+      let videoId = '';
+
+      if (host === 'youtu.be') {
+        videoId = parsedUrl.pathname.split('/').filter(Boolean)[0] || '';
+      } else if (host === 'youtube.com') {
+        if (parsedUrl.pathname === '/watch') {
+          videoId = parsedUrl.searchParams.get('v') || '';
+        } else if (parsedUrl.pathname.startsWith('/shorts/')) {
+          videoId = parsedUrl.pathname.split('/shorts/')[1]?.split('/')[0] || '';
+        } else if (parsedUrl.pathname.startsWith('/embed/')) {
+          videoId = parsedUrl.pathname.split('/embed/')[1]?.split('/')[0] || '';
+        }
+      }
+
+      const normalizedId = String(videoId).trim();
+      if (/^[A-Za-z0-9_-]{11}$/.test(normalizedId)) {
+        return normalizedId;
+      }
+    } catch (error) {
+      // Ignore parse errors and fallback to regex extraction below.
+    }
+
+    const regexMatch = rawValue.match(/(?:v=|\/)([A-Za-z0-9_-]{11})(?:[?&/]|$)/);
+    return regexMatch ? regexMatch[1] : null;
+  };
 
   const validateFileSize = (file, mediaType, sourceLabel) => {
     const maxBytes = mediaType === 'video' ? maxVideoBytes : maxImageBytes;
@@ -1237,7 +1507,7 @@ function initProductCreateSliderControl() {
   };
 
   const releaseMediaUrl = (item) => {
-    if (!item?.url) return;
+    if (!item?.url || typeof item.url !== 'string' || !item.url.startsWith('blob:')) return;
     window.URL.revokeObjectURL(item.url);
   };
 
@@ -1365,10 +1635,13 @@ function initProductCreateSliderControl() {
       .map((item, index) => {
         const preview = item.type === 'video'
           ? `<video src="${item.url}" controls preload="metadata"></video>`
-          : `<img src="${item.url}" alt="${item.name}" loading="lazy">`;
+          : item.type === 'youtube'
+            ? `<iframe src="${item.embedUrl}" title="${item.name}" loading="lazy" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>`
+            : `<img src="${item.url}" alt="${item.name}" loading="lazy">`;
         const dimensionMeta = item.type === 'image'
           ? `${item.width} x ${item.height} | `
           : '';
+        const fileMeta = item.type === 'youtube' ? 'YouTube link' : formatFileSize(item.size);
         const moveUpDisabled = index === 0 ? 'disabled' : '';
         const moveDownDisabled = index === sliderItems.length - 1 ? 'disabled' : '';
 
@@ -1377,7 +1650,7 @@ function initProductCreateSliderControl() {
             <span class="products-media-thumb">${preview}</span>
             <span class="products-media-meta">
               <strong>${item.name}</strong>
-              <small>#${index + 1} in slider | ${item.type.toUpperCase()} | ${dimensionMeta}${formatFileSize(item.size)}</small>
+              <small>#${index + 1} in slider | ${item.type.toUpperCase()} | ${dimensionMeta}${fileMeta}</small>
             </span>
             <span class="products-media-actions">
               <button type="button" class="btn btn-sm products-media-order-btn products-media-order-btn-up" data-product-slider-move-up="${item.id}" ${moveUpDisabled}>
@@ -1434,8 +1707,29 @@ function initProductCreateSliderControl() {
 
   const updateSliderTypeInput = () => {
     const sliderType = getCurrentSliderMediaType();
-    if (!sliderItemInput) return;
-    sliderItemInput.accept = sliderType === 'video' ? 'video/*' : 'image/*';
+    const useYoutube = sliderType === 'youtube';
+
+    sliderUploadGroup?.classList.toggle('hidden', useYoutube);
+    sliderYoutubeGroup?.classList.toggle('hidden', !useYoutube);
+
+    if (sliderItemInput) {
+      sliderItemInput.disabled = useYoutube;
+      sliderItemInput.accept = sliderType === 'video' ? 'video/*' : sliderType === 'image' ? 'image/*' : '';
+      if (useYoutube) {
+        sliderItemInput.value = '';
+      }
+    }
+
+    if (sliderYoutubeInput) {
+      sliderYoutubeInput.disabled = !useYoutube;
+      if (!useYoutube) {
+        sliderYoutubeInput.value = '';
+      }
+    }
+
+    if (sliderYoutubeAddButton) {
+      sliderYoutubeAddButton.disabled = !useYoutube;
+    }
   };
 
   const updateSliderStatus = () => {
@@ -1481,6 +1775,53 @@ function initProductCreateSliderControl() {
 
   sliderMediaTypeInputs.forEach((input) => {
     input.addEventListener('change', updateSliderTypeInput);
+  });
+
+  const addYoutubeToSlider = () => {
+    if (getCurrentSliderMediaType() !== 'youtube') return;
+
+    const rawYoutubeUrl = (sliderYoutubeInput?.value || '').trim();
+    if (!rawYoutubeUrl) {
+      showWarning('Please paste a YouTube URL to add to the slider.');
+      return;
+    }
+
+    const videoId = parseYouTubeVideoId(rawYoutubeUrl);
+    if (!videoId) {
+      showWarning('Invalid YouTube URL. Please use a valid YouTube video link.');
+      return;
+    }
+
+    if (sliderItems.some((item) => item.type === 'youtube' && item.videoId === videoId)) {
+      showInfo('This YouTube video is already in the slider list.');
+      return;
+    }
+
+    sliderItems.push({
+      id: sliderSequence,
+      type: 'youtube',
+      name: `YouTube Video (${videoId})`,
+      size: 0,
+      url: rawYoutubeUrl,
+      videoId,
+      embedUrl: getYouTubeEmbedUrl(videoId),
+      width: null,
+      height: null,
+    });
+    sliderSequence += 1;
+    renderSliderList();
+
+    if (sliderYoutubeInput) {
+      sliderYoutubeInput.value = '';
+      sliderYoutubeInput.focus();
+    }
+  };
+
+  sliderYoutubeAddButton?.addEventListener('click', addYoutubeToSlider);
+  sliderYoutubeInput?.addEventListener('keydown', (event) => {
+    if (event.key !== 'Enter') return;
+    event.preventDefault();
+    addYoutubeToSlider();
   });
 
   coverInput?.addEventListener('change', async () => {
@@ -1534,6 +1875,12 @@ function initProductCreateSliderControl() {
     if (!file) return;
 
     const sliderType = getCurrentSliderMediaType();
+    if (sliderType === 'youtube') {
+      showWarning('Switch slider media type to Image or Video Upload for file uploads.');
+      sliderItemInput.value = '';
+      return;
+    }
+
     if (sliderType === 'image' && !file.type.startsWith('image/')) {
       showWarning('Selected slider media type is Image. Please choose an image file.');
       sliderItemInput.value = '';
@@ -1541,7 +1888,7 @@ function initProductCreateSliderControl() {
     }
 
     if (sliderType === 'video' && !file.type.startsWith('video/')) {
-      showWarning('Selected slider media type is Video. Please choose a video file.');
+      showWarning('Selected slider media type is Video Upload. Please choose a video file.');
       sliderItemInput.value = '';
       return;
     }
@@ -1608,13 +1955,37 @@ function initProductCreateSliderControl() {
   updateSliderStatus();
 }
 
+function initProductCreateDiscountOfferControl() {
+  const durationInput = document.querySelector('[data-discount-offer-duration]');
+  const dateTimeGroups = Array.from(document.querySelectorAll('[data-discount-offer-datetime]'));
+
+  if (!durationInput || !dateTimeGroups.length) return;
+
+  const updateDiscountOfferMode = () => {
+    const useDateTimeRange = durationInput.value === 'date_time';
+
+    dateTimeGroups.forEach((group) => {
+      group.classList.toggle('hidden', !useDateTimeRange);
+      group.querySelectorAll('input').forEach((input) => {
+        input.disabled = !useDateTimeRange;
+
+        if (!useDateTimeRange) {
+          input.value = '';
+        }
+      });
+    });
+  };
+
+  durationInput.addEventListener('change', updateDiscountOfferMode);
+  updateDiscountOfferMode();
+}
+
 function initProductCreateAiWriter() {
   const productNameInput = document.getElementById('productName');
   const shortDescriptionInput = document.getElementById('productShortDescription');
   const fullDescriptionInput = document.getElementById('productDescription');
   const fullDescriptionEditorHost = document.getElementById('productDescriptionEditor');
   const categoryInput = document.getElementById('productCategory');
-  const brandInput = document.getElementById('productBrand');
   const slugInput = document.getElementById('productSlug');
   const metaTitleInput = document.getElementById('productMetaTitle');
   const metaDescriptionInput = document.getElementById('productMetaDescription');
@@ -1797,12 +2168,10 @@ function initProductCreateAiWriter() {
     runAiAction(shortAiButton, () => {
       const productName = productNameInput.value.trim();
       const category = (categoryInput?.value || '').trim();
-      const brand = (brandInput?.value || '').trim();
       const categoryText = category ? category.toLowerCase() : 'product';
-      const brandText = brand ? ` by ${brand}` : '';
 
       setShortDescriptionValue(
-        `${productName}${brandText} is a premium ${categoryText} built for daily performance, long-lasting quality, and strong customer value.`,
+        `${productName} is a premium ${categoryText} built for daily performance, long-lasting quality, and strong customer value.`,
         true
       );
 
@@ -1814,16 +2183,14 @@ function initProductCreateAiWriter() {
     runAiAction(fullAiButton, () => {
       const productName = productNameInput.value.trim();
       const category = (categoryInput?.value || '').trim() || 'Product';
-      const brand = (brandInput?.value || '').trim();
-      const brandLine = brand ? `${brand} focuses on dependable quality and practical design.` : 'This item is designed to balance quality, usability, and customer satisfaction.';
       const htmlContent =
         `<p><strong>${productName}</strong> is a carefully prepared ${category.toLowerCase()} for customers who want consistent quality and comfort.</p>` +
-        `<p>${brandLine} It is suitable for daily use and built to keep performance stable over time.</p>` +
+        '<p>This item is designed to balance quality, usability, and customer satisfaction. It is suitable for daily use and built to keep performance stable over time.</p>' +
         '<p><strong>Key highlights:</strong></p>' +
         '<ul><li>Reliable build quality</li><li>Comfortable everyday experience</li><li>Easy to maintain and use</li></ul>';
       const textContent =
         `${productName} is a carefully prepared ${category.toLowerCase()} for customers who want consistent quality and comfort.\n\n` +
-        `${brandLine} It is suitable for daily use and built to keep performance stable over time.\n\n` +
+        'This item is designed to balance quality, usability, and customer satisfaction. It is suitable for daily use and built to keep performance stable over time.\n\n' +
         `Key highlights:\n` +
         `- Reliable build quality\n` +
         `- Comfortable everyday experience\n` +
@@ -1841,10 +2208,9 @@ function initProductCreateAiWriter() {
       const shortDescription = (shortDescriptionInput?.value || '').trim();
       const fullDescription = getFullDescriptionText();
       const category = (categoryInput?.value || '').trim();
-      const brand = (brandInput?.value || '').trim();
       const baseSlug = slugify(productName);
       const metaDescriptionBase = shortDescription || fullDescription;
-      const keywordPool = [productName, category, brand]
+      const keywordPool = [productName, category]
         .join(' ')
         .toLowerCase()
         .split(/[^a-z0-9]+/)
@@ -2322,4 +2688,3 @@ style.textContent = slideOutAnimation;
 document.head.appendChild(style);
 
 console.log('✓ A Metafy Admin Panel loaded');
-

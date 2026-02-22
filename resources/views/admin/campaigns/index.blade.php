@@ -4,36 +4,6 @@
 
 @section('admin.content')
   @php
-    $activeCampaigns = [
-      [
-        'name' => 'Weekend Drop Recovery',
-        'product' => 'Premium Cotton T-Shirt',
-        'status' => 'Live',
-        'budget' => '$120',
-        'reach' => '12,450',
-        'conversion' => '4.8%',
-        'progress' => 72,
-      ],
-      [
-        'name' => 'Back In Stock Push',
-        'product' => 'Smart Casual Hoodie',
-        'status' => 'Scheduled',
-        'budget' => '$90',
-        'reach' => '8,130',
-        'conversion' => '3.9%',
-        'progress' => 38,
-      ],
-      [
-        'name' => 'High Intent Retarget',
-        'product' => 'Wireless Earbuds Pro',
-        'status' => 'Draft',
-        'budget' => '$160',
-        'reach' => '15,700',
-        'conversion' => '5.2%',
-        'progress' => 18,
-      ],
-    ];
-
     $scheduleItems = [
       ['time' => '10:00 AM', 'title' => 'Launch Story Ad', 'channel' => 'Facebook + Instagram'],
       ['time' => '01:30 PM', 'title' => 'WhatsApp Follow-up Batch', 'channel' => 'WhatsApp'],
@@ -55,95 +25,120 @@
       <h1 class="page-title">{{ $title }}</h1>
       <p class="page-subtitle">{{ $subtitle }}</p>
     </div>
-
-    <div class="campaign-header-actions">
-      <button type="button" class="btn btn-secondary">Duplicate Last Campaign</button>
-      <button type="button" class="btn btn-primary">Create Campaign</button>
-    </div>
   </div>
 
   <section class="campaign-metrics">
     <article class="campaign-metric-card">
       <span>Total Campaigns</span>
-      <strong>18</strong>
-      <small>+3 this month</small>
+      <strong>{{ $campaignSummary['total'] }}</strong>
     </article>
     <article class="campaign-metric-card">
-      <span>Live Right Now</span>
-      <strong>4</strong>
-      <small>2 scheduled today</small>
+      <span>Live Campaigns</span>
+      <strong>{{ $campaignSummary['live'] }}</strong>
     </article>
     <article class="campaign-metric-card">
-      <span>Average Conversion</span>
-      <strong>4.6%</strong>
-      <small>+0.8% vs last week</small>
+      <span>Schedule Campaigns</span>
+      <strong>{{ $campaignSummary['scheduled'] }}</strong>
     </article>
     <article class="campaign-metric-card">
-      <span>Revenue From Campaigns</span>
-      <strong>$12,940</strong>
-      <small>Last 30 days</small>
+      <span>Active Templates</span>
+      <strong>{{ $campaignSummary['templates'] }}</strong>
     </article>
   </section>
 
   <div class="campaign-layout mt-xl">
     <section class="card campaign-form-card">
       <div class="card-header">
-        <h3 class="card-title">Campaign Builder (UI)</h3>
-        <span class="badge badge-info">Design Only</span>
+        <h3 class="card-title">Campaign Builder</h3>
       </div>
 
-      <div class="campaign-form-grid">
-        <div class="form-group">
-          <label class="form-label">Campaign Name</label>
-          <input type="text" class="form-input" placeholder="Example: Summer Conversion Push">
+      <form class="campaign-builder-form" data-campaign-builder-form novalidate>
+        <div class="campaign-form-grid">
+          <div class="form-group">
+            <label class="form-label" for="campaignName">Campaign Name</label>
+            <input id="campaignName" name="campaign_name" type="text" class="form-input" placeholder="Example: Summer Conversion Push" required>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="campaignProduct">Product Focus</label>
+            <select id="campaignProduct" name="product_focus" class="form-select" required>
+              <option value="" selected disabled>Select Product</option>
+              <option>Premium Cotton T-Shirt</option>
+              <option>AirFlex Running Shoes</option>
+              <option>Wireless Earbuds Pro</option>
+              <option>Smart Casual Hoodie</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="campaignAudience">Audience Type</label>
+            <select id="campaignAudience" name="audience_type" class="form-select" required>
+              <option value="" selected disabled>Select Audience</option>
+              <option>Price-sensitive</option>
+              <option>Quality-focused</option>
+              <option>All Audience</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="campaignTemplate">Select Templates</label>
+            <select id="campaignTemplate" name="template" class="form-select" required>
+              <option value="" selected disabled>Select Template</option>
+              <option>Price-sensitive Buyers</option>
+              <option>Quality-focused Buyers</option>
+              <option>Cart Abandon Follow-up</option>
+              <option>Low Stock Urgency</option>
+              <option>Review + Social Proof</option>
+            </select>
+          </div>
         </div>
 
-        <div class="form-group">
-          <label class="form-label">Product Focus</label>
-          <select class="form-select">
-            <option>Premium Cotton T-Shirt</option>
-            <option>AirFlex Running Shoes</option>
-            <option>Wireless Earbuds Pro</option>
-            <option>Smart Casual Hoodie</option>
-          </select>
+        <div class="campaign-mode-panel">
+          <h4 class="campaign-panel-title">Launch Mode</h4>
+          <div class="campaign-mode-options">
+            <label class="campaign-mode-item">
+              <input type="radio" name="campaign_mode" value="instant" data-campaign-mode checked>
+              <span>Instant</span>
+            </label>
+            <label class="campaign-mode-item">
+              <input type="radio" name="campaign_mode" value="scheduled" data-campaign-mode>
+              <span>Scheduled</span>
+            </label>
+          </div>
+          <small class="form-help">Use Instant for immediate launch. Use Scheduled to queue campaign execution.</small>
         </div>
 
-        <div class="form-group">
-          <label class="form-label">Audience Type</label>
-          <select class="form-select">
-            <option>Price-sensitive</option>
-            <option>Quality-focused</option>
-            <option>Repeat Buyers</option>
-            <option>Cold Audience</option>
-          </select>
+        <div class="campaign-schedule-config hidden" data-campaign-schedule-fields>
+          <div class="campaign-form-grid">
+            <div class="form-group">
+              <label class="form-label" for="campaignStartDate">Start Date</label>
+              <input id="campaignStartDate" name="start_date" type="date" class="form-input" data-campaign-start-date disabled>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="campaignStartTime">Start Time</label>
+              <input id="campaignStartTime" name="start_time" type="time" class="form-input" data-campaign-start-time disabled>
+            </div>
+          </div>
         </div>
 
-        <div class="form-group">
-          <label class="form-label">Daily Budget</label>
-          <input type="text" class="form-input" placeholder="$120">
+        <p class="campaign-builder-status" data-campaign-builder-status aria-live="polite">
+          Choose a mode and complete campaign details.
+        </p>
+
+        <div class="page-actions">
+          <button type="submit" class="btn btn-success" data-campaign-submit-action>Launch Instant</button>
         </div>
-      </div>
-
-      <div class="campaign-chip-row">
-        <span class="campaign-chip active">Facebook Feed</span>
-        <span class="campaign-chip active">Messenger</span>
-        <span class="campaign-chip">WhatsApp</span>
-        <span class="campaign-chip">Instagram Stories</span>
-      </div>
-
-      <div class="page-actions">
-        <button type="button" class="btn btn-primary">Save Draft</button>
-        <button type="button" class="btn btn-secondary">Preview Flow</button>
-      </div>
+      </form>
     </section>
 
     <section class="card campaign-side-card">
       <div class="card-header">
-        <h3 class="card-title">Today's Schedule</h3>
+        <h3 class="card-title">Schedule Campaign</h3>
         <span class="badge badge-primary">Auto Queue</span>
       </div>
 
-      <ul class="campaign-schedule-list">
+      <ul class="campaign-schedule-list" data-campaign-schedule-list>
         @foreach ($scheduleItems as $item)
           <li>
             <div class="campaign-schedule-time">{{ $item['time'] }}</div>
@@ -160,15 +155,25 @@
   <section class="card mt-xl">
     <div class="card-header">
       <h3 class="card-title">Active Campaign Board</h3>
-      <span class="badge badge-success">{{ count($activeCampaigns) }} running cards</span>
+      <span class="badge badge-success">{{ $campaigns->total() }} campaign history</span>
+    </div>
+
+    <div class="campaign-history-meta">
+      @if ($campaigns->count() > 0)
+        Showing {{ $campaigns->firstItem() }}-{{ $campaigns->lastItem() }} of {{ $campaigns->total() }} campaigns
+      @else
+        Showing 0 campaigns
+      @endif
     </div>
 
     <div class="campaign-board">
-      @foreach ($activeCampaigns as $campaign)
+      @forelse ($campaigns as $campaign)
         @php
           $statusClass = match (strtolower($campaign['status'])) {
             'live' => 'campaign-status-live',
             'scheduled' => 'campaign-status-scheduled',
+            'completed' => 'campaign-status-completed',
+            'paused' => 'campaign-status-paused',
             default => 'campaign-status-draft',
           };
         @endphp
@@ -177,6 +182,7 @@
             <div>
               <h4>{{ $campaign['name'] }}</h4>
               <p>{{ $campaign['product'] }}</p>
+              <small class="campaign-card-time">{{ $campaign['launched_at'] }}</small>
             </div>
             <span class="campaign-status {{ $statusClass }}">{{ $campaign['status'] }}</span>
           </div>
@@ -197,8 +203,40 @@
             </div>
           </div>
         </article>
-      @endforeach
+      @empty
+        <p class="campaign-history-empty">No campaigns found for this page.</p>
+      @endforelse
     </div>
+
+    @if ($campaigns->hasPages())
+      <div class="campaign-table-footer">
+        <p class="campaign-pagination-summary">
+          Page {{ $campaigns->currentPage() }} of {{ $campaigns->lastPage() }}
+        </p>
+
+        <nav class="campaign-pagination-controls" aria-label="Campaign pagination">
+          @if ($campaigns->onFirstPage())
+            <span class="campaign-page-btn is-disabled" aria-disabled="true">Prev</span>
+          @else
+            <a href="{{ $campaigns->previousPageUrl() }}" class="campaign-page-btn">Prev</a>
+          @endif
+
+          @for ($page = 1; $page <= $campaigns->lastPage(); $page++)
+            @if ($page === $campaigns->currentPage())
+              <span class="campaign-page-btn is-active" aria-current="page">{{ $page }}</span>
+            @else
+              <a href="{{ $campaigns->url($page) }}" class="campaign-page-btn">{{ $page }}</a>
+            @endif
+          @endfor
+
+          @if ($campaigns->hasMorePages())
+            <a href="{{ $campaigns->nextPageUrl() }}" class="campaign-page-btn">Next</a>
+          @else
+            <span class="campaign-page-btn is-disabled" aria-disabled="true">Next</span>
+          @endif
+        </nav>
+      </div>
+    @endif
   </section>
 
   <div class="campaign-layout mt-xl">

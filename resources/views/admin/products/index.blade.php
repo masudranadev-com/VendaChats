@@ -91,7 +91,13 @@
     <div class="products-filter-actions">
       <button type="button" class="btn btn-primary btn-sm">Apply Filter</button>
       <button type="button" class="btn btn-ghost btn-sm">Reset</button>
-      <span class="products-filter-result">Showing {{ count($products) }} products</span>
+      <span class="products-filter-result">
+        @if ($products->count() > 0)
+          Showing {{ $products->firstItem() }}-{{ $products->lastItem() }} of {{ $products->total() }} products
+        @else
+          Showing 0 products
+        @endif
+      </span>
     </div>
 
     <div class="table-container products-table-container">
@@ -109,7 +115,7 @@
           </tr>
         </thead>
         <tbody>
-          @foreach ($products as $product)
+          @forelse ($products as $product)
             @php
               $stockClass = match ($product['stock_label']) {
                 'Critical' => 'badge-danger',
@@ -158,10 +164,44 @@
                 </div>
               </td>
             </tr>
-          @endforeach
+          @empty
+            <tr>
+              <td colspan="8" class="text-center">No products found for this page.</td>
+            </tr>
+          @endforelse
         </tbody>
       </table>
     </div>
+
+    @if ($products->hasPages())
+      <div class="products-table-footer">
+        <p class="products-pagination-summary">
+          Page {{ $products->currentPage() }} of {{ $products->lastPage() }}
+        </p>
+
+        <nav class="products-pagination-controls" aria-label="Products pagination">
+          @if ($products->onFirstPage())
+            <span class="products-page-btn is-disabled" aria-disabled="true">Prev</span>
+          @else
+            <a href="{{ $products->previousPageUrl() }}" class="products-page-btn">Prev</a>
+          @endif
+
+          @for ($page = 1; $page <= $products->lastPage(); $page++)
+            @if ($page === $products->currentPage())
+              <span class="products-page-btn is-active" aria-current="page">{{ $page }}</span>
+            @else
+              <a href="{{ $products->url($page) }}" class="products-page-btn">{{ $page }}</a>
+            @endif
+          @endfor
+
+          @if ($products->hasMorePages())
+            <a href="{{ $products->nextPageUrl() }}" class="products-page-btn">Next</a>
+          @else
+            <span class="products-page-btn is-disabled" aria-disabled="true">Next</span>
+          @endif
+        </nav>
+      </div>
+    @endif
   </section>
 
   <button

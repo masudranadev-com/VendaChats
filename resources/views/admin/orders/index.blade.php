@@ -58,8 +58,8 @@
   <section class="card mt-xl">
     <div class="card-header">
       <h3 class="card-title">Order Queue</h3>
-      <span class="badge badge-info" data-orders-count data-initial-count="{{ count($orders) }}">
-        {{ count($orders) }} monitored orders
+      <span class="badge badge-info" data-orders-count data-initial-count="{{ $orders->total() }}">
+        {{ $orders->total() }} monitored orders
       </span>
     </div>
 
@@ -111,8 +111,12 @@
     <div class="orders-filter-actions">
       <button type="button" class="btn btn-primary btn-sm">Apply Filters</button>
       <button type="button" class="btn btn-ghost btn-sm">Reset</button>
-      <span class="orders-filter-result" data-orders-filter-result data-universe-count="142">
-        Showing {{ count($orders) }} of 142 orders
+      <span class="orders-filter-result" data-orders-filter-result data-universe-count="{{ $orders->total() }}">
+        @if ($orders->count() > 0)
+          Showing {{ $orders->firstItem() }}-{{ $orders->lastItem() }} of {{ $orders->total() }} orders
+        @else
+          Showing 0 orders
+        @endif
       </span>
     </div>
 
@@ -131,7 +135,7 @@
           </tr>
         </thead>
         <tbody data-orders-table-body>
-          @foreach ($orders as $order)
+          @forelse ($orders as $order)
             @php
               $statusClass = match ($order['status']) {
                 'Delivered' => 'badge-success',
@@ -188,10 +192,44 @@
                 </div>
               </td>
             </tr>
-          @endforeach
+          @empty
+            <tr>
+              <td colspan="8" class="text-center">No orders found for this page.</td>
+            </tr>
+          @endforelse
         </tbody>
       </table>
     </div>
+
+    @if ($orders->hasPages())
+      <div class="orders-table-footer">
+        <p class="orders-pagination-summary">
+          Page {{ $orders->currentPage() }} of {{ $orders->lastPage() }}
+        </p>
+
+        <nav class="orders-pagination-controls" aria-label="Orders pagination">
+          @if ($orders->onFirstPage())
+            <span class="orders-page-btn is-disabled" aria-disabled="true">Prev</span>
+          @else
+            <a href="{{ $orders->previousPageUrl() }}" class="orders-page-btn">Prev</a>
+          @endif
+
+          @for ($page = 1; $page <= $orders->lastPage(); $page++)
+            @if ($page === $orders->currentPage())
+              <span class="orders-page-btn is-active" aria-current="page">{{ $page }}</span>
+            @else
+              <a href="{{ $orders->url($page) }}" class="orders-page-btn">{{ $page }}</a>
+            @endif
+          @endfor
+
+          @if ($orders->hasMorePages())
+            <a href="{{ $orders->nextPageUrl() }}" class="orders-page-btn">Next</a>
+          @else
+            <span class="orders-page-btn is-disabled" aria-disabled="true">Next</span>
+          @endif
+        </nav>
+      </div>
+    @endif
   </section>
 
   <div class="modal-overlay" id="ordersManualOrderModal" aria-hidden="true">

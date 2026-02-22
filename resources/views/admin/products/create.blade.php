@@ -43,41 +43,19 @@
             <input id="productBarcode" class="form-input" type="text" placeholder="8901234567890">
           </div>
 
-          <div class="form-group">
+          <div class="form-group products-field-span-2">
             <label class="form-label" for="productCategory">Category</label>
-            <input
+            <select
               id="productCategory"
               name="category"
-              class="form-input"
-              type="text"
-              list="productCategoryOptions"
-              placeholder="Search and select category"
-              autocomplete="off"
+              class="form-select"
               required
             >
-            <datalist id="productCategoryOptions">
+              <option value="" selected disabled>Select category</option>
               @foreach ($categories as $category)
-                <option value="{{ $category }}"></option>
+                <option value="{{ $category }}">{{ $category }}</option>
               @endforeach
-            </datalist>
-          </div>
-
-          <div class="form-group">
-            <label class="form-label" for="productBrand">Brand</label>
-            <input
-              id="productBrand"
-              name="brand"
-              class="form-input"
-              type="text"
-              list="productBrandOptions"
-              placeholder="Search and select brand"
-              autocomplete="off"
-            >
-            <datalist id="productBrandOptions">
-              @foreach ($brands as $brand)
-                <option value="{{ $brand }}"></option>
-              @endforeach
-            </datalist>
+            </select>
           </div>
 
           <div class="form-group products-field-span-2">
@@ -208,17 +186,27 @@
                     value="video"
                     data-product-slider-media-type
                   >
-                  <span>Video</span>
+                  <span>Video Upload</span>
+                </label>
+                <label class="products-radio-item">
+                  <input
+                    type="radio"
+                    name="slider_media_type"
+                    value="youtube"
+                    data-product-slider-media-type
+                  >
+                  <span>YouTube</span>
                 </label>
               </div>
               <small class="form-help">
                 For slider images: best size 1600 x 900 (16:9), less than 2MB, max 7 images.
-                For slider videos: less than 30MB.
+                For video uploads: less than 30MB.
+                You can also add YouTube links.
               </small>
             </div>
 
-            <div class="form-group mt-md mb-0">
-              <label class="form-label" for="productSliderItemInput">Add Slider Item</label>
+            <div class="form-group mt-md mb-0" data-product-slider-upload-group>
+              <label class="form-label" for="productSliderItemInput">Upload Slider Item</label>
               <input
                 id="productSliderItemInput"
                 type="file"
@@ -229,10 +217,23 @@
               <small class="form-help">Upload one file at a time. You can remove each item one by one.</small>
             </div>
 
+            <div class="form-group mt-md mb-0 hidden" data-product-slider-youtube-group>
+              <label class="form-label" for="productSliderYoutubeInput">YouTube URL</label>
+              <input
+                id="productSliderYoutubeInput"
+                type="url"
+                class="form-input"
+                placeholder="https://www.youtube.com/watch?v=XXXXXXXXXXX"
+                data-product-slider-youtube-input
+              >
+              <button type="button" class="btn btn-primary btn-sm mt-sm" data-product-slider-youtube-add>Add YouTube Video</button>
+              <small class="form-help">Supported links: youtu.be, youtube.com/watch, youtube.com/shorts, youtube.com/embed.</small>
+            </div>
+
             <div class="products-media-list mt-sm" data-product-slider-list>
               <div class="products-media-empty">No slider items added yet.</div>
             </div>
-            <small class="form-help">After upload, use Move Up or Move Down to set slider order.</small>
+            <small class="form-help">After adding, use Move Up or Move Down to set slider order.</small>
           </div>
         </div>
       </section>
@@ -245,51 +246,163 @@
 
         <div class="products-create-grid">
           <div class="form-group">
-            <label class="form-label" for="productPrice">Selling Price (BDT)</label>
-            <input id="productPrice" class="form-input" type="number" min="0" step="1" placeholder="1150" required>
+            <label class="form-label" for="productPrice">Product Price (BDT)</label>
+            <input
+              id="productPrice"
+              name="product_price"
+              class="form-input"
+              type="number"
+              min="0"
+              step="0.01"
+              placeholder="1150"
+              required
+            >
           </div>
 
           <div class="form-group">
-            <label class="form-label" for="productComparePrice">Compare Price (BDT)</label>
-            <input id="productComparePrice" class="form-input" type="number" min="0" step="1" placeholder="1390">
+            <label class="form-label" for="bargainingPrice">Bargaining Price (BDT)</label>
+            <input
+              id="bargainingPrice"
+              name="bargaining_price"
+              class="form-input"
+              type="number"
+              min="0"
+              step="0.01"
+              placeholder="1050"
+            >
           </div>
 
           <div class="form-group">
-            <label class="form-label" for="productCost">Cost Price (BDT)</label>
-            <input id="productCost" class="form-input" type="number" min="0" step="1" placeholder="780">
-          </div>
-
-          <div class="form-group">
-            <label class="form-label" for="productTax">Tax Class</label>
-            <select id="productTax" class="form-select">
-              <option>Standard VAT</option>
-              <option>Reduced VAT</option>
-              <option>Tax Exempt</option>
+            <label class="form-label" for="discountOfferType">Discount Offer Type</label>
+            <select id="discountOfferType" name="discount_offer_type" class="form-select">
+              <option value="fixed">Fixed</option>
+              <option value="percentage">Percentage</option>
             </select>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="discountOffer">Discount Offer</label>
+            <input
+              id="discountOffer"
+              name="discount_offer"
+              class="form-input"
+              type="number"
+              min="0"
+              step="0.01"
+              placeholder="100 or 10"
+            >
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="discountOfferDuration">Discount Offer Date & Time / Lifetime</label>
+            <select id="discountOfferDuration" name="discount_offer_duration" class="form-select" data-discount-offer-duration>
+              <option value="lifetime" selected>Lifetime</option>
+              <option value="date_time">Date & Time</option>
+            </select>
+          </div>
+
+          <div class="form-group hidden" data-discount-offer-datetime>
+            <label class="form-label" for="discountOfferStartAt">Discount Offer Start Date & Time</label>
+            <input
+              id="discountOfferStartAt"
+              name="discount_offer_start_at"
+              class="form-input"
+              type="datetime-local"
+              disabled
+            >
+          </div>
+
+          <div class="form-group hidden" data-discount-offer-datetime>
+            <label class="form-label" for="discountOfferEndAt">Discount Offer End Date & Time</label>
+            <input
+              id="discountOfferEndAt"
+              name="discount_offer_end_at"
+              class="form-input"
+              type="datetime-local"
+              disabled
+            >
           </div>
 
           <div class="form-group">
             <label class="form-label" for="productStock">Available Quantity</label>
-            <input id="productStock" class="form-input" type="number" min="0" step="1" placeholder="120" required>
+            <input
+              id="productStock"
+              name="available_quantity"
+              class="form-input"
+              type="number"
+              min="0"
+              step="1"
+              placeholder="120"
+              required
+            >
           </div>
 
           <div class="form-group">
             <label class="form-label" for="productLowStock">Low Stock Alert At</label>
-            <input id="productLowStock" class="form-input" type="number" min="1" step="1" placeholder="15">
+            <input
+              id="productLowStock"
+              name="low_stock_alert_at"
+              class="form-input"
+              type="number"
+              min="1"
+              step="1"
+              placeholder="15"
+            >
           </div>
 
           <div class="form-group">
             <label class="form-label" for="productWeight">Weight (kg)</label>
-            <input id="productWeight" class="form-input" type="number" min="0" step="0.01" placeholder="0.40">
+            <input
+              id="productWeight"
+              name="weight_kg"
+              class="form-input"
+              type="number"
+              min="0"
+              step="0.01"
+              placeholder="0.40"
+            >
           </div>
 
           <div class="form-group">
             <label class="form-label" for="productShippingProfile">Shipping Profile</label>
-            <select id="productShippingProfile" class="form-select">
+            <select id="productShippingProfile" name="shipping_profile" class="form-select">
               @foreach ($shippingProfiles as $profile)
                 <option value="{{ $profile }}">{{ $profile }}</option>
               @endforeach
             </select>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="productColors">Color</label>
+            <input
+              id="productColors"
+              name="colors"
+              class="form-input"
+              type="text"
+              placeholder="Black, White, Blue"
+            >
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="productSizes">Size</label>
+            <input
+              id="productSizes"
+              name="sizes"
+              class="form-input"
+              type="text"
+              placeholder="S, M, L, XL"
+            >
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="productCatalogTags">Tags</label>
+            <input
+              id="productCatalogTags"
+              name="catalog_tags"
+              class="form-input"
+              type="text"
+              placeholder="new-arrival, casual, bestseller"
+            >
           </div>
         </div>
       </section>
@@ -330,8 +443,8 @@
           </div>
 
           <div class="form-group products-field-span-2">
-            <label class="form-label" for="productTags">Tags</label>
-            <input id="productTags" class="form-input" type="text" placeholder="cotton, tshirt, casual, summer">
+            <label class="form-label" for="productTags">SEO Tags</label>
+            <input id="productTags" name="seo_tags" class="form-input" type="text" placeholder="cotton, tshirt, casual, summer">
             <small class="form-help">Use comma-separated keywords to improve search relevance.</small>
           </div>
         </div>
@@ -364,21 +477,6 @@
           <label class="form-label" for="productScheduleAt">Schedule Date & Time</label>
           <input id="productScheduleAt" class="form-input" type="datetime-local">
         </div>
-      </section>
-
-      <section class="card mt-lg">
-        <div class="card-header">
-          <h3 class="card-title">Checklist</h3>
-          <span class="badge badge-info">Before Publish</span>
-        </div>
-
-        <ul class="products-create-checklist">
-          <li>At least 3 clear product images added</li>
-          <li>Price, stock, and SKU are correct</li>
-          <li>Category, brand, and shipping profile selected</li>
-          <li>Short description is customer-ready</li>
-          <li>Publishing status is selected</li>
-        </ul>
       </section>
     </aside>
   </form>
