@@ -28,7 +28,6 @@
     'admin.shop-settings' => 'settings',
     'admin.shop-settings.domain' => 'settings',
     'admin.shop-settings.theme' => 'settings',
-    'admin.shop-settings.category' => 'settings',
     'admin.shop-settings.offers' => 'settings',
     'admin.shop-settings.content' => 'settings',
     'admin.billing' => 'billing',

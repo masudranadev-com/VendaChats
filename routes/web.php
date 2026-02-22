@@ -161,7 +161,6 @@ Route::prefix('admin')->name('admin.')->group(function () {
     Route::get('/shop-settings', [ShopSettingsController::class, 'index'])->name('shop-settings');
     Route::get('/shop-settings/domain', [ShopSettingsController::class, 'domain'])->name('shop-settings.domain');
     Route::get('/shop-settings/theme', [ShopSettingsController::class, 'theme'])->name('shop-settings.theme');
-    Route::get('/shop-settings/category', [ShopSettingsController::class, 'category'])->name('shop-settings.category');
     Route::get('/shop-settings/offers', [ShopSettingsController::class, 'offers'])->name('shop-settings.offers');
     Route::get('/shop-settings/content', [ShopSettingsController::class, 'content'])->name('shop-settings.content');
 });
