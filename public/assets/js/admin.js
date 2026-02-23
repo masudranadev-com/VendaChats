@@ -3,9 +3,288 @@
    All interactive functionality
 ═══════════════════════════════════════════════════════════ */
 
+const AdminCkeditor = (() => {
+  const selector = 'textarea[data-ckeditor], textarea.js-ckeditor';
+  const instances = new Map();
+  let hasWarnedMissingLibrary = false;
+
+  function resolveTextarea(field) {
+    if (field instanceof HTMLTextAreaElement) {
+      return field;
+    }
+
+    if (typeof field === 'string') {
+      const match = document.querySelector(field);
+      return match instanceof HTMLTextAreaElement ? match : null;
+    }
+
+    return null;
+  }
+
+  function toolbarFromDataset(textarea) {
+    const toolbarTokens = textarea.dataset.ckeditorToolbar || '';
+    if (!toolbarTokens.trim()) {
+      return ['heading', '|', 'bold', 'italic', 'link', 'bulletedList', 'numberedList', '|', 'blockQuote', 'insertTable', 'codeBlock', '|', 'undo', 'redo'];
+    }
+
+    return toolbarTokens
+      .split(',')
+      .map((token) => token.trim())
+      .filter(Boolean);
+  }
+
+  function createCk5Adapter(textarea, editor) {
+    return {
+      kind: 'ckeditor5',
+      editor,
+      setData(value = '') {
+        const nextValue = String(value ?? '');
+        editor.setData(nextValue);
+        textarea.value = nextValue;
+      },
+      getData() {
+        const value = editor.getData();
+        textarea.value = value;
+        return value;
+      },
+      sync() {
+        textarea.value = editor.getData();
+      },
+    };
+  }
+
+  function createCk4Adapter(textarea, editor) {
+    let isReady = editor.status === 'ready';
+    let queuedData = null;
+
+    if (typeof editor.on === 'function') {
+      editor.on('instanceReady', () => {
+        isReady = true;
+
+        if (queuedData !== null) {
+          editor.setData(queuedData);
+          queuedData = null;
+        }
+      });
+    }
+
+    return {
+      kind: 'ckeditor4',
+      editor,
+      setData(value = '') {
+        const nextValue = String(value ?? '');
+        textarea.value = nextValue;
+
+        if (isReady && typeof editor.setData === 'function') {
+          editor.setData(nextValue);
+          return;
+        }
+
+        queuedData = nextValue;
+      },
+      getData() {
+        if (isReady && typeof editor.getData === 'function') {
+          const value = editor.getData();
+          textarea.value = value;
+          return value;
+        }
+
+        if (queuedData !== null) {
+          textarea.value = queuedData;
+          return queuedData;
+        }
+
+        return textarea.value;
+      },
+      sync() {
+        if (isReady && typeof editor.updateElement === 'function') {
+          editor.updateElement();
+          return;
+        }
+
+        if (queuedData !== null) {
+          textarea.value = queuedData;
+        }
+      },
+    };
+  }
+
+  async function create(textarea) {
+    if (!(textarea instanceof HTMLTextAreaElement)) {
+      return null;
+    }
+
+    if (instances.has(textarea)) {
+      return instances.get(textarea);
+    }
+
+    const editorConstructor = window.ClassicEditor || window.CKEDITOR?.ClassicEditor;
+    const hasCk4 = typeof window.CKEDITOR !== 'undefined' && typeof window.CKEDITOR.replace === 'function';
+
+    if (typeof editorConstructor === 'undefined' && !hasCk4) {
+      if (!hasWarnedMissingLibrary) {
+        console.warn('CKEditor script not found. Rich-text fields will stay as textarea.');
+        hasWarnedMissingLibrary = true;
+      }
+      return null;
+    }
+
+    if (typeof editorConstructor !== 'undefined') {
+      try {
+        const editor = await editorConstructor.create(textarea, {
+          toolbar: {
+            items: toolbarFromDataset(textarea),
+            shouldNotGroupWhenFull: true,
+          }
+        });
+        const adapter = createCk5Adapter(textarea, editor);
+        instances.set(textarea, adapter);
+        textarea.dataset.ckeditorReady = 'true';
+
+        const parentForm = textarea.closest('form');
+        if (parentForm && parentForm.dataset.ckeditorSyncBound !== 'true') {
+          parentForm.addEventListener('submit', () => syncAll());
+          parentForm.dataset.ckeditorSyncBound = 'true';
+        }
+
+        return adapter;
+      } catch (error) {
+        console.error('Failed to initialize CKEditor 5 for', textarea.id || textarea.name || textarea, error);
+      }
+    }
+
+    if (!hasCk4) {
+      return null;
+    }
+
+    try {
+      const ck4Editor = window.CKEDITOR.replace(textarea, {
+        allowedContent: true,
+        extraAllowedContent: '*(*);*{*}',
+        removePlugins: 'elementspath',
+        toolbar: [
+          { name: 'document', items: ['Source'] },
+          { name: 'clipboard', items: ['Undo', 'Redo'] },
+          { name: 'styles', items: ['Format'] },
+          { name: 'basicstyles', items: ['Bold', 'Italic', 'Underline', 'Strike', 'RemoveFormat'] },
+          { name: 'paragraph', items: ['NumberedList', 'BulletedList', 'Outdent', 'Indent', 'Blockquote'] },
+          { name: 'links', items: ['Link', 'Unlink'] },
+          { name: 'insert', items: ['Table'] },
+        ],
+      });
+
+      const adapter = createCk4Adapter(textarea, ck4Editor);
+      instances.set(textarea, adapter);
+
+      if (typeof ck4Editor.on === 'function') {
+        ck4Editor.on('instanceReady', () => {
+          textarea.dataset.ckeditorReady = 'true';
+        });
+      }
+
+      const parentForm = textarea.closest('form');
+      if (parentForm && parentForm.dataset.ckeditorSyncBound !== 'true') {
+        parentForm.addEventListener('submit', () => syncAll());
+        parentForm.dataset.ckeditorSyncBound = 'true';
+      }
+
+      return adapter;
+    } catch (error) {
+      console.error('Failed to initialize CKEditor 4 for', textarea.id || textarea.name || textarea, error);
+      return null;
+    }
+  }
+
+  async function init(scope = document) {
+    const root = scope && typeof scope.querySelectorAll === 'function' ? scope : document;
+    const textareas = Array.from(root.querySelectorAll(selector)).filter((textarea) => !instances.has(textarea));
+    if (!textareas.length) {
+      return [];
+    }
+
+    return Promise.all(textareas.map((textarea) => create(textarea)));
+  }
+
+  function setData(field, value = '') {
+    const textarea = resolveTextarea(field);
+    if (!textarea) {
+      return;
+    }
+
+    const nextValue = String(value ?? '');
+    const instance = instances.get(textarea);
+    if (instance && typeof instance.setData === 'function') {
+      instance.setData(nextValue);
+      return;
+    }
+
+    textarea.value = nextValue;
+  }
+
+  function getInstance(field) {
+    const textarea = resolveTextarea(field);
+    if (!textarea) {
+      return null;
+    }
+
+    return instances.get(textarea) || null;
+  }
+
+  function getData(field) {
+    const textarea = resolveTextarea(field);
+    if (!textarea) {
+      return '';
+    }
+
+    const instance = instances.get(textarea);
+    if (!instance || typeof instance.getData !== 'function') {
+      return textarea.value;
+    }
+
+    return instance.getData();
+  }
+
+  function sync(field) {
+    const textarea = resolveTextarea(field);
+    if (!textarea) {
+      return;
+    }
+
+    const instance = instances.get(textarea);
+    if (!instance || typeof instance.sync !== 'function') {
+      return;
+    }
+
+    instance.sync();
+  }
+
+  function syncAll() {
+    instances.forEach((instance) => {
+      if (instance && typeof instance.sync === 'function') {
+        instance.sync();
+      }
+    });
+  }
+
+  return {
+    selector,
+    instances,
+    create,
+    init,
+    getInstance,
+    setData,
+    getData,
+    sync,
+    syncAll,
+  };
+})();
+
+window.AdminCkeditor = AdminCkeditor;
+
 // ── Initialize on DOM load ──
 document.addEventListener('DOMContentLoaded', () => {
   initTheme();
+  initCkEditors();
   initSidebar();
   initDropdowns();
   initModals();
@@ -22,6 +301,14 @@ document.addEventListener('DOMContentLoaded', () => {
   initProductCreateAiWriter();
   setActivePage();
 });
+
+function initCkEditors() {
+  if (!window.AdminCkeditor || typeof window.AdminCkeditor.init !== 'function') {
+    return;
+  }
+
+  window.AdminCkeditor.init(document);
+}
 
 // ══════════════════════════════════════════
 // THEME MANAGEMENT
@@ -2671,7 +2958,8 @@ window.adminPanel = {
   formatCurrency,
   formatDate,
   formatTime,
-  debounce
+  debounce,
+  richText: window.AdminCkeditor,
 };
 
 // ══════════════════════════════════════════

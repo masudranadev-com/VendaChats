@@ -12,11 +12,6 @@
       <h1 class="page-title">{{ $title }}</h1>
       <p class="page-subtitle">{{ $subtitle }}</p>
     </div>
-
-    <div class="settings-header-actions">
-      <button type="button" class="btn btn-secondary" data-content-preview-btn>Preview Storefront</button>
-      <button type="button" class="btn btn-success" data-content-save-all-btn>Save All Content Settings</button>
-    </div>
   </div>
 
   @include('admin.shop-settings.partials.tab-row')
@@ -36,7 +31,7 @@
     @endforeach
   </section>
 
-  <div class="settings-layout mt-xl" data-content-center>
+  <div class="settings-layout settings-layout-single mt-xl" data-content-center>
     <section class="settings-main-column">
       <article class="card settings-panel" id="content-slider">
         <div class="card-header">
@@ -46,7 +41,6 @@
           </div>
           <div class="settings-inline-actions mt-0">
             <button type="button" class="btn btn-success btn-sm" data-modal="contentSliderModal" data-slider-create-btn>Add Slide</button>
-            <button type="button" class="btn btn-secondary btn-sm">Reorder Priority</button>
           </div>
         </div>
 
@@ -57,8 +51,8 @@
           </div>
           <div class="settings-slider-meta">
             <span>Live: {{ collect($sliderItems)->where('status', 'Live')->count() }}</span>
-            <span>Scheduled: {{ collect($sliderItems)->where('status', 'Scheduled')->count() }}</span>
             <span>Draft: {{ collect($sliderItems)->where('status', 'Draft')->count() }}</span>
+            <span>Total: {{ count($sliderItems) }}</span>
           </div>
         </div>
 
@@ -67,8 +61,7 @@
             <thead>
               <tr>
                 <th>Slide</th>
-                <th>CTA</th>
-                <th>Schedule</th>
+                <th>Product</th>
                 <th>Priority</th>
                 <th>Status</th>
                 <th>Updated</th>
@@ -80,14 +73,12 @@
                 @php
                   $slideStatusClass = match ($slide['status']) {
                     'Live' => 'badge-success',
-                    'Scheduled' => 'badge-warning',
                     default => 'badge-info',
                   };
                 @endphp
                 <tr data-slider-row="{{ $slide['id'] }}">
                   <td class="settings-cell-strong">{{ $slide['title'] }}</td>
-                  <td>{{ $slide['cta'] }}</td>
-                  <td>{{ $slide['schedule'] }}</td>
+                  <td>{{ $slide['product_name'] }}</td>
                   <td>#{{ $slide['priority'] }}</td>
                   <td><span class="badge {{ $slideStatusClass }}">{{ $slide['status'] }}</span></td>
                   <td>{{ $slide['updated'] }}</td>
@@ -100,10 +91,7 @@
                         data-slider-edit-btn
                         data-slide-id="{{ $slide['id'] }}"
                         data-slide-title="{{ $slide['title'] }}"
-                        data-slide-headline="{{ $slide['headline'] }}"
-                        data-slide-cta="{{ $slide['cta'] }}"
-                        data-slide-url="{{ $slide['url'] }}"
-                        data-slide-schedule="{{ $slide['schedule'] }}"
+                        data-slide-product-id="{{ $slide['product_id'] }}"
                         data-slide-priority="{{ $slide['priority'] }}"
                         data-slide-status="{{ $slide['status'] }}"
                       >
@@ -166,25 +154,6 @@
                 <input id="policySlug" type="text" class="form-input" data-policy-slug value="{{ $defaultPolicy['slug'] ?? '' }}">
               </div>
 
-              <div class="form-group">
-                <label class="form-label" for="policyStatus">Publish Status</label>
-                <select id="policyStatus" class="form-select" data-policy-status>
-                  <option {{ ($defaultPolicy['status'] ?? '') === 'Published' ? 'selected' : '' }}>Published</option>
-                  <option {{ ($defaultPolicy['status'] ?? '') === 'In Review' ? 'selected' : '' }}>In Review</option>
-                  <option {{ ($defaultPolicy['status'] ?? '') === 'Draft' ? 'selected' : '' }}>Draft</option>
-                </select>
-              </div>
-
-              <div class="form-group">
-                <label class="form-label" for="policyReviewCycle">Review Cycle</label>
-                <select id="policyReviewCycle" class="form-select" data-policy-review-cycle>
-                  <option {{ ($defaultPolicy['review_cycle'] ?? '') === 'Every 30 days' ? 'selected' : '' }}>Every 30 days</option>
-                  <option {{ ($defaultPolicy['review_cycle'] ?? '') === 'Every 60 days' ? 'selected' : '' }}>Every 60 days</option>
-                  <option {{ ($defaultPolicy['review_cycle'] ?? '') === 'Every 90 days' ? 'selected' : '' }}>Every 90 days</option>
-                  <option {{ ($defaultPolicy['review_cycle'] ?? '') === 'Every 180 days' ? 'selected' : '' }}>Every 180 days</option>
-                </select>
-              </div>
-
               <div class="form-group" style="grid-column: 1 / -1;">
                 <label class="form-label" for="policySeoTitle">SEO Title</label>
                 <input id="policySeoTitle" type="text" class="form-input" data-policy-seo-title value="{{ $defaultPolicy['seo_title'] ?? '' }}">
@@ -197,20 +166,24 @@
 
               <div class="form-group" style="grid-column: 1 / -1;">
                 <label class="form-label" for="policyContent">Page Content</label>
-                <textarea id="policyContent" class="form-textarea settings-policy-textarea" data-policy-content>{{ $defaultPolicy['content'] ?? '' }}</textarea>
-              </div>
-
-              <div class="form-group" style="grid-column: 1 / -1;">
-                <label class="settings-policy-toggle">
-                  <input type="checkbox" data-policy-show-footer {{ ($defaultPolicy['show_in_footer'] ?? false) ? 'checked' : '' }}>
-                  <span>Show this page in storefront footer menu</span>
-                </label>
+                <textarea
+                  id="policyContent"
+                  class="form-textarea settings-policy-textarea"
+                  data-policy-content
+                  data-ckeditor
+                >{{ $defaultPolicy['content'] ?? '' }}</textarea>
+                <textarea
+                  id="policyContentSource"
+                  class="form-textarea settings-policy-textarea mt-sm"
+                  data-policy-content-source
+                  style="display: none; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;"
+                ></textarea>
               </div>
             </div>
 
             <div class="settings-inline-actions">
+              <button type="button" class="btn btn-secondary btn-sm" data-policy-source-toggle-btn>HTML / Code Mode</button>
               <button type="button" class="btn btn-success btn-sm" data-policy-save-btn>Save Page Content</button>
-              <button type="button" class="btn btn-secondary btn-sm" data-policy-preview-btn>Preview Current Page</button>
             </div>
           </div>
         </div>
@@ -325,30 +298,9 @@
         <div class="card-header">
           <div>
             <h3 class="card-title">Footer and Trust Blocks</h3>
-            <p class="settings-panel-subtitle">Control customer trust elements, announcement bar, and footer utility blocks.</p>
+            <p class="settings-panel-subtitle">Control footer trust text and announcement bar shown to customers.</p>
           </div>
           <span class="badge badge-primary">Storefront Blocks</span>
-        </div>
-
-        <div class="bot-settings-list">
-          @foreach ($footerBlocks as $block)
-            <label class="bot-setting-row">
-              <div class="bot-setting-info">
-                <h4>{{ $block['label'] }}</h4>
-                <p>{{ $block['description'] }}</p>
-              </div>
-              <span class="bot-setting-state {{ $block['enabled'] ? 'on' : 'off' }}" data-footer-state-label>{{ $block['enabled'] ? 'On' : 'Off' }}</span>
-              <span class="bot-switch">
-                <input
-                  type="checkbox"
-                  class="bot-toggle-input"
-                  data-footer-toggle
-                  {{ $block['enabled'] ? 'checked' : '' }}
-                >
-                <span class="bot-switch-ui"></span>
-              </span>
-            </label>
-          @endforeach
         </div>
 
         <div class="settings-field-grid mt-md">
@@ -439,38 +391,6 @@
         </div>
       </article>
     </section>
-
-    <section class="settings-side-column">
-      <article class="card settings-panel">
-        <div class="card-header">
-          <h3 class="card-title">Page Navigation</h3>
-          <span class="badge badge-info">Quick Jump</span>
-        </div>
-
-        <div class="settings-anchor-list">
-          <a href="#content-slider" class="settings-anchor-item">1. Homepage Slider Manager</a>
-          <a href="#content-policies" class="settings-anchor-item">2. Policy and Static Pages</a>
-          <a href="#content-contact" class="settings-anchor-item">3. Contact and Store Information</a>
-          <a href="#content-footer" class="settings-anchor-item">4. Footer and Trust Blocks</a>
-          <a href="#content-seo" class="settings-anchor-item">5. SEO Defaults and Scripts</a>
-        </div>
-      </article>
-
-      <article class="card settings-panel mt-xl">
-        <div class="card-header">
-          <h3 class="card-title">Publishing Checklist</h3>
-          <span class="badge badge-primary">Before Save</span>
-        </div>
-
-        <ul class="settings-focus-list">
-          @foreach ($checklist as $item)
-            <li>{{ $item }}</li>
-          @endforeach
-        </ul>
-      </article>
-
-      @include('admin.shop-settings.partials.recent-activity')
-    </section>
   </div>
 
   <div class="modal-overlay" id="contentSliderModal" aria-hidden="true">
@@ -490,26 +410,16 @@
           </div>
 
           <div class="form-group" style="grid-column: 1 / -1;">
-            <label class="form-label" for="sliderModalHeadline">Headline / Message</label>
-            <textarea id="sliderModalHeadline" class="form-textarea" rows="3" data-slider-modal-headline-input></textarea>
+            <label class="form-label" for="sliderModalProduct">Product</label>
+            <select id="sliderModalProduct" class="form-select" data-slider-modal-product-input>
+              <option value="">Select Product</option>
+              @foreach ($sliderProducts as $product)
+                <option value="{{ $product['id'] }}">{{ $product['name'] }}</option>
+              @endforeach
+            </select>
           </div>
 
-          <div class="form-group">
-            <label class="form-label" for="sliderModalCta">CTA Label</label>
-            <input id="sliderModalCta" type="text" class="form-input" data-slider-modal-cta-input>
-          </div>
-
-          <div class="form-group">
-            <label class="form-label" for="sliderModalUrl">Target URL</label>
-            <input id="sliderModalUrl" type="text" class="form-input" data-slider-modal-url-input>
-          </div>
-
-          <div class="form-group">
-            <label class="form-label" for="sliderModalSchedule">Schedule</label>
-            <input id="sliderModalSchedule" type="text" class="form-input" data-slider-modal-schedule-input>
-          </div>
-
-          <div class="form-group">
+          <div class="form-group" style="grid-column: 1 / -1;">
             <label class="form-label" for="sliderModalPriority">Priority</label>
             <input id="sliderModalPriority" type="number" min="1" class="form-input" data-slider-modal-priority-input>
           </div>
@@ -518,7 +428,6 @@
             <label class="form-label" for="sliderModalStatus">Status</label>
             <select id="sliderModalStatus" class="form-select" data-slider-modal-status-input>
               <option>Live</option>
-              <option>Scheduled</option>
               <option>Draft</option>
             </select>
           </div>
@@ -586,14 +495,14 @@
       const policyKeyInput = contentCenter.querySelector('[data-policy-key]');
       const policyTitleInput = contentCenter.querySelector('[data-policy-title]');
       const policySlugInput = contentCenter.querySelector('[data-policy-slug]');
-      const policyStatusSelect = contentCenter.querySelector('[data-policy-status]');
-      const policyReviewCycleSelect = contentCenter.querySelector('[data-policy-review-cycle]');
       const policySeoTitleInput = contentCenter.querySelector('[data-policy-seo-title]');
       const policyMetaDescriptionInput = contentCenter.querySelector('[data-policy-meta-description]');
       const policyContentInput = contentCenter.querySelector('[data-policy-content]');
+      const policySourceTextarea = contentCenter.querySelector('[data-policy-content-source]');
       const policyFooterToggle = contentCenter.querySelector('[data-policy-show-footer]');
       const policyStatusBadge = contentCenter.querySelector('[data-policy-status-badge]');
       const policyLastUpdated = contentCenter.querySelector('[data-policy-last-updated]');
+      const policySourceToggleButton = contentCenter.querySelector('[data-policy-source-toggle-btn]');
       const policySaveButton = contentCenter.querySelector('[data-policy-save-btn]');
       const policyPreviewButton = contentCenter.querySelector('[data-policy-preview-btn]');
 
@@ -604,10 +513,7 @@
       const sliderModalIdInput = document.querySelector('[data-slider-modal-id]');
       const sliderModalTitle = document.querySelector('[data-slider-modal-title]');
       const sliderModalTitleInput = document.querySelector('[data-slider-modal-title-input]');
-      const sliderModalHeadlineInput = document.querySelector('[data-slider-modal-headline-input]');
-      const sliderModalCtaInput = document.querySelector('[data-slider-modal-cta-input]');
-      const sliderModalUrlInput = document.querySelector('[data-slider-modal-url-input]');
-      const sliderModalScheduleInput = document.querySelector('[data-slider-modal-schedule-input]');
+      const sliderModalProductInput = document.querySelector('[data-slider-modal-product-input]');
       const sliderModalPriorityInput = document.querySelector('[data-slider-modal-priority-input]');
       const sliderModalStatusInput = document.querySelector('[data-slider-modal-status-input]');
       const sliderModalSaveButton = document.querySelector('[data-slider-modal-save-btn]');
@@ -627,12 +533,12 @@
       const contactSaveButton = document.querySelector('[data-contact-save-btn]');
       const footerSaveButton = document.querySelector('[data-footer-save-btn]');
       const seoSaveButton = document.querySelector('[data-seo-save-btn]');
-      const footerToggles = Array.from(document.querySelectorAll('[data-footer-toggle]'));
 
       const policyMap = new Map();
       policies.forEach((policy) => {
         policyMap.set(policy.key, policy);
       });
+      let policySourceMode = false;
 
       function policyBadgeClass(status) {
         if (status === 'Published') {
@@ -654,6 +560,69 @@
         });
       }
 
+      function policyEditorElement() {
+        if (!(policyContentInput instanceof HTMLTextAreaElement)) {
+          return null;
+        }
+
+        if (!window.AdminCkeditor || typeof window.AdminCkeditor.getInstance !== 'function') {
+          return null;
+        }
+
+        const instance = window.AdminCkeditor.getInstance(policyContentInput);
+        const editorElement = instance?.editor?.ui?.view?.element;
+        return editorElement instanceof HTMLElement ? editorElement : null;
+      }
+
+      function setPolicySourceMode(enabled) {
+        if (!(policyContentInput instanceof HTMLTextAreaElement)) {
+          return;
+        }
+
+        if (!(policySourceTextarea instanceof HTMLTextAreaElement)) {
+          return;
+        }
+
+        const editorElement = policyEditorElement();
+        policySourceMode = enabled;
+
+        if (enabled) {
+          const currentContent = window.AdminCkeditor && typeof window.AdminCkeditor.getData === 'function'
+            ? window.AdminCkeditor.getData(policyContentInput)
+            : policyContentInput.value;
+
+          policySourceTextarea.value = currentContent || '';
+          policySourceTextarea.style.display = 'block';
+
+          if (editorElement instanceof HTMLElement) {
+            editorElement.style.display = 'none';
+          }
+
+          if (policySourceToggleButton instanceof HTMLButtonElement) {
+            policySourceToggleButton.textContent = 'Visual Mode';
+          }
+
+          return;
+        }
+
+        const sourceContent = policySourceTextarea.value;
+        if (window.AdminCkeditor && typeof window.AdminCkeditor.setData === 'function') {
+          window.AdminCkeditor.setData(policyContentInput, sourceContent);
+        } else {
+          policyContentInput.value = sourceContent;
+        }
+
+        policySourceTextarea.style.display = 'none';
+
+        if (editorElement instanceof HTMLElement) {
+          editorElement.style.display = '';
+        }
+
+        if (policySourceToggleButton instanceof HTMLButtonElement) {
+          policySourceToggleButton.textContent = 'HTML / Code Mode';
+        }
+      }
+
       function fillPolicyEditor(key) {
         const policy = policyMap.get(key);
         if (!policy) {
@@ -672,14 +641,6 @@
           policySlugInput.value = policy.slug || '';
         }
 
-        if (policyStatusSelect instanceof HTMLSelectElement) {
-          policyStatusSelect.value = policy.status || 'Draft';
-        }
-
-        if (policyReviewCycleSelect instanceof HTMLSelectElement) {
-          policyReviewCycleSelect.value = policy.review_cycle || 'Every 90 days';
-        }
-
         if (policySeoTitleInput instanceof HTMLInputElement) {
           policySeoTitleInput.value = policy.seo_title || '';
         }
@@ -689,7 +650,16 @@
         }
 
         if (policyContentInput instanceof HTMLTextAreaElement) {
-          policyContentInput.value = policy.content || '';
+          const nextContent = policy.content || '';
+          policyContentInput.value = nextContent;
+
+          if (window.AdminCkeditor && typeof window.AdminCkeditor.setData === 'function') {
+            window.AdminCkeditor.setData(policyContentInput, nextContent);
+          }
+
+          if (policySourceTextarea instanceof HTMLTextAreaElement) {
+            policySourceTextarea.value = nextContent;
+          }
         }
 
         if (policyFooterToggle instanceof HTMLInputElement) {
@@ -735,20 +705,8 @@
           sliderModalTitleInput.value = sliderDefaults.title || '';
         }
 
-        if (sliderModalHeadlineInput instanceof HTMLTextAreaElement) {
-          sliderModalHeadlineInput.value = sliderDefaults.headline || '';
-        }
-
-        if (sliderModalCtaInput instanceof HTMLInputElement) {
-          sliderModalCtaInput.value = sliderDefaults.cta || '';
-        }
-
-        if (sliderModalUrlInput instanceof HTMLInputElement) {
-          sliderModalUrlInput.value = sliderDefaults.url || '';
-        }
-
-        if (sliderModalScheduleInput instanceof HTMLInputElement) {
-          sliderModalScheduleInput.value = sliderDefaults.schedule || 'Always On';
+        if (sliderModalProductInput instanceof HTMLSelectElement) {
+          sliderModalProductInput.value = sliderDefaults.product_id || '';
         }
 
         if (sliderModalPriorityInput instanceof HTMLInputElement) {
@@ -783,20 +741,8 @@
           sliderModalTitleInput.value = String(button.dataset.slideTitle || '');
         }
 
-        if (sliderModalHeadlineInput instanceof HTMLTextAreaElement) {
-          sliderModalHeadlineInput.value = String(button.dataset.slideHeadline || '');
-        }
-
-        if (sliderModalCtaInput instanceof HTMLInputElement) {
-          sliderModalCtaInput.value = String(button.dataset.slideCta || '');
-        }
-
-        if (sliderModalUrlInput instanceof HTMLInputElement) {
-          sliderModalUrlInput.value = String(button.dataset.slideUrl || '');
-        }
-
-        if (sliderModalScheduleInput instanceof HTMLInputElement) {
-          sliderModalScheduleInput.value = String(button.dataset.slideSchedule || 'Always On');
+        if (sliderModalProductInput instanceof HTMLSelectElement) {
+          sliderModalProductInput.value = String(button.dataset.slideProductId || '');
         }
 
         if (sliderModalPriorityInput instanceof HTMLInputElement) {
@@ -858,22 +804,34 @@
 
       policyButtons.forEach((button) => {
         button.addEventListener('click', () => {
+          if (policySourceMode) {
+            setPolicySourceMode(false);
+          }
+
           fillPolicyEditor(String(button.dataset.policyTab || ''));
         });
       });
 
-      if (policyStatusSelect instanceof HTMLSelectElement) {
-        policyStatusSelect.addEventListener('change', () => {
-          if (policyStatusBadge instanceof HTMLElement) {
-            const value = policyStatusSelect.value;
-            policyStatusBadge.textContent = value;
-            policyStatusBadge.className = `badge ${policyBadgeClass(value)}`;
-          }
+      if (policySourceToggleButton instanceof HTMLButtonElement) {
+        policySourceToggleButton.addEventListener('click', () => {
+          setPolicySourceMode(!policySourceMode);
         });
       }
 
       if (policySaveButton instanceof HTMLButtonElement) {
         policySaveButton.addEventListener('click', () => {
+          if (policySourceMode && policySourceTextarea instanceof HTMLTextAreaElement && policyContentInput instanceof HTMLTextAreaElement) {
+            if (window.AdminCkeditor && typeof window.AdminCkeditor.setData === 'function') {
+              window.AdminCkeditor.setData(policyContentInput, policySourceTextarea.value);
+            } else {
+              policyContentInput.value = policySourceTextarea.value;
+            }
+          }
+
+          if (policyContentInput instanceof HTMLTextAreaElement && window.AdminCkeditor && typeof window.AdminCkeditor.sync === 'function') {
+            window.AdminCkeditor.sync(policyContentInput);
+          }
+
           const selectedPolicy = currentPolicy();
           const policyName = selectedPolicy?.title || 'page';
 
@@ -906,10 +864,18 @@
         sliderModalSaveButton.addEventListener('click', () => {
           const mode = sliderModalModeInput instanceof HTMLInputElement ? sliderModalModeInput.value : 'create';
           const title = sliderModalTitleInput instanceof HTMLInputElement ? sliderModalTitleInput.value.trim() : '';
+          const productId = sliderModalProductInput instanceof HTMLSelectElement ? sliderModalProductInput.value : '';
 
           if (!title) {
             if (typeof window.showError === 'function') {
               window.showError('Slide title is required.');
+            }
+            return;
+          }
+
+          if (!productId) {
+            if (typeof window.showError === 'function') {
+              window.showError('Please select a product for this slide.');
             }
             return;
           }
@@ -988,24 +954,6 @@
           if (typeof window.showWarning === 'function') {
             window.showWarning(`${platform} link removed from UI table.`);
           }
-        });
-      });
-
-      footerToggles.forEach((toggle) => {
-        toggle.addEventListener('change', () => {
-          const row = toggle.closest('.bot-setting-row');
-          if (!(row instanceof HTMLElement)) {
-            return;
-          }
-
-          const stateLabel = row.querySelector('[data-footer-state-label]');
-          if (!(stateLabel instanceof HTMLElement)) {
-            return;
-          }
-
-          stateLabel.textContent = toggle.checked ? 'On' : 'Off';
-          stateLabel.classList.toggle('on', toggle.checked);
-          stateLabel.classList.toggle('off', !toggle.checked);
         });
       });
 

@@ -187,6 +187,7 @@
   <script>
     window.__ADMIN_PAGE = @json($currentPage);
   </script>
+  <script src="https://cdn.ckeditor.com/ckeditor5/41.4.2/classic/ckeditor.js"></script>
   <script src="{{ asset('assets/js/admin.js') }}"></script>
 </body>
 </html>

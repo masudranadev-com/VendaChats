@@ -4213,6 +4213,10 @@ body.products-attention-open {
   gap: var(--spacing-lg);
 }
 
+.settings-layout-single {
+  grid-template-columns: minmax(0, 1fr);
+}
+
 .settings-main-column,
 .settings-side-column {
   display: flex;
@@ -4956,6 +4960,14 @@ body.products-attention-open {
 
 .settings-policy-textarea {
   min-height: 240px;
+}
+
+.settings-policy-editor-area .ck-editor__editable_inline {
+  min-height: 240px;
+}
+
+.settings-policy-editor-area .cke_contents {
+  min-height: 240px !important;
 }
 
 .settings-policy-toggle {
