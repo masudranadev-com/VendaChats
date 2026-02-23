@@ -32,7 +32,7 @@
     @endforeach
   </section>
 
-  <div class="settings-layout mt-xl" data-coupon-manager>
+  <div class="settings-layout mt-xl" data-coupon-manager style="grid-template-columns: minmax(0, 1fr);">
     <section class="settings-main-column">
       <article class="card settings-panel">
         <div class="card-header">
@@ -137,36 +137,37 @@
 
           <div class="form-group">
             <label class="form-label" for="couponAppliesTo">Applies To</label>
-            <select id="couponAppliesTo" class="form-select" data-coupon-applies-to>
-              <option value="all_products" {{ $couponDefaults['applies_to'] === 'All Products' ? 'selected' : '' }}>All Products</option>
-              <option value="selected_categories" {{ $couponDefaults['applies_to'] === 'Selected Categories' ? 'selected' : '' }}>Selected Categories</option>
-              <option value="selected_products" {{ $couponDefaults['applies_to'] === 'Selected Products' ? 'selected' : '' }}>Selected Products</option>
+            <select id="couponAppliesTo" class="form-select settings-coupon-dropdown" data-coupon-applies-to>
+              <option value="all_products" {{ $couponDefaults['applies_to'] === 'All Products' ? 'selected' : '' }}>Apply to all product</option>
+              <option value="specific_products" {{ $couponDefaults['applies_to'] === 'Selected Products' ? 'selected' : '' }}>Apply to specific product</option>
             </select>
           </div>
 
-          <div class="form-group hidden" style="grid-column: 1 / -1;" data-coupon-category-wrap>
-            <label class="form-label" for="couponCategoryList">Select Categories</label>
-            <select id="couponCategoryList" class="form-select" size="6" multiple data-coupon-category-list disabled>
-              @foreach ($categoryOptions as $category)
-                <option value="{{ $category }}">{{ $category }}</option>
+          <div class="form-group hidden" style="grid-column: 1 / -1;" data-coupon-specific-wrap>
+            <label class="form-label" for="couponSpecificProductList">Select Specific Products</label>
+            <select
+              id="couponSpecificProductList"
+              class="form-multi-select settings-coupon-multi"
+              multiple
+              data-coreui-search="true"
+              data-coupon-specific-list
+              disabled
+            >
+              @foreach ($productGroups as $group)
+                <optgroup label="{{ $group['label'] }}">
+                  <option value="select_all_{{ $group['key'] }}" data-group-select-all="1" data-group-key="{{ $group['key'] }}">Select All</option>
+                  @foreach ($group['products'] as $product)
+                    <option value="{{ $product['value'] }}" data-group-key="{{ $group['key'] }}">{{ $product['label'] }}</option>
+                  @endforeach
+                </optgroup>
               @endforeach
             </select>
-            <small class="form-help">Show category list when Applies To = Selected Categories.</small>
-          </div>
-
-          <div class="form-group hidden" style="grid-column: 1 / -1;" data-coupon-product-wrap>
-            <label class="form-label" for="couponProductList">Select Products</label>
-            <select id="couponProductList" class="form-select" size="6" multiple data-coupon-product-list disabled>
-              @foreach ($productOptions as $product)
-                <option value="{{ $product }}">{{ $product }}</option>
-              @endforeach
-            </select>
-            <small class="form-help">Show product list when Applies To = Selected Products.</small>
+            <small class="form-help">CoreUI style multi-select with grouped products and per-group Select All.</small>
           </div>
 
           <div class="form-group">
             <label class="form-label" for="couponStatus">Status</label>
-            <select id="couponStatus" class="form-select">
+            <select id="couponStatus" class="form-select settings-coupon-dropdown">
               <option {{ $couponDefaults['status'] === 'Active' ? 'selected' : '' }}>Active</option>
               <option {{ $couponDefaults['status'] === 'Scheduled' ? 'selected' : '' }}>Scheduled</option>
               <option {{ $couponDefaults['status'] === 'Draft' ? 'selected' : '' }}>Draft</option>
@@ -229,41 +230,6 @@
         </div>
       </article>
     </section>
-
-    <section class="settings-side-column">
-      <article class="card settings-panel">
-        <div class="card-header">
-          <h3 class="card-title">Flat vs Percentage</h3>
-          <span class="badge badge-primary">Quick Guide</span>
-        </div>
-
-        <div class="settings-content-grid">
-          @foreach ($couponGuides as $guide)
-            <article class="settings-content-card">
-              <div class="settings-content-head">
-                <strong>{{ $guide['title'] }}</strong>
-                <span class="badge badge-info">Guide</span>
-              </div>
-              <p>{{ $guide['note'] }}</p>
-              <small>{{ $guide['example'] }}</small>
-            </article>
-          @endforeach
-        </div>
-      </article>
-
-      <article class="card settings-panel mt-xl">
-        <div class="card-header">
-          <h3 class="card-title">Coupon Checklist</h3>
-          <span class="badge badge-warning">Before Save</span>
-        </div>
-
-        <ul class="settings-focus-list">
-          @foreach ($couponChecklist as $item)
-            <li>{{ $item }}</li>
-          @endforeach
-        </ul>
-      </article>
-    </section>
   </div>
 
   <script>
@@ -279,10 +245,8 @@
       const percentageWrap = couponManager.querySelector('[data-coupon-percentage-wrap]');
       const maxWrap = couponManager.querySelector('[data-coupon-max-wrap]');
       const appliesToSelect = couponManager.querySelector('[data-coupon-applies-to]');
-      const categoryWrap = couponManager.querySelector('[data-coupon-category-wrap]');
-      const productWrap = couponManager.querySelector('[data-coupon-product-wrap]');
-      const categoryList = couponManager.querySelector('[data-coupon-category-list]');
-      const productList = couponManager.querySelector('[data-coupon-product-list]');
+      const specificWrap = couponManager.querySelector('[data-coupon-specific-wrap]');
+      const specificList = couponManager.querySelector('[data-coupon-specific-list]');
       const flatValueInput = couponManager.querySelector('[data-coupon-flat-value]');
       const percentageValueInput = couponManager.querySelector('[data-coupon-percentage-value]');
       const typePreview = couponManager.querySelector('[data-coupon-type-preview]');
@@ -294,10 +258,8 @@
         !codeInput ||
         typeInputs.length === 0 ||
         !appliesToSelect ||
-        !categoryWrap ||
-        !productWrap ||
-        !categoryList ||
-        !productList ||
+        !specificWrap ||
+        !specificList ||
         !flatWrap ||
         !percentageWrap ||
         !maxWrap ||
@@ -343,14 +305,30 @@
 
       function refreshAppliesToUI() {
         const appliesTo = appliesToSelect.value;
-        const categoryMode = appliesTo === 'selected_categories';
-        const productMode = appliesTo === 'selected_products';
+        const specificMode = appliesTo === 'specific_products';
 
-        categoryWrap.classList.toggle('hidden', !categoryMode);
-        productWrap.classList.toggle('hidden', !productMode);
+        specificWrap.classList.toggle('hidden', !specificMode);
+        specificList.disabled = !specificMode;
+      }
 
-        categoryList.disabled = !categoryMode;
-        productList.disabled = !productMode;
+      function applyGroupSelectAll() {
+        const options = Array.from(specificList.options);
+        const selectAllOptions = options.filter((option) => option.dataset.groupSelectAll === '1');
+
+        selectAllOptions.forEach((selectAllOption) => {
+          if (!selectAllOption.selected) {
+            return;
+          }
+
+          const groupKey = selectAllOption.dataset.groupKey || '';
+          options.forEach((option) => {
+            if (option.dataset.groupKey === groupKey && option.dataset.groupSelectAll !== '1') {
+              option.selected = true;
+            }
+          });
+
+          selectAllOption.selected = false;
+        });
       }
 
       function refreshPreview() {
@@ -379,8 +357,9 @@
         flatValueInput.value = '120';
         percentageValueInput.value = '10';
         appliesToSelect.value = 'all_products';
-        categoryList.selectedIndex = -1;
-        productList.selectedIndex = -1;
+        Array.from(specificList.options).forEach((option) => {
+          option.selected = false;
+        });
 
         refreshTypeUI();
         refreshAppliesToUI();
@@ -402,6 +381,7 @@
       flatValueInput.addEventListener('input', refreshPreview);
       percentageValueInput.addEventListener('input', refreshPreview);
       appliesToSelect.addEventListener('change', refreshAppliesToUI);
+      specificList.addEventListener('change', applyGroupSelectAll);
 
       createButtons.forEach((button) => {
         button.addEventListener('click', () => {
