@@ -99,11 +99,11 @@
             <span class="nav-icon">🔍</span>
             <span class="nav-label">Competition Monitor</span>
           </a>
-          <a href="{{ route('admin.coach') }}" class="nav-item {{ $currentPage === 'coach' ? 'active' : '' }}">
+          {{-- <a href="{{ route('admin.coach') }}" class="nav-item {{ $currentPage === 'coach' ? 'active' : '' }}">
             <span class="nav-icon">📊</span>
             <span class="nav-label">Performance Coach</span>
-          </a>
-          
+          </a> --}}
+
         </div>
 
         <div class="nav-group">
