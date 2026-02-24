@@ -149,13 +149,6 @@ class ShopSettingsController extends Controller
                 ['host' => 'www', 'type' => 'CNAME', 'value' => 'yourbrand.com', 'ttl' => '300s', 'notes' => 'Alias www to root domain'],
                 ['host' => '_verify', 'type' => 'TXT', 'value' => 'ametafy-domain-verify=ab12cd34', 'ttl' => '3600s', 'notes' => 'Required for ownership verification'],
             ],
-            'checklist' => [
-                'Step 1: Choose domain type (Subdomain or Custom Domain).',
-                'Step 2: Add domain name and submit.',
-                'Step 3: If custom domain, add DNS records exactly as shown.',
-                'Step 4: Click verify after DNS propagation completes.',
-                'Step 5: To use another domain, remove current domain first.',
-            ],
         ]);
     }
 
@@ -237,6 +230,19 @@ class ShopSettingsController extends Controller
             ],
             'advancedControls' => [
                 [
+                    'label' => 'Store Currency',
+                    'name' => 'store_currency',
+                    'value' => 'BDT (Bangladesh)',
+                    'options' => [
+                        'BDT (Bangladesh)',
+                        'INR (India / IND)',
+                        'USD (USA)',
+                        'EUR (Euro)',
+                        'GBP (United Kingdom)',
+                    ],
+                    'help' => 'Sets default storefront currency format for prices and checkout totals.',
+                ],
+                [
                     'label' => 'Color Preset',
                     'name' => 'color_preset',
                     'value' => 'Ocean Blue',
@@ -277,68 +283,6 @@ class ShopSettingsController extends Controller
                     'value' => '4:5 Portrait',
                     'options' => ['1:1 Square', '4:5 Portrait', '16:9 Landscape'],
                     'help' => 'Defines default ratio for product thumbnails and featured banners.',
-                ],
-            ],
-            'behaviorSettings' => [
-                [
-                    'id' => 'sticky_buy_mobile',
-                    'label' => 'Sticky Buy Button (Mobile)',
-                    'description' => 'Keep purchase CTA visible while user scrolls product details.',
-                    'enabled' => true,
-                ],
-                [
-                    'id' => 'quick_view_cards',
-                    'label' => 'Quick View from Product Grid',
-                    'description' => 'Allow product quick-view modal directly from listing cards.',
-                    'enabled' => true,
-                ],
-                [
-                    'id' => 'trust_badges_checkout',
-                    'label' => 'Trust Badges at Checkout',
-                    'description' => 'Show secure payment and delivery badges near checkout CTA.',
-                    'enabled' => true,
-                ],
-                [
-                    'id' => 'auto_dark_sections',
-                    'label' => 'Auto Contrast for Hero Sections',
-                    'description' => 'Auto adjust text and overlay for readable hero content.',
-                    'enabled' => false,
-                ],
-                [
-                    'id' => 'floating_chat_icon',
-                    'label' => 'Floating Chat Shortcut',
-                    'description' => 'Enable sticky messenger-style support icon on storefront pages.',
-                    'enabled' => false,
-                ],
-            ],
-            'checkoutControls' => [
-                [
-                    'label' => 'Cart Drawer Style',
-                    'name' => 'cart_drawer_style',
-                    'value' => 'Right Slide',
-                    'options' => ['Right Slide', 'Bottom Sheet', 'Inline Cart Page'],
-                    'help' => 'Defines default cart interaction before checkout.',
-                ],
-                [
-                    'label' => 'Checkout Layout',
-                    'name' => 'checkout_layout',
-                    'value' => 'Two Column',
-                    'options' => ['Single Column', 'Two Column', 'Progressive Step'],
-                    'help' => 'Select how checkout information and summary are shown.',
-                ],
-                [
-                    'label' => 'Primary CTA Style',
-                    'name' => 'primary_cta_style',
-                    'value' => 'Solid',
-                    'options' => ['Solid', 'Soft Gradient', 'Outline + Fill Hover'],
-                    'help' => 'Controls styling of add-to-cart and checkout buttons.',
-                ],
-                [
-                    'label' => 'Announcement Bar',
-                    'name' => 'announcement_bar',
-                    'value' => 'Compact',
-                    'options' => ['Off', 'Compact', 'Full Width'],
-                    'help' => 'Theme-level top bar for campaign message visibility.',
                 ],
             ],
         ]);

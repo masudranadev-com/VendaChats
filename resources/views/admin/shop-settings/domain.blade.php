@@ -32,7 +32,7 @@
     @endforeach
   </section>
 
-  <div class="settings-layout mt-xl">
+  <div class="settings-layout settings-layout-single mt-xl">
     <section class="settings-main-column">
       <article class="card settings-panel">
         <div class="card-header">
@@ -95,8 +95,8 @@
         @endif
 
         <div class="settings-inline-actions">
-          <button type="button" class="btn btn-primary btn-sm" data-domain-mode-btn data-mode="subdomain" aria-pressed="true" {{ $singleDomainLocked ? 'disabled' : '' }}>Subdomain</button>
-          <button type="button" class="btn btn-ghost btn-sm" data-domain-mode-btn data-mode="custom" aria-pressed="false" {{ $singleDomainLocked ? 'disabled' : '' }}>Custom Domain</button>
+          <button type="button" class="btn btn-primary btn-sm" data-domain-mode-btn data-mode="subdomain" aria-pressed="true">Subdomain</button>
+          <button type="button" class="btn btn-ghost btn-sm" data-domain-mode-btn data-mode="custom" aria-pressed="false">Custom Domain</button>
         </div>
 
         <div class="settings-field-grid mt-md">
@@ -208,22 +208,6 @@
       </article>
     </section>
 
-    <section class="settings-side-column">
-      <article class="card settings-panel">
-        <div class="card-header">
-          <h3 class="card-title">Simple 4-Step Flow</h3>
-          <span class="badge badge-info">Easy Guide</span>
-        </div>
-
-        <ul class="settings-focus-list">
-          @foreach ($checklist as $item)
-            <li>{{ $item }}</li>
-          @endforeach
-        </ul>
-      </article>
-
-      @include('admin.shop-settings.partials.recent-activity')
-    </section>
   </div>
 
   <script>

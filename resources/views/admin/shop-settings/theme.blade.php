@@ -16,7 +16,7 @@
       <p class="page-subtitle">{{ $subtitle }}</p>
     </div>
 
-    <div class="settings-header-actions">
+    <div class="settings-header-actions settings-theme-actions">
       <button type="button" class="btn btn-secondary {{ $themePageUnlocked ? '' : 'hidden' }}" data-theme-save-btn {{ $themePageUnlocked ? '' : 'disabled' }}>Save Theme Settings</button>
       <button type="button" class="btn btn-primary {{ $themePageUnlocked ? '' : 'hidden' }}" data-theme-activate-btn {{ $themePageUnlocked ? '' : 'disabled' }}>Activate Selected Theme</button>
     </div>
@@ -40,7 +40,7 @@
   </section>
 
   <div
-    class="settings-layout mt-xl"
+    class="settings-layout settings-layout-single settings-theme-layout mt-xl"
     data-theme-manager
     data-theme-ready="{{ $themePageUnlocked ? '1' : '0' }}"
     data-domain-value="{{ $activeDomain['value'] ?? '' }}"
@@ -196,8 +196,10 @@
               <label class="form-label" for="themeControl_{{ $control['name'] }}">{{ $control['label'] }}</label>
               <select
                 id="themeControl_{{ $control['name'] }}"
+                name="{{ $control['name'] }}"
                 class="form-select"
                 data-theme-control
+                data-theme-control-name="{{ $control['name'] }}"
                 {{ $themePageUnlocked ? '' : 'disabled' }}
               >
                 @foreach ($control['options'] as $option)
@@ -211,68 +213,6 @@
       </article>
     </section>
 
-    <section class="settings-side-column">
-      <article class="card settings-panel {{ $themePageUnlocked ? '' : 'hidden' }}" data-theme-domain-panel>
-        <div class="card-header">
-          <div>
-            <h3 class="card-title">Behavior Controls</h3>
-            <p class="settings-panel-subtitle">Advanced switches for storefront interaction and conversion behavior.</p>
-          </div>
-          <span class="badge badge-info">Advanced</span>
-        </div>
-
-        <div class="bot-settings-list">
-          @foreach ($behaviorSettings as $setting)
-            <label class="bot-setting-row">
-              <div class="bot-setting-info">
-                <h4>{{ $setting['label'] }}</h4>
-                <p>{{ $setting['description'] }}</p>
-              </div>
-              <span class="bot-setting-state {{ $setting['enabled'] ? 'on' : 'off' }}">{{ $setting['enabled'] ? 'On' : 'Off' }}</span>
-              <span class="bot-switch">
-                <input
-                  type="checkbox"
-                  class="bot-toggle-input"
-                  data-theme-control
-                  {{ $setting['enabled'] ? 'checked' : '' }}
-                  {{ $themePageUnlocked ? '' : 'disabled' }}
-                >
-                <span class="bot-switch-ui"></span>
-              </span>
-            </label>
-          @endforeach
-        </div>
-      </article>
-
-      <article class="card settings-panel mt-xl {{ $themePageUnlocked ? '' : 'hidden' }}" data-theme-domain-panel>
-        <div class="card-header">
-          <div>
-            <h3 class="card-title">Checkout + CTA Style</h3>
-            <p class="settings-panel-subtitle">Fine tune cart, checkout flow, and call-to-action styling.</p>
-          </div>
-          <span class="badge badge-primary">Theme Settings</span>
-        </div>
-
-        <div class="settings-theme-control-grid">
-          @foreach ($checkoutControls as $control)
-            <div class="form-group">
-              <label class="form-label" for="themeCheckout_{{ $control['name'] }}">{{ $control['label'] }}</label>
-              <select
-                id="themeCheckout_{{ $control['name'] }}"
-                class="form-select"
-                data-theme-control
-                {{ $themePageUnlocked ? '' : 'disabled' }}
-              >
-                @foreach ($control['options'] as $option)
-                  <option value="{{ $option }}" {{ $control['value'] === $option ? 'selected' : '' }}>{{ $option }}</option>
-                @endforeach
-              </select>
-              <small class="form-help">{{ $control['help'] }}</small>
-            </div>
-          @endforeach
-        </div>
-      </article>
-    </section>
   </div>
 
   <script>
@@ -384,6 +324,16 @@
         updateActiveThemeBadge(selected.value);
       }
 
+      function selectedCurrencyLabel() {
+        const currencyControl = manager.querySelector('[data-theme-control-name="store_currency"]');
+        if (!(currencyControl instanceof HTMLSelectElement)) {
+          return '';
+        }
+
+        const selected = currencyControl.options[currencyControl.selectedIndex];
+        return selected ? String(selected.textContent || '').trim() : '';
+      }
+
       setControlsEnabled(themeReady);
 
       if (themeReady) {
@@ -432,8 +382,14 @@
           return;
         }
 
+        const currencyLabel = selectedCurrencyLabel();
+
         if (typeof window.showSuccess === 'function') {
-          window.showSuccess(`Theme settings saved for ${domainValue}.`);
+          window.showSuccess(
+            currencyLabel
+              ? `Theme settings saved for ${domainValue}. Currency: ${currencyLabel}.`
+              : `Theme settings saved for ${domainValue}.`
+          );
         }
       });
     });
