@@ -163,6 +163,9 @@ class BotSettingsController extends Controller
             'impPageName' => $impPageName,
         ]);
 
+        // Here connect with  
+        
+
         return redirect()
             ->route('admin.bot-settings')
             ->with('facebook_status', "Facebook connected. '{$impPageName}' is active. No extra page setup needed.");

@@ -171,7 +171,10 @@
               <a href="{{ route('admin.settings') }}" class="dropdown-item">Settings</a>
               <a href="{{ route('admin.shop-settings') }}" class="dropdown-item">Shop Settings</a>
               <div class="dropdown-divider"></div>
-              <div class="dropdown-item">Logout</div>
+              <form method="POST" action="{{ route('admin.logout') }}">
+                @csrf
+                <button type="submit" class="dropdown-item">Logout</button>
+              </form>
             </div>
           </div>
         </div>

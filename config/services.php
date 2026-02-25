@@ -36,6 +36,10 @@ return [
         'page_access_token' => env('META_PAGE_ACCESS_TOKEN', env('META_ACCESS_TOKEN')),
         'graph_api_version' => env('META_GRAPH_API_VERSION', 'v22.0'),
     ],
+    'backend' => [
+        'url' => env('BACKEND_API_URL', 'http://localhost:8082'),
+    ],
+
     'facebook' => [
         'app_id' => env('FB_APP_ID'),
         'app_secret' => env('FB_APP_SECRET'),

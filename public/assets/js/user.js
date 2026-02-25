@@ -352,36 +352,19 @@ function submitForm(e) {
 }
 
 // ═══════════════════════════════════════════
-// LOGIN AUTH FLOW (Demo)
+// LOGIN AUTH FLOW
 // ═══════════════════════════════════════════
 function initAuthFlow() {
   const authChoice = document.getElementById('authChoice');
   const emailAuthBtn = document.getElementById('emailAuthBtn');
-  const googleAuthBtn = document.getElementById('googleAuthBtn');
   const authBackBtn = document.getElementById('authBackBtn');
   const loginForm = document.getElementById('loginForm');
-  const loginSuccess = document.getElementById('loginSuccess');
 
-  if (!authChoice || !emailAuthBtn || !googleAuthBtn || !authBackBtn || !loginForm || !loginSuccess) {
+  if (!authChoice || !emailAuthBtn || !authBackBtn || !loginForm) {
     return;
   }
 
-  const successTitle = loginSuccess.querySelector('h3');
-  const successText = loginSuccess.querySelector('p');
-
-  const showSuccess = (title, text) => {
-    loginForm.hidden = true;
-    authChoice.style.display = 'none';
-    authBackBtn.hidden = true;
-    if (successTitle) successTitle.textContent = title;
-    if (successText) successText.textContent = text;
-    loginSuccess.classList.add('show');
-    loginSuccess.style.display = 'block';
-  };
-
   const showEmailForm = () => {
-    loginSuccess.classList.remove('show');
-    loginSuccess.style.display = 'none';
     authChoice.style.display = 'none';
     loginForm.hidden = false;
     authBackBtn.hidden = false;
@@ -389,25 +372,18 @@ function initAuthFlow() {
   };
 
   const resetAuthOptions = () => {
-    loginForm.reset();
     loginForm.hidden = true;
-    loginSuccess.classList.remove('show');
-    loginSuccess.style.display = 'none';
     authChoice.style.display = 'grid';
     authBackBtn.hidden = true;
   };
 
-  googleAuthBtn.addEventListener('click', () => {
-    showSuccess('Google Login Complete (Demo)', 'Google account দিয়ে auto signup/login সফল হয়েছে।');
-  });
-
   emailAuthBtn.addEventListener('click', showEmailForm);
   authBackBtn.addEventListener('click', resetAuthOptions);
 
-  loginForm.addEventListener('submit', (e) => {
-    e.preventDefault();
-    showSuccess('Email Login Complete (Demo)', 'Email দিয়ে login/signup সফল হয়েছে।');
-  });
+  // Auto-show email form if there are validation errors
+  if (document.querySelector('.bot-settings-alert.error')) {
+    showEmailForm();
+  }
 }
 
 // ═══════════════════════════════════════════

@@ -38,6 +38,7 @@ Route::get('/how-it-works', [InfoController::class, 'howItWorks'])->name('how-it
 Route::get('/about', [InfoController::class, 'about'])->name('about.index');
 Route::get('/contact', [InfoController::class, 'contact'])->name('contact.index');
 Route::get('/login', [AccountController::class, 'index'])->name('login.index');
+Route::post('/login', [AccountController::class, 'login'])->name('login.submit');
 Route::get('/privacy-policy', [InfoController::class, 'privacy'])->name('privacy.index');
 Route::get('/terms-and-conditions', [InfoController::class, 'terms'])->name('terms.index');
 Route::get('/user-data-deletion', [DataDeletionController::class, 'index'])->name('data-deletion.index');
@@ -115,7 +116,9 @@ if (app()->environment('local')) {
 
 // Admin php artisan make:controller Admin/AdminOrderController
 Route::redirect('/admin', '/admin/dashboard');
-Route::prefix('admin')->name('admin.')->group(function () {
+Route::prefix('admin')->name('admin.')->middleware('admin.auth')->group(function () {
+    Route::post('/logout', [AccountController::class, 'logout'])->name('logout');
+
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
     Route::get('/profile', [ProfileController::class, 'index'])->name('profile');
     Route::get('/settings', [ProfileController::class, 'settings'])->name('settings');
