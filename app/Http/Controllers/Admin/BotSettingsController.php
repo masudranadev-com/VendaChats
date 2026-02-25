@@ -162,22 +162,6 @@ class BotSettingsController extends Controller
                 ->withErrors(['facebook' => 'Could not read access token from Facebook response.']);
         }
 
-        $userResponse = Http::acceptJson()->get(
-            "https://graph.facebook.com/{$graphVersion}/me",
-            [
-                'fields' => 'id,name,email',
-                'access_token' => $userAccessToken,
-            ]
-        );
-
-        if ($userResponse->failed()) {
-            $errorMessage = $userResponse->json('error.message') ?: $userResponse->body();
-
-            return redirect()
-                ->route('admin.bot-settings')
-                ->withErrors(['facebook' => $errorMessage]);
-        }
-
         $pagesResponse = Http::acceptJson()->get(
             "https://graph.facebook.com/{$graphVersion}/me/accounts",
             ['access_token' => $userAccessToken]
@@ -206,9 +190,9 @@ class BotSettingsController extends Controller
                 ->withErrors(['facebook' => 'Facebook page id missing. Reconnect and try again.']);
         }
 
-        $impPageAccessToken = $pages[0]->access_token ?? "";
-        $impPageId = $pages[0]->id ?? "";
-        $impPageName = $pages[0]->name ?? "";
+        $impPageAccessToken = $pages[0]['access_token'] ?? "";
+        $impPageId = $pages[0]['id'] ?? "";
+        $impPageName = $pages[0]['name'] ?? "";
        
         // Log session data
         Log::info('Facebook Session Data:', [
