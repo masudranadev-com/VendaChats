@@ -37,7 +37,6 @@ class AccountController extends Controller
         }
 
         $request->session()->put('auth.refresh_token', $response->json('refresh_token'));
-        $request->session()->put('auth.expires_at', $response->json('expires_at'));
 
         return redirect()->route('admin.dashboard');
     }

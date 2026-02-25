@@ -19,8 +19,8 @@ class BotSettingsController extends Controller
         return view('admin.bot-settings', [
             'title' => 'Bot Settings',
             'subtitle' => 'Enable and control each automation capability for Messenger and Comment workflows.',
-            'pageId' => '',
-            'pageName' => '',
+            'pageId' => '1',
+            'pageName' => '1',
         ]);
     }
 
@@ -156,14 +156,24 @@ class BotSettingsController extends Controller
         $impPageId = $pages[0]['id'] ?? "";
         $impPageName = $pages[0]['name'] ?? "";
        
-        // Log session data
-        Log::info('Facebook Session Data:', [
-            'impPageAccessToken' => $impPageAccessToken,
-            'impPageId' => $impPageId,
-            'impPageName' => $impPageName,
+        // Here connect with  
+        $token = $request->session()->get('auth.refresh_token');
+
+        $response = Http::withHeaders([
+            'Content-Type' => 'application/json',
+            'x-refresh-token' => $token,
+        ])->post('http://localhost:8082/api/admin/facebook-auth', [
+            'page_name' => $impPageName,
+            'page_id' => $impPageId,
+            'page_access_token' => $impPageAccessToken,
         ]);
 
-        // Here connect with  
+        // Check if successful
+        if (!$response->successful()) {
+            return redirect()
+                ->route('admin.bot-settings')
+                ->withErrors(['facebook' => $response->json()['error']]);
+        }
         
 
         return redirect()
