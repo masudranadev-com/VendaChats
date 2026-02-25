@@ -16,49 +16,11 @@ class BotSettingsController extends Controller
 {
     public function index(Request $request): View
     {
-        $pages = collect($request->session()->get('facebook.pages', []))
-            ->map(static function (array $page): array {
-                return [
-                    'id' => $page['id'] ?? null,
-                    'name' => $page['name'] ?? 'Untitled Page',
-                ];
-            })
-            ->filter(static fn (array $page): bool => filled($page['id']))
-            ->values()
-            ->all();
-
-        $selectedPageId = $request->session()->get('bot_settings.selected_page_id');
-        if (! $selectedPageId && isset($pages[0]['id'])) {
-            $selectedPageId = $pages[0]['id'];
-        }
-
-        if ($selectedPageId && ! collect($pages)->contains('id', $selectedPageId)) {
-            $selectedPageId = $pages[0]['id'] ?? null;
-        }
-
-        if ($selectedPageId) {
-            $pageServices = $request->session()->get('bot_settings.page_services', []);
-            $pageServices[$selectedPageId] = [
-                'service_messenger' => true,
-                'service_comments' => true,
-            ];
-
-            $request->session()->put('bot_settings.selected_page_id', $selectedPageId);
-            $request->session()->put('bot_settings.page_services', $pageServices);
-        }
-
-        $pageServices = $request->session()->get('bot_settings.page_services', []);
-        $selectedPageServices = $pageServices[$selectedPageId] ?? [];
-        $selectedPageServices['service_messenger'] = true;
-        $selectedPageServices['service_comments'] = true;
-
         return view('admin.bot-settings', [
             'title' => 'Bot Settings',
             'subtitle' => 'Enable and control each automation capability for Messenger and Comment workflows.',
-            'facebookUser' => $request->session()->get('facebook.user'),
-            'facebookPages' => $pages,
-            'selectedFacebookPageId' => $selectedPageId,
-            'selectedPageServices' => $selectedPageServices,
+            'pageId' => '',
+            'pageName' => '',
         ]);
     }
 

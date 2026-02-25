@@ -70,15 +70,7 @@
     $safeTotalFeatures = max(1, $totalFeatures);
     $automationProgress = (int) round(($enabledFeatures / $safeTotalFeatures) * 100);
 
-    $selectedFacebookPageName = null;
-    foreach ($facebookPages ?? [] as $page) {
-      if (($page['id'] ?? null) === ($selectedFacebookPageId ?? null)) {
-        $selectedFacebookPageName = $page['name'] ?? null;
-        break;
-      }
-    }
-
-    $hasConnectedFacebookPage = filled($selectedFacebookPageId);
+    $isConnected = filled($pageId ?? null) && filled($pageName ?? null);
   @endphp
 
   <div class="page-header bot-page-header">
@@ -127,19 +119,19 @@
   <section class="card bot-facebook-card mt-xl">
     <div class="card-header">
       <h3 class="card-title">Facebook Connection</h3>
-      <span class="badge {{ $facebookUser ? 'badge-success' : 'badge-warning' }}">
-        {{ $facebookUser ? 'Connected' : 'Not Connected' }}
+      <span class="badge {{ $isConnected ? 'badge-success' : 'badge-warning' }}">
+        {{ $isConnected ? 'Connected' : 'Not Connected' }}
       </span>
     </div>
     <p class="bot-facebook-guide">
       One-time setup: connect Facebook once. The system auto-activates your first page with Messenger and auto comment reply.
     </p>
 
-    @if ($facebookUser)
+    @if ($isConnected)
       <div class="bot-facebook-top">
         <div class="bot-facebook-user">
-          <strong>{{ $facebookUser['name'] ?? 'Facebook User' }}</strong>
-          <span>ID: {{ $facebookUser['id'] ?? '-' }}</span>
+          <strong>{{ $pageName }}</strong>
+          <span>Page ID: {{ $pageId }}</span>
         </div>
 
         <div class="bot-facebook-actions">
@@ -169,15 +161,9 @@
         </label>
       </div>
 
-      @if ($selectedFacebookPageName)
-        <div class="bot-selected-page mt-md">
-          Active page: <strong>{{ $selectedFacebookPageName }}</strong>
-        </div>
-      @else
-        <p class="bot-facebook-empty">
-          Facebook connected, but no pages were found in your account yet.
-        </p>
-      @endif
+      <div class="bot-selected-page mt-md">
+        Active page: <strong>{{ $pageName }}</strong>
+      </div>
     @else
       <p class="bot-facebook-empty">
         Connect Facebook once to start Messenger and comment auto-reply automatically.
@@ -188,7 +174,7 @@
     @endif
   </section>
 
-  @if ($hasConnectedFacebookPage)
+  @if ($isConnected)
     <form data-bot-settings>
 
       <div class="grid grid-2 bot-settings-grid">
