@@ -97,21 +97,21 @@ if (app()->environment('local')) {
 }
 
 // webhook
-Route::any('/webhook', [HomeController::class, 'webhook'])->name('home.webhook');
-Route::prefix('facebook')->name('facebook.')->group(function () {
-    Route::get('/oauth', [FacebookAuthController::class, 'oauthPage'])->name('oauth');
-    Route::get('/auth/redirect', [FacebookAuthController::class, 'redirectToFacebook'])->name('auth.redirect');
-    Route::get('/auth/callback', [FacebookAuthController::class, 'handleFacebookCallback'])->name('auth.callback');
-    Route::get('/dashboard', [FacebookAuthController::class, 'dashboard'])->name('dashboard');
-    Route::get('/posts', [FacebookAuthController::class, 'getPagePosts'])->name('posts');
-    Route::get('/post-comments', [FacebookAuthController::class, 'getPostComments'])->name('post-comments');
-    Route::post('/send-message', [FacebookAuthController::class, 'sendMessage'])->name('send-message');
-    Route::post('/reply-comment', [FacebookAuthController::class, 'replyToComment'])->name('reply-comment');
-    Route::post('/subscribe-webhook', [FacebookAuthController::class, 'subscribeWebhook'])->name('subscribe-webhook');
-    Route::post('/disconnect', [FacebookAuthController::class, 'disconnect'])->name('disconnect');
-    Route::get('/webhook', [FacebookAuthController::class, 'verifyWebhook'])->name('webhook.verify');
-    Route::post('/webhook', [FacebookAuthController::class, 'receiveWebhook'])->name('webhook.receive');
-});
+// Route::any('/webhook', [HomeController::class, 'webhook'])->name('home.webhook');
+// Route::prefix('facebook')->name('facebook.')->group(function () {
+//     Route::get('/oauth', [FacebookAuthController::class, 'oauthPage'])->name('oauth');
+//     Route::get('/auth/redirect', [FacebookAuthController::class, 'redirectToFacebook'])->name('auth.redirect');
+//     Route::get('/auth/callback', [FacebookAuthController::class, 'handleFacebookCallback'])->name('auth.callback');
+//     Route::get('/dashboard', [FacebookAuthController::class, 'dashboard'])->name('dashboard');
+//     Route::get('/posts', [FacebookAuthController::class, 'getPagePosts'])->name('posts');
+//     Route::get('/post-comments', [FacebookAuthController::class, 'getPostComments'])->name('post-comments');
+//     Route::post('/send-message', [FacebookAuthController::class, 'sendMessage'])->name('send-message');
+//     Route::post('/reply-comment', [FacebookAuthController::class, 'replyToComment'])->name('reply-comment');
+//     Route::post('/subscribe-webhook', [FacebookAuthController::class, 'subscribeWebhook'])->name('subscribe-webhook');
+//     Route::post('/disconnect', [FacebookAuthController::class, 'disconnect'])->name('disconnect');
+//     Route::get('/webhook', [FacebookAuthController::class, 'verifyWebhook'])->name('webhook.verify');
+//     Route::post('/webhook', [FacebookAuthController::class, 'receiveWebhook'])->name('webhook.receive');
+// });
 
 // Admin php artisan make:controller Admin/AdminOrderController
 Route::redirect('/admin', '/admin/dashboard');
