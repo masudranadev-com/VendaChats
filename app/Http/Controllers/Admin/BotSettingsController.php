@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\View\View;
+use Illuminate\Support\Facades\Log;
 
 class BotSettingsController extends Controller
 {
@@ -199,42 +200,26 @@ class BotSettingsController extends Controller
                 ->withErrors(['facebook' => 'Facebook connected, but no pages were found.']);
         }
 
-        $defaultPageId = null;
-        $pageServices = [];
-        $pageName = 'Selected page';
-
-        foreach ($pages as $page) {
-            $pageId = $page['id'] ?? null;
-            if (! $pageId) {
-                continue;
-            }
-
-            $defaultPageId = $defaultPageId ?: $pageId;
-            $pageServices[$pageId] = [
-                'service_messenger' => true,
-                'service_comments' => true,
-            ];
-
-            if ($defaultPageId === $pageId) {
-                $pageName = $page['name'] ?? $pageName;
-            }
-        }
-
-        if (! $defaultPageId) {
+         if (!isset($pages[0])) {
             return redirect()
                 ->route('admin.bot-settings')
                 ->withErrors(['facebook' => 'Facebook page id missing. Reconnect and try again.']);
         }
 
-        $request->session()->put('facebook.user_access_token', $userAccessToken);
-        $request->session()->put('facebook.user', $userResponse->json());
-        $request->session()->put('facebook.pages', $pages);
-        $request->session()->put('bot_settings.selected_page_id', $defaultPageId);
-        $request->session()->put('bot_settings.page_services', $pageServices);
+        $impPageAccessToken = $pages[0]->access_token ?? "";
+        $impPageId = $pages[0]->id ?? "";
+        $impPageName = $pages[0]->name ?? "";
+       
+        // Log session data
+        Log::info('Facebook Session Data:', [
+            'impPageAccessToken' => $impPageAccessToken,
+            'impPageId' => $impPageId,
+            'impPageName' => $impPageName,
+        ]);
 
         return redirect()
             ->route('admin.bot-settings')
-            ->with('facebook_status', "Facebook connected. '{$pageName}' is active. No extra page setup needed.");
+            ->with('facebook_status', "Facebook connected. '{$impPageName}' is active. No extra page setup needed.");
     }
 
     public function disconnectFacebook(Request $request): RedirectResponse
