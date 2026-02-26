@@ -157,11 +157,11 @@
     <div class="posts-meta-grid">
       <div class="posts-meta-card">
         <span>Total Posts</span>
-        <strong>100</strong>
+        <strong data-posts-total-count>0</strong>
       </div>
       <div class="posts-meta-card">
         <span>Total Comments</span>
-        <strong>10</strong>
+        <strong data-comments-total-count>0</strong>
       </div>
     </div>
   </div>
@@ -185,14 +185,19 @@
   <section class="card mt-xl">
     <div class="card-header">
       <h3 class="card-title">Filtering Options</h3>
-      <span class="badge badge-info">12 shown</span>
+      <span class="badge badge-info" data-posts-filter-count>Loading...</span>
     </div>
 
     <form method="GET" action="{{ route('admin.posts') }}" class="posts-filter-form">
       <div class="form-group">
         <label class="form-label">Filter by Posts</label>
 
-        <div class="pms" id="postsMultiselect">
+        <div
+          class="pms"
+          id="postsMultiselect"
+          data-api-base-url="{{ $postsApiBaseUrl }}"
+          data-refresh-token="{{ $postsRefreshToken }}"
+        >
           {{-- Trigger --}}
           <div
             class="pms__trigger"
@@ -217,45 +222,8 @@
               <input class="pms__search" id="pmsSearch" type="text" placeholder="Search posts..." autocomplete="off">
             </div>
 
-            <ul class="pms__list" id="pmsList">
-              <li class="pms__item" data-title="Auto reply latest 5 comments" style="background: aliceblue;">
-                <label class="pms__item-label">
-                  <input class="pms__checkbox" type="checkbox" name="post_ids[]" value="auto">
-                  <span class="pms__item-title">Auto reply latest 5 comments</span>
-                </label>
-              </li>
-
-              <li class="pms__item" data-title="how to grow your store sales in 2024">
-                <label class="pms__item-label">
-                  <input class="pms__checkbox" type="checkbox" name="post_ids[]" value="1">
-                  <span class="pms__item-title">How to grow your store sales in 2024</span>
-                  <span class="pms__badge">12 unreplied</span>
-                </label>
-              </li>
-              <li class="pms__item" data-title="top 5 marketing strategies for small businesses">
-                <label class="pms__item-label">
-                  <input class="pms__checkbox" type="checkbox" name="post_ids[]" value="2">
-                  <span class="pms__item-title">Top 5 marketing strategies for small businesses</span>
-                  <span class="pms__badge">7 unreplied</span>
-                </label>
-              </li>
-              <li class="pms__item" data-title="customer retention tips that actually work">
-                <label class="pms__item-label">
-                  <input class="pms__checkbox" type="checkbox" name="post_ids[]" value="3">
-                  <span class="pms__item-title">Customer retention tips that actually work</span>
-                  <span class="pms__badge">3 unreplied</span>
-                </label>
-              </li>
-              <li class="pms__item" data-title="hello world">
-                <label class="pms__item-label">
-                  <input class="pms__checkbox" type="checkbox" name="post_ids[]" value="4">
-                  <span class="pms__item-title">Hello world</span>
-                  <span class="pms__badge">121 unreplied</span>
-                </label>
-              </li>
-            </ul>
-
-            <p class="pms__empty" id="pmsEmpty" hidden>No posts found</p>
+            <ul class="pms__list" id="pmsList"></ul>
+            <p class="pms__empty" id="pmsEmpty">Loading posts...</p>
           </div>
         </div>
       </div>
@@ -269,7 +237,7 @@
   <section class="card mt-xl">
     <div class="card-header">
       <h3 class="card-title">Posts Table</h3>
-      <span class="badge badge-primary">Live Feed</span>
+      <span class="badge badge-primary" data-posts-table-count>Loading...</span>
     </div>
 
     <div class="table-container posts-table-wrap">
@@ -281,18 +249,10 @@
             <th>Time</th>
           </tr>
         </thead>
-        <tbody>
+        <tbody data-posts-queue-body>
           <tr>
-              <td class="posts-title-cell" title="{{ "Hello world" }}">
-                {{ \Illuminate\Support\Str::limit("Hello world", 25, '...') }}
-              </td>
-              <td>
-                <span class="posts-comment-count">121</span>
-              </td>
-              <td>
-                <span class="posts-time">10m ago</span>
-              </td>
-            </tr>
+            <td colspan="3" class="posts-time" style="text-align: center;">Loading queued posts...</td>
+          </tr>
         </tbody>
       </table>
     </div>
@@ -300,39 +260,150 @@
 
   <script>
     document.addEventListener('DOMContentLoaded', () => {
-      // ── Countdown ──
       const countdown = document.querySelector('[data-auto-reply-countdown]');
       if (countdown) {
         let remaining = Number.parseInt(countdown.dataset.seconds || '610', 10);
-        if (!Number.isFinite(remaining) || remaining < 0) remaining = 610;
+        if (!Number.isFinite(remaining) || remaining < 0) {
+          remaining = 610;
+        }
 
         const render = () => {
-          if (remaining <= 0) { countdown.textContent = 'Executing now'; return; }
+          if (remaining <= 0) {
+            countdown.textContent = 'Executing now';
+            return;
+          }
+
           const minutes = Math.floor(remaining / 60);
           const seconds = remaining % 60;
           countdown.textContent = `${minutes}m ${String(seconds).padStart(2, '0')}s later`;
         };
 
         render();
+
         const timer = window.setInterval(() => {
-          if (remaining <= 0) { window.clearInterval(timer); return; }
+          if (remaining <= 0) {
+            window.clearInterval(timer);
+            return;
+          }
+
           remaining -= 1;
           render();
         }, 1000);
       }
 
-      // ── Posts Multi-Select ──
-      const pms            = document.getElementById('postsMultiselect');
-      if (!pms) return;
+      const pms = document.getElementById('postsMultiselect');
+      const trigger = document.getElementById('pmsTrigger');
+      const dropdown = document.getElementById('pmsDropdown');
+      const labelEl = document.getElementById('pmsLabel');
+      const searchEl = document.getElementById('pmsSearch');
+      const listEl = document.getElementById('pmsList');
+      const emptyEl = document.getElementById('pmsEmpty');
+      const queueBody = document.querySelector('[data-posts-queue-body]');
+      const postsCountNode = document.querySelector('[data-posts-total-count]');
+      const commentsCountNode = document.querySelector('[data-comments-total-count]');
+      const filterCountBadge = document.querySelector('[data-posts-filter-count]');
+      const tableCountBadge = document.querySelector('[data-posts-table-count]');
 
-      const trigger        = document.getElementById('pmsTrigger');
-      const dropdown       = document.getElementById('pmsDropdown');
-      const labelEl        = document.getElementById('pmsLabel');
-      const searchEl       = document.getElementById('pmsSearch');
-      const listEl         = document.getElementById('pmsList');
-      const emptyEl        = document.getElementById('pmsEmpty');
-      const autoCheckbox   = listEl.querySelector('.pms__checkbox[value="auto"]');
-      const regularItems   = [...listEl.querySelectorAll('.pms__item')].filter(item => !item.querySelector('.pms__checkbox[value="auto"]'));
+      if (
+        !pms ||
+        !trigger ||
+        !dropdown ||
+        !labelEl ||
+        !searchEl ||
+        !listEl ||
+        !emptyEl ||
+        !queueBody
+      ) {
+        return;
+      }
+
+      const apiBaseUrl = String(pms.dataset.apiBaseUrl || '').replace(/\/+$/, '');
+      const refreshToken = String(pms.dataset.refreshToken || '').trim();
+
+      const toInt = (value) => {
+        const parsed = Number.parseInt(String(value ?? '0'), 10);
+        return Number.isFinite(parsed) ? parsed : 0;
+      };
+
+      const truncate = (value, maxLength = 25) => {
+        const text = String(value || '').trim();
+        if (text.length <= maxLength) {
+          return text;
+        }
+        return `${text.slice(0, Math.max(0, maxLength - 3))}...`;
+      };
+
+      const normalizeDateString = (value) => String(value || '').replace(/([+-]\d{2})(\d{2})$/, '$1:$2');
+
+      const formatDateTime = (value) => {
+        const input = normalizeDateString(value);
+        const parsed = new Date(input);
+        if (Number.isNaN(parsed.getTime())) {
+          return value ? String(value) : '-';
+        }
+
+        return new Intl.DateTimeFormat('en-US', {
+          year: 'numeric',
+          month: 'short',
+          day: 'numeric',
+          hour: 'numeric',
+          minute: '2-digit',
+        }).format(parsed);
+      };
+
+      const clearElement = (node) => {
+        while (node.firstChild) {
+          node.removeChild(node.firstChild);
+        }
+      };
+
+      const coerceArrayPayload = (payload) => {
+        if (Array.isArray(payload)) {
+          return payload;
+        }
+        if (payload && typeof payload === 'object' && Array.isArray(payload.data)) {
+          return payload.data;
+        }
+        return null;
+      };
+
+      const readErrorMessage = (payload, fallback) => {
+        if (typeof payload === 'string' && payload.trim()) {
+          return payload.trim();
+        }
+        if (payload && typeof payload === 'object') {
+          return String(payload.message || payload.error || fallback);
+        }
+        return fallback;
+      };
+
+      const setPmsMessage = (message) => {
+        clearElement(listEl);
+        emptyEl.textContent = message;
+        emptyEl.hidden = false;
+      };
+
+      const setQueueMessage = (message) => {
+        clearElement(queueBody);
+        const row = document.createElement('tr');
+        const cell = document.createElement('td');
+        cell.colSpan = 3;
+        cell.className = 'posts-time';
+        cell.style.textAlign = 'center';
+        cell.textContent = message;
+        row.appendChild(cell);
+        queueBody.appendChild(row);
+      };
+
+      const getAutoCheckbox = () => listEl.querySelector('.pms__checkbox[value="auto"]');
+      const getRegularItems = () => Array.from(listEl.querySelectorAll('.pms__item')).filter((item) => {
+        const checkbox = item.querySelector('.pms__checkbox');
+        return checkbox && checkbox.value !== 'auto';
+      });
+
+      const getRegularCheckboxes = () => getRegularItems()
+        .map((item) => item.querySelector('.pms__checkbox'))
+        .filter((checkbox) => checkbox instanceof HTMLInputElement);
 
       function open() {
         dropdown.hidden = false;
@@ -348,58 +419,309 @@
       }
 
       function updateLabel() {
-        if (autoCheckbox.checked) {
+        const autoCheckbox = getAutoCheckbox();
+        if (autoCheckbox instanceof HTMLInputElement && autoCheckbox.checked) {
           labelEl.textContent = 'Auto mode';
           return;
         }
-        const checked = listEl.querySelectorAll('.pms__checkbox:checked');
-        labelEl.textContent = checked.length === 0
+
+        const checkedCount = getRegularCheckboxes().filter((checkbox) => checkbox.checked).length;
+        labelEl.textContent = checkedCount === 0
           ? 'Select posts...'
-          : checked.length === 1 ? '1 post selected' : `${checked.length} posts selected`;
+          : checkedCount === 1 ? '1 post selected' : `${checkedCount} posts selected`;
       }
 
       function setAutoMode(active) {
-        regularItems.forEach(item => {
-          const cb = item.querySelector('.pms__checkbox');
+        getRegularItems().forEach((item) => {
+          const checkbox = item.querySelector('.pms__checkbox');
+          if (!(checkbox instanceof HTMLInputElement)) {
+            return;
+          }
+
           if (active) {
-            cb.checked  = false;
-            cb.disabled = true;
+            checkbox.checked = false;
+            checkbox.disabled = true;
             item.classList.add('pms__item--locked');
           } else {
-            cb.disabled = false;
+            checkbox.disabled = false;
             item.classList.remove('pms__item--locked');
           }
         });
+
         updateLabel();
       }
 
       function filterList(query) {
-        const q = query.toLowerCase().trim();
-        let visible = 0;
-        listEl.querySelectorAll('.pms__item').forEach(item => {
-          const match = !q || item.dataset.title.includes(q);
+        const q = String(query || '').trim().toLowerCase();
+        let visibleCount = 0;
+        const hasListItems = listEl.querySelector('.pms__item') !== null;
+
+        Array.from(listEl.querySelectorAll('.pms__item')).forEach((item) => {
+          const title = String(item.dataset.title || '').toLowerCase();
+          const match = !q || title.includes(q);
           item.hidden = !match;
-          if (match) visible++;
+          if (match) {
+            visibleCount += 1;
+          }
         });
-        emptyEl.hidden = visible > 0;
+
+        if (visibleCount === 0 && hasListItems) {
+          emptyEl.textContent = 'No posts found';
+        }
+        emptyEl.hidden = visibleCount > 0;
       }
 
-      autoCheckbox.addEventListener('change', () => setAutoMode(autoCheckbox.checked));
+      function bindListCheckboxEvents() {
+        const autoCheckbox = getAutoCheckbox();
+        if (autoCheckbox instanceof HTMLInputElement) {
+          autoCheckbox.addEventListener('change', () => setAutoMode(autoCheckbox.checked));
+        }
 
-      regularItems.forEach(item => {
-        item.querySelector('.pms__checkbox').addEventListener('change', updateLabel);
-      });
+        getRegularCheckboxes().forEach((checkbox) => {
+          checkbox.addEventListener('change', updateLabel);
+        });
+      }
+
+      const buildListItem = ({value, title, badgeText = '', auto = false}) => {
+        const item = document.createElement('li');
+        item.className = 'pms__item';
+        item.dataset.title = String(title || '').toLowerCase();
+
+        if (auto) {
+          item.style.background = 'aliceblue';
+        }
+
+        const label = document.createElement('label');
+        label.className = 'pms__item-label';
+
+        const checkbox = document.createElement('input');
+        checkbox.className = 'pms__checkbox';
+        checkbox.type = 'checkbox';
+        checkbox.name = 'post_ids[]';
+        checkbox.value = String(value);
+
+        const titleNode = document.createElement('span');
+        titleNode.className = 'pms__item-title';
+        titleNode.textContent = String(title || '');
+
+        label.appendChild(checkbox);
+        label.appendChild(titleNode);
+
+        if (badgeText) {
+          const badge = document.createElement('span');
+          badge.className = 'pms__badge';
+          badge.textContent = badgeText;
+          label.appendChild(badge);
+        }
+
+        item.appendChild(label);
+        return item;
+      };
+
+      const renderPmsPosts = (posts) => {
+        clearElement(listEl);
+
+        listEl.appendChild(buildListItem({
+          value: 'auto',
+          title: 'Auto reply latest 5 comments',
+          auto: true,
+        }));
+
+        posts.forEach((post, index) => {
+          const postId = String(post.post_id || `post_${index + 1}`);
+          const title = String(post.message || post.post_title || postId).trim() || postId;
+          const comments = toInt(post.total_comments);
+
+          listEl.appendChild(buildListItem({
+            value: postId,
+            title,
+            badgeText: `${comments} comments`,
+          }));
+        });
+
+        emptyEl.hidden = true;
+        bindListCheckboxEvents();
+        setAutoMode(false);
+        filterList(searchEl.value);
+        updateLabel();
+
+        const totalComments = posts.reduce((sum, post) => sum + toInt(post.total_comments), 0);
+        if (postsCountNode) {
+          postsCountNode.textContent = String(posts.length);
+        }
+        if (commentsCountNode) {
+          commentsCountNode.textContent = String(totalComments);
+        }
+        if (filterCountBadge) {
+          filterCountBadge.textContent = `${posts.length} shown`;
+        }
+      };
+
+      const renderQueuePosts = (posts) => {
+        clearElement(queueBody);
+
+        if (!posts.length) {
+          setQueueMessage('No queued posts found.');
+          if (tableCountBadge) {
+            tableCountBadge.textContent = '0 queued';
+          }
+          return;
+        }
+
+        const fragment = document.createDocumentFragment();
+
+        posts.forEach((post, index) => {
+          const row = document.createElement('tr');
+          const title = String(post.post_title || post.message || post.post_id || `Post ${index + 1}`).trim();
+          const comments = toInt(post.total_comments);
+          const dateLabel = formatDateTime(post.post_date || post.created_time || '');
+
+          const titleCell = document.createElement('td');
+          titleCell.className = 'posts-title-cell';
+          titleCell.title = title;
+          titleCell.textContent = truncate(title, 25);
+
+          const commentsCell = document.createElement('td');
+          const commentsPill = document.createElement('span');
+          commentsPill.className = 'posts-comment-count';
+          commentsPill.textContent = String(comments);
+          commentsCell.appendChild(commentsPill);
+
+          const timeCell = document.createElement('td');
+          const timeText = document.createElement('span');
+          timeText.className = 'posts-time';
+          timeText.textContent = dateLabel;
+          timeCell.appendChild(timeText);
+
+          row.appendChild(titleCell);
+          row.appendChild(commentsCell);
+          row.appendChild(timeCell);
+          fragment.appendChild(row);
+        });
+
+        queueBody.appendChild(fragment);
+        if (tableCountBadge) {
+          tableCountBadge.textContent = `${posts.length} queued`;
+        }
+      };
+
+      const fetchApiArray = async (path, refreshToken) => {
+        if (!apiBaseUrl) {
+          throw new Error('Missing backend API URL.');
+        }
+
+        const endpoint = `${apiBaseUrl}${path}`;
+        const abortController = new AbortController();
+        const timeoutId = window.setTimeout(() => abortController.abort(), 12000);
+
+        try {
+          const response = await fetch(endpoint, {
+            method: 'GET',
+            headers: {
+              'Accept': 'application/json',
+              'x-refresh-token': refreshToken,
+            },
+            signal: abortController.signal,
+          });
+
+          const contentType = response.headers.get('content-type') || '';
+          const payload = contentType.includes('application/json')
+            ? await response.json()
+            : await response.text();
+
+          if (!response.ok) {
+            if (response.status === 401) {
+              throw new Error('Unauthorized (401). Session token is invalid or expired.');
+            }
+            throw new Error(readErrorMessage(payload, `Request failed (${response.status}).`));
+          }
+
+          const data = coerceArrayPayload(payload);
+          if (!data) {
+            throw new Error('Unexpected response format from backend API.');
+          }
+
+          return data;
+        } catch (error) {
+          if (error?.name === 'AbortError') {
+            throw new Error('Request timed out. Please try again.');
+          }
+          throw error;
+        } finally {
+          window.clearTimeout(timeoutId);
+        }
+      };
+
+      const loadPostsData = async () => {
+        if (!refreshToken) {
+          const message = 'Missing refresh token. Please login again.';
+          setPmsMessage(message);
+          setQueueMessage(message);
+          if (typeof window.showError === 'function') {
+            window.showError(message);
+          }
+          return;
+        }
+
+        setPmsMessage('Loading posts...');
+        setQueueMessage('Loading queued posts...');
+
+        const [facebookPostsResult, queuePostsResult] = await Promise.allSettled([
+          fetchApiArray('/api/admin/posts', refreshToken),
+          fetchApiArray('/api/admin/posts/queue', refreshToken),
+        ]);
+
+        if (facebookPostsResult.status === 'fulfilled') {
+          renderPmsPosts(facebookPostsResult.value);
+        } else {
+          const message = facebookPostsResult.reason?.message || 'Failed to load Facebook posts.';
+          setPmsMessage(message);
+          if (filterCountBadge) {
+            filterCountBadge.textContent = 'Unavailable';
+          }
+          if (typeof window.showError === 'function') {
+            window.showError(message);
+          }
+        }
+
+        if (queuePostsResult.status === 'fulfilled') {
+          renderQueuePosts(queuePostsResult.value);
+        } else {
+          const message = queuePostsResult.reason?.message || 'Failed to load queued posts.';
+          setQueueMessage(message);
+          if (tableCountBadge) {
+            tableCountBadge.textContent = 'Unavailable';
+          }
+          if (typeof window.showError === 'function') {
+            window.showError(message);
+          }
+        }
+      };
 
       trigger.addEventListener('click', () => dropdown.hidden ? open() : close());
 
-      trigger.addEventListener('keydown', e => {
-        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); dropdown.hidden ? open() : close(); }
+      trigger.addEventListener('keydown', (event) => {
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault();
+          dropdown.hidden ? open() : close();
+        }
       });
 
       searchEl.addEventListener('input', () => filterList(searchEl.value));
 
-      document.addEventListener('click', e => { if (!pms.contains(e.target)) close(); });
-      document.addEventListener('keydown', e => { if (e.key === 'Escape' && !dropdown.hidden) close(); });
+      document.addEventListener('click', (event) => {
+        if (!pms.contains(event.target)) {
+          close();
+        }
+      });
+
+      document.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape' && !dropdown.hidden) {
+          close();
+        }
+      });
+
+      loadPostsData();
     });
   </script>
 @endsection

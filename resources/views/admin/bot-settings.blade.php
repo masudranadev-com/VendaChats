@@ -100,6 +100,7 @@
     data-facebook-card
     data-api-base-url="{{ $facebookApiBaseUrl }}"
     data-page-id="{{ $pageId }}"
+    data-refresh-token="{{ $facebookRefreshToken }}"
   >
     <div class="card-header">
       <h3 class="card-title">Facebook Connection</h3>

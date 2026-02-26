@@ -458,15 +458,34 @@ function closeAllModals() {
 // TOAST NOTIFICATIONS
 // ══════════════════════════════════════════
 function initToasts() {
-  if (!document.querySelector('.toast-container')) {
+  if (!document.querySelector('.toast-container') && document.body) {
     const container = document.createElement('div');
     container.className = 'toast-container';
     document.body.appendChild(container);
   }
 }
 
+function resolveToastContainer() {
+  let container = document.querySelector('.toast-container');
+  if (container) {
+    return container;
+  }
+
+  if (!document.body) {
+    return null;
+  }
+
+  container = document.createElement('div');
+  container.className = 'toast-container';
+  document.body.appendChild(container);
+  return container;
+}
+
 function showToast(message, type = 'info', duration = 4000) {
-  const container = document.querySelector('.toast-container');
+  const container = resolveToastContainer();
+  if (!container) {
+    return;
+  }
 
   const icons = {
     success: '✓',
@@ -1755,10 +1774,7 @@ function initBotSettings() {
     setConnectionPanels(false);
   };
 
-  const resolveRefreshToken = () => {
-    const storage = window.sessionStorage;
-    return String(storage?.getItem('refresh_token') || storage?.getItem('auth.refresh_token') || '').trim();
-  };
+  const resolveRefreshToken = () => String(facebookCard?.dataset.refreshToken || '').trim();
 
   const syncMessengerDependency = () => {
     if (!messengerMasterToggle) return;
@@ -1891,7 +1907,7 @@ function initBotSettings() {
 
       if (!response.ok) {
         if (response.status === 401) {
-          throw new Error('Unauthorized (401). sessionStorage token is invalid or expired. Please re-login.');
+          throw new Error('Unauthorized (401). Server-provided refresh token is invalid or expired. Please re-login.');
         }
 
         throw new Error(rawPayload.message || rawPayload.error || 'Failed to update bot settings.');
@@ -1972,7 +1988,7 @@ function initBotSettings() {
 
       if (!response.ok) {
         if (response.status === 401) {
-          throw new Error('Unauthorized (401). sessionStorage token is invalid or expired. Please re-login.');
+          throw new Error('Unauthorized (401). Server-provided refresh token is invalid or expired. Please re-login.');
         }
 
         throw new Error(rawPayload.message || rawPayload.error || 'Failed to disconnect Facebook.');
@@ -2067,7 +2083,7 @@ function initBotSettings() {
 
       if (!response.ok) {
         if (response.status === 401) {
-          throw new Error('Unauthorized (401). sessionStorage token is invalid or expired. Please re-login.');
+          throw new Error('Unauthorized (401). Server-provided refresh token is invalid or expired. Please re-login.');
         }
 
         if (rawPayload.status === 'disconnected' || rawPayload.error === 'not found') {

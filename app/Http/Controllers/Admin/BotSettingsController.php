@@ -15,12 +15,19 @@ class BotSettingsController extends Controller
 {
     public function index(): View
     {
+        $refreshToken = (string) (
+            request()->session()->get('auth.refresh_token')
+            ?? request()->session()->get('refresh_token')
+            ?? ''
+        );
+
         return view('admin.bot-settings', [
             'title' => 'Bot Settings',
             'subtitle' => 'Enable and control each automation capability for Messenger and Comment workflows.',
             'pageId' => '',
             'pageName' => '',
             'facebookApiBaseUrl' => rtrim((string) config('services.backend.url', 'http://localhost:8082'), '/'),
+            'facebookRefreshToken' => $refreshToken,
         ]);
     }
 
