@@ -148,6 +148,8 @@
     }
   </style>
 
+  <div class="toast-container" id="toastContainer" aria-live="polite"></div>
+
   <div class="page-header posts-page-header">
     <div>
       <h1 class="page-title">{{ $title }}</h1>
@@ -224,6 +226,45 @@
 
             <ul class="pms__list" id="pmsList"></ul>
             <p class="pms__empty" id="pmsEmpty">Loading posts...</p>
+          </div>
+        </div>
+
+        {{-- Hidden inputs populated when a post is selected --}}
+        <input type="hidden" name="post_id"         id="hiddenPostId">
+        <input type="hidden" name="message"         id="hiddenPostMessage">
+        <input type="hidden" name="post_date"       id="hiddenPostDate">
+        <input type="hidden" name="total_comments"  id="hiddenPostComments">
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Filter by Product</label>
+
+        <div class="pms" id="productSelect">
+          {{-- Trigger --}}
+          <div
+            class="pms__trigger"
+            id="productTrigger"
+            tabindex="0"
+            role="combobox"
+            aria-haspopup="listbox"
+            aria-expanded="false"
+            aria-controls="productDropdown"
+          >
+            <span id="productLabel">Select a product...</span>
+            <span class="pms__arrow" aria-hidden="true">
+              <svg viewBox="0 0 20 20" fill="currentColor" width="16" height="16">
+                <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd"/>
+              </svg>
+            </span>
+          </div>
+
+          {{-- Dropdown --}}
+          <div class="pms__dropdown" id="productDropdown" role="listbox" hidden>
+            <div class="pms__search-wrap">
+              <input class="pms__search" id="productSearch" type="text" placeholder="Search products..." autocomplete="off">
+            </div>
+            <ul class="pms__list" id="productList"></ul>
+            <p class="pms__empty" id="productEmpty" hidden>No products found</p>
           </div>
         </div>
       </div>
@@ -324,6 +365,8 @@
         const parsed = Number.parseInt(String(value ?? '0'), 10);
         return Number.isFinite(parsed) ? parsed : 0;
       };
+
+      const toBool = (value) => value === true || value === 1 || value === '1' || value === 'true';
 
       const truncate = (value, maxLength = 25) => {
         const text = String(value || '').trim();
@@ -437,14 +480,15 @@
           if (!(checkbox instanceof HTMLInputElement)) {
             return;
           }
+          const isQueueLocked = item.dataset.queueLocked === '1';
 
           if (active) {
             checkbox.checked = false;
             checkbox.disabled = true;
             item.classList.add('pms__item--locked');
           } else {
-            checkbox.disabled = false;
-            item.classList.remove('pms__item--locked');
+            checkbox.disabled = isQueueLocked;
+            item.classList.toggle('pms__item--locked', isQueueLocked);
           }
         });
 
@@ -477,18 +521,50 @@
           autoCheckbox.addEventListener('change', () => setAutoMode(autoCheckbox.checked));
         }
 
+        const hiddenPostId       = document.getElementById('hiddenPostId');
+        const hiddenPostMsg      = document.getElementById('hiddenPostMessage');
+        const hiddenPostDate     = document.getElementById('hiddenPostDate');
+        const hiddenPostComments = document.getElementById('hiddenPostComments');
+
         getRegularCheckboxes().forEach((checkbox) => {
-          checkbox.addEventListener('change', updateLabel);
+          checkbox.addEventListener('change', () => {
+            if (checkbox.checked) {
+              getRegularCheckboxes().forEach((other) => {
+                if (other !== checkbox) other.checked = false;
+              });
+
+              const item = checkbox.closest('.pms__item');
+              if (hiddenPostId)       hiddenPostId.value       = item?.dataset.postId       ?? '';
+              if (hiddenPostMsg)      hiddenPostMsg.value      = item?.dataset.postMsg      ?? '';
+              if (hiddenPostDate)     hiddenPostDate.value     = item?.dataset.postDate     ?? '';
+              if (hiddenPostComments) hiddenPostComments.value = item?.dataset.postComments ?? '0';
+            } else {
+              if (hiddenPostId)       hiddenPostId.value       = '';
+              if (hiddenPostMsg)      hiddenPostMsg.value      = '';
+              if (hiddenPostDate)     hiddenPostDate.value     = '';
+              if (hiddenPostComments) hiddenPostComments.value = '';
+            }
+
+            updateLabel();
+          });
         });
       }
 
-      const buildListItem = ({value, title, badgeText = '', auto = false}) => {
+      const buildListItem = ({value, title, badgeText = '', auto = false, postMessage = '', postDate = '', postComments = 0, isQueue = false}) => {
         const item = document.createElement('li');
         item.className = 'pms__item';
-        item.dataset.title = String(title || '').toLowerCase();
+        item.dataset.title        = String(title || '').toLowerCase();
+        item.dataset.postId       = String(value);
+        item.dataset.postMsg      = String(postMessage || title || '');
+        item.dataset.postDate     = String(postDate || '');
+        item.dataset.postComments = String(postComments);
+        item.dataset.queueLocked  = isQueue ? '1' : '0';
 
         if (auto) {
           item.style.background = 'aliceblue';
+        }
+        if (isQueue) {
+          item.classList.add('pms__item--locked');
         }
 
         const label = document.createElement('label');
@@ -497,8 +573,8 @@
         const checkbox = document.createElement('input');
         checkbox.className = 'pms__checkbox';
         checkbox.type = 'checkbox';
-        checkbox.name = 'post_ids[]';
         checkbox.value = String(value);
+        checkbox.disabled = isQueue;
 
         const titleNode = document.createElement('span');
         titleNode.className = 'pms__item-title';
@@ -521,21 +597,27 @@
       const renderPmsPosts = (posts) => {
         clearElement(listEl);
 
-        listEl.appendChild(buildListItem({
-          value: 'auto',
-          title: 'Auto reply latest 5 comments',
-          auto: true,
-        }));
+        // listEl.appendChild(buildListItem({
+        //   value: 'auto',
+        //   title: 'Auto reply latest 5 comments',
+        //   auto: true,
+        // }));
 
         posts.forEach((post, index) => {
-          const postId = String(post.post_id || `post_${index + 1}`);
-          const title = String(post.message || post.post_title || postId).trim() || postId;
+          const postId   = String(post.post_id || `post_${index + 1}`);
+          const title    = String(post.message || post.post_title || postId).trim() || postId;
           const comments = toInt(post.total_comments);
+          const postDate = String(post.post_date || post.created_time || '');
+          const isQueue  = toBool(post.is_queue);
 
           listEl.appendChild(buildListItem({
             value: postId,
             title,
-            badgeText: `${comments} comments`,
+            badgeText: isQueue ? `Queued - ${comments} comments` : `${comments} comments`,
+            postMessage: title,
+            postDate,
+            postComments: comments,
+            isQueue,
           }));
         });
 
@@ -722,6 +804,163 @@
       });
 
       loadPostsData();
+
+      // ── Toaster ──
+      const toastContainer = document.getElementById('toastContainer');
+
+      const showToast = (message, type = 'success') => {
+        if (!toastContainer) return;
+
+        const toast = document.createElement('div');
+        toast.className = `toast toast--${type}`;
+        toast.innerHTML = `
+          <span class="toast__icon">${type === 'success' ? '✓' : '✕'}</span>
+          <span class="toast__msg">${String(message)}</span>
+          <button class="toast__close" aria-label="Dismiss">×</button>
+        `;
+
+        toast.querySelector('.toast__close').addEventListener('click', () => toast.remove());
+        toastContainer.appendChild(toast);
+        window.setTimeout(() => toast.remove(), 4000);
+      };
+
+      // ── Form Submit → POST /api/admin/posts/queue ──
+      const filterForm = document.querySelector('.posts-filter-form');
+      if (filterForm) {
+        filterForm.addEventListener('submit', async (event) => {
+          event.preventDefault();
+
+          const postId       = document.getElementById('hiddenPostId')?.value.trim()       ?? '';
+          const postTitle    = document.getElementById('hiddenPostMessage')?.value.trim()  ?? '';
+          const postDate     = document.getElementById('hiddenPostDate')?.value.trim()     ?? '';
+          const postComments = Number(document.getElementById('hiddenPostComments')?.value ?? '0');
+          const productEl = filterForm.querySelector('input[name="product_id"]:checked');
+          const productId = productEl ? Number(productEl.value) : null;
+
+          if (!postId || !postTitle || !productId) {
+            showToast('Please select a post and a product before applying filters.', 'error');
+            return;
+          }
+
+          const submitBtn = filterForm.querySelector('button[type="submit"]');
+          if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = 'Applying...'; }
+
+          try {
+            const response = await fetch(`${apiBaseUrl}/api/admin/posts/queue`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'x-refresh-token': refreshToken,
+              },
+              body: JSON.stringify({
+                post_id:    postId,
+                post_title: postTitle,
+                product_id:     productId,
+                total_comments: postComments,
+                post_date:      postDate || null,
+              }),
+            });
+
+            const payload = await response.json().catch(() => ({}));
+
+            if (response.status === 201) {
+              showToast(payload.message || 'Post assigned to queue.', 'success');
+              loadPostsData();
+            } else if (response.status === 400) {
+              showToast(payload.error || 'Validation error. Please check your input.', 'error');
+            } else {
+              showToast(payload.error || `Server error (${response.status}). Please try again.`, 'error');
+            }
+          } catch {
+            showToast('Network error. Could not reach the server.', 'error');
+          } finally {
+            if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = 'Apply Filters'; }
+          }
+        });
+      }
+
+      // ── Product Select ──
+      const productDemoData = [
+        { id: 1,  name: 'Nike Air Max 90',       badge: '$120' },
+        { id: 2,  name: 'Adidas Ultraboost 22',  badge: '$180' },
+        { id: 3,  name: 'Apple iPhone 15',        badge: '$999' },
+        { id: 4,  name: 'Samsung Galaxy S24',     badge: '$799' },
+        { id: 5,  name: 'Sony WH-1000XM5',        badge: '$350' },
+        { id: 6,  name: 'MacBook Pro 14"',         badge: '$1,999' },
+        { id: 7,  name: 'Canon EOS R50',           badge: '$680' },
+        { id: 8,  name: 'Logitech MX Master 3',   badge: '$100' },
+      ];
+
+      (() => {
+        const ps         = document.getElementById('productSelect');
+        const pTrigger   = document.getElementById('productTrigger');
+        const pDropdown  = document.getElementById('productDropdown');
+        const pLabelEl   = document.getElementById('productLabel');
+        const pSearchEl  = document.getElementById('productSearch');
+        const pListEl    = document.getElementById('productList');
+        const pEmptyEl   = document.getElementById('productEmpty');
+
+        if (!ps || !pTrigger || !pDropdown || !pLabelEl || !pSearchEl || !pListEl || !pEmptyEl) return;
+
+        const openP  = () => { pDropdown.hidden = false; pTrigger.setAttribute('aria-expanded', 'true'); pSearchEl.focus(); };
+        const closeP = () => { pDropdown.hidden = true;  pTrigger.setAttribute('aria-expanded', 'false'); pSearchEl.value = ''; filterP(''); };
+
+        const filterP = (query) => {
+          const q = query.toLowerCase().trim();
+          let visible = 0;
+          pListEl.querySelectorAll('.pms__item').forEach(item => {
+            const match = !q || item.dataset.title.includes(q);
+            item.hidden = !match;
+            if (match) visible++;
+          });
+          pEmptyEl.hidden = visible > 0;
+        };
+
+        // Render demo items
+        productDemoData.forEach(product => {
+          const item = document.createElement('li');
+          item.className = 'pms__item';
+          item.dataset.title = product.name.toLowerCase();
+
+          const label = document.createElement('label');
+          label.className = 'pms__item-label';
+
+          const radio = document.createElement('input');
+          radio.type  = 'radio';
+          radio.name  = 'product_id';
+          radio.value = String(product.id);
+          radio.className = 'pms__checkbox';
+
+          radio.addEventListener('change', () => {
+            pLabelEl.textContent = product.name;
+            closeP();
+          });
+
+          const titleSpan = document.createElement('span');
+          titleSpan.className   = 'pms__item-title';
+          titleSpan.textContent = product.name;
+
+          const badge = document.createElement('span');
+          badge.className   = 'pms__badge';
+          badge.style.background = '#dbeafe';
+          badge.style.color      = '#1d4ed8';
+          badge.textContent = product.badge;
+
+          label.appendChild(radio);
+          label.appendChild(titleSpan);
+          label.appendChild(badge);
+          item.appendChild(label);
+          pListEl.appendChild(item);
+        });
+
+        pTrigger.addEventListener('click', () => pDropdown.hidden ? openP() : closeP());
+        pTrigger.addEventListener('keydown', e => {
+          if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); pDropdown.hidden ? openP() : closeP(); }
+        });
+        pSearchEl.addEventListener('input', () => filterP(pSearchEl.value));
+        document.addEventListener('click', e => { if (!ps.contains(e.target)) closeP(); });
+        document.addEventListener('keydown', e => { if (e.key === 'Escape' && !pDropdown.hidden) closeP(); });
+      })();
     });
   </script>
 @endsection
