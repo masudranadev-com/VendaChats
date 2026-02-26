@@ -95,17 +95,11 @@
     </div>
   @endif
 
-  <div class="bot-settings-alert" role="status">
-    <span>i</span>
-    <span>Bot feature toggles are frontend preview. Facebook connection works with one-time setup.</span>
-  </div>
-
   <section
     class="card bot-facebook-card mt-xl ui-loading-surface"
     data-facebook-card
     data-api-base-url="{{ $facebookApiBaseUrl }}"
     data-page-id="{{ $pageId }}"
-    data-refresh-token="{{ $refreshToken }}"
   >
     <div class="card-header">
       <h3 class="card-title">Facebook Connection</h3>
@@ -135,9 +129,9 @@
         </div>
 
         <div class="bot-facebook-actions">
-          <a href="{{ route('admin.bot-settings.facebook.disconnect') }}" class="btn btn-danger btn-sm">
+          <button type="button" class="btn btn-danger btn-sm" data-bot-disconnect>
             Disconnect
-          </a>
+          </button>
         </div>
       </div>
 

@@ -1582,6 +1582,7 @@ function initBotSettings() {
   const disconnectedMessageNode = facebookCard?.querySelector('[data-facebook-disconnected-message]');
   const serviceMessageNode = facebookCard?.querySelector('[data-facebook-service-message]');
   const serviceCommentNode = facebookCard?.querySelector('[data-facebook-service-comment]');
+  const disconnectButton = facebookCard?.querySelector('[data-bot-disconnect]');
 
   const facebookLoader = createSectionLoader(facebookCard);
   const toggles = form.querySelectorAll('.bot-toggle-input');
@@ -1673,6 +1674,17 @@ function initBotSettings() {
     markCurrentStateAsSaved();
   };
 
+  const buildSettingsPayload = () => {
+    const payload = {};
+
+    Object.entries(apiToToggleName).forEach(([apiField, toggleName]) => {
+      const toggle = toggleByName.get(toggleName);
+      payload[apiField] = Boolean(toggle?.checked);
+    });
+
+    return payload;
+  };
+
   const applyConnectedState = (payload) => {
     const pageId = String(payload.page_id || '').trim();
     const pageName = String(payload.page_name || '').trim();
@@ -1745,17 +1757,7 @@ function initBotSettings() {
 
   const resolveRefreshToken = () => {
     const storage = window.sessionStorage;
-    const fromDataset = String(facebookCard?.dataset.refreshToken || '').trim();
-    const fromStorage = String(storage?.getItem('refresh_token') || storage?.getItem('auth.refresh_token') || '').trim();
-
-    // Keep browser storage synced with Laravel session token to avoid stale JWT 401.
-    if (storage && fromDataset && fromDataset !== fromStorage) {
-      storage.setItem('refresh_token', fromDataset);
-      storage.setItem('auth.refresh_token', fromDataset);
-      return fromDataset;
-    }
-
-    return String(fromStorage || fromDataset || '').trim();
+    return String(storage?.getItem('refresh_token') || storage?.getItem('auth.refresh_token') || '').trim();
   };
 
   const syncMessengerDependency = () => {
@@ -1829,10 +1831,172 @@ function initBotSettings() {
     });
   });
 
-  saveButton?.addEventListener('click', () => {
+  saveButton?.addEventListener('click', async () => {
     syncMessengerDependency();
-    markCurrentStateAsSaved();
-    showSuccess('Bot settings preview updated. Frontend only.');
+    refreshDirtyState();
+
+    if (!facebookCard) {
+      showError('Facebook settings card not found.');
+      return;
+    }
+
+    const apiBaseUrl = String(facebookCard.dataset.apiBaseUrl || '').replace(/\/+$/, '');
+    const refreshToken = resolveRefreshToken();
+    const payload = buildSettingsPayload();
+
+    if (!apiBaseUrl) {
+      showError('Missing backend API URL.');
+      return;
+    }
+
+    if (!refreshToken) {
+      showError('Missing refresh token. Please login again.');
+      return;
+    }
+
+    const endpoint = `${apiBaseUrl}/api/admin/facebook-auth`;
+    const originalLabel = saveButton.textContent.trim();
+    saveButton.disabled = true;
+    saveButton.textContent = 'Saving...';
+
+    facebookLoader.show({
+      title: 'Saving bot settings',
+      message: 'Updating /api/admin/facebook-auth',
+    });
+
+    const abortController = new AbortController();
+    const timeoutId = window.setTimeout(() => abortController.abort(), 12000);
+    const requestUpdate = async (token) => fetch(endpoint, {
+      method: 'PUT',
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+        'x-refresh-token': token,
+      },
+      body: JSON.stringify(payload),
+      signal: abortController.signal,
+    });
+
+    try {
+      let response = await requestUpdate(refreshToken);
+
+      const contentType = response.headers.get('content-type') || '';
+      const rawPayload = contentType.includes('application/json')
+        ? await response.json()
+        : {message: await response.text()};
+
+      if (!isObjectPayload(rawPayload)) {
+        throw new Error('Unexpected JSON shape returned from API.');
+      }
+
+      if (!response.ok) {
+        if (response.status === 401) {
+          throw new Error('Unauthorized (401). sessionStorage token is invalid or expired. Please re-login.');
+        }
+
+        throw new Error(rawPayload.message || rawPayload.error || 'Failed to update bot settings.');
+      }
+
+      if ((rawPayload.message || '').toLowerCase() !== 'updated') {
+        throw new Error(rawPayload.message || 'Update response was not recognized.');
+      }
+
+      markCurrentStateAsSaved();
+      showSuccess('Bot settings updated.');
+      await fetchFacebookStatus();
+    } catch (error) {
+      if (error?.name === 'AbortError') {
+        showError('Save request timed out. Please try again.');
+        return;
+      }
+
+      showError(error.message || 'Unable to save bot settings right now.');
+    } finally {
+      window.clearTimeout(timeoutId);
+      facebookLoader.hide();
+      saveButton.disabled = false;
+      saveButton.textContent = originalLabel;
+    }
+  });
+
+  disconnectButton?.addEventListener('click', async () => {
+    if (!facebookCard) {
+      showError('Facebook settings card not found.');
+      return;
+    }
+
+    const apiBaseUrl = String(facebookCard.dataset.apiBaseUrl || '').replace(/\/+$/, '');
+    const refreshToken = resolveRefreshToken();
+
+    if (!apiBaseUrl) {
+      showError('Missing backend API URL.');
+      return;
+    }
+
+    if (!refreshToken) {
+      showError('Missing refresh token. Please login again.');
+      return;
+    }
+
+    const endpoint = `${apiBaseUrl}/api/admin/facebook-auth`;
+    const originalLabel = disconnectButton.textContent.trim();
+    disconnectButton.disabled = true;
+    disconnectButton.textContent = 'Disconnecting...';
+
+    facebookLoader.show({
+      title: 'Disconnecting Facebook',
+      message: 'Removing account link from backend',
+    });
+
+    const abortController = new AbortController();
+    const timeoutId = window.setTimeout(() => abortController.abort(), 12000);
+
+    try {
+      const response = await fetch(endpoint, {
+        method: 'DELETE',
+        headers: {
+          'Accept': 'application/json',
+          'x-refresh-token': refreshToken,
+        },
+        signal: abortController.signal,
+      });
+
+      const contentType = response.headers.get('content-type') || '';
+      const rawPayload = contentType.includes('application/json')
+        ? await response.json()
+        : {message: await response.text()};
+
+      if (!isObjectPayload(rawPayload)) {
+        throw new Error('Unexpected JSON shape returned from API.');
+      }
+
+      if (!response.ok) {
+        if (response.status === 401) {
+          throw new Error('Unauthorized (401). sessionStorage token is invalid or expired. Please re-login.');
+        }
+
+        throw new Error(rawPayload.message || rawPayload.error || 'Failed to disconnect Facebook.');
+      }
+
+      if ((rawPayload.message || '').toLowerCase() !== 'deleted') {
+        throw new Error(rawPayload.message || 'Disconnect response was not recognized.');
+      }
+
+      applyDisconnectedState('Facebook disconnected successfully.');
+      showSuccess('Facebook disconnected successfully.');
+    } catch (error) {
+      if (error?.name === 'AbortError') {
+        showError('Disconnect request timed out. Please try again.');
+        return;
+      }
+
+      showError(error.message || 'Unable to disconnect Facebook right now.');
+    } finally {
+      window.clearTimeout(timeoutId);
+      facebookLoader.hide();
+      disconnectButton.disabled = false;
+      disconnectButton.textContent = originalLabel;
+    }
   });
 
   resetButton?.addEventListener('click', () => {
@@ -1858,7 +2022,6 @@ function initBotSettings() {
     const queryPageId = new URLSearchParams(window.location.search).get('page_id') || '';
     const pageId = String(queryPageId || facebookCard.dataset.pageId || '').trim();
     const refreshToken = resolveRefreshToken();
-    const fallbackToken = String(facebookCard?.dataset.refreshToken || '').trim();
 
     if (!apiBaseUrl) {
       applyRequestError('Missing backend API URL.');
@@ -1870,9 +2033,7 @@ function initBotSettings() {
       return;
     }
 
-    const endpoint = pageId
-      ? `${apiBaseUrl}/api/admin/facebook-auth/${encodeURIComponent(pageId)}`
-      : `${apiBaseUrl}/api/admin/facebook-auth`;
+    const endpoint = `${apiBaseUrl}/api/admin/facebook-auth`;
 
     facebookLoader.show({
       title: 'Checking Facebook connection',
@@ -1894,17 +2055,6 @@ function initBotSettings() {
 
     try {
       let response = await requestStatus(refreshToken);
-      let attemptedFallbackToken = false;
-
-      if (response.status === 401 && fallbackToken && fallbackToken !== refreshToken) {
-        response = await requestStatus(fallbackToken);
-        attemptedFallbackToken = true;
-
-        if (response.ok && window.sessionStorage) {
-          window.sessionStorage.setItem('refresh_token', fallbackToken);
-          window.sessionStorage.setItem('auth.refresh_token', fallbackToken);
-        }
-      }
 
       const contentType = response.headers.get('content-type') || '';
       const rawPayload = contentType.includes('application/json')
@@ -1917,8 +2067,7 @@ function initBotSettings() {
 
       if (!response.ok) {
         if (response.status === 401) {
-          const tokenSource = attemptedFallbackToken ? 'session (fallback)' : 'sessionStorage/session';
-          throw new Error(`Unauthorized (401). Token from ${tokenSource} is invalid or expired. Please re-login.`);
+          throw new Error('Unauthorized (401). sessionStorage token is invalid or expired. Please re-login.');
         }
 
         if (rawPayload.status === 'disconnected' || rawPayload.error === 'not found') {

@@ -13,26 +13,19 @@ use Illuminate\View\View;
 
 class BotSettingsController extends Controller
 {
-    public function index(Request $request): View
+    public function index(): View
     {
         return view('admin.bot-settings', [
             'title' => 'Bot Settings',
             'subtitle' => 'Enable and control each automation capability for Messenger and Comment workflows.',
-            'pageId' => "",
-            'pageName' => "",
+            'pageId' => '',
+            'pageName' => '',
             'facebookApiBaseUrl' => rtrim((string) config('services.backend.url', 'http://localhost:8082'), '/'),
-            'refreshToken' => (string) $request->session()->get('auth.refresh_token', ''),
         ]);
     }
 
     public function connectFacebook(Request $request): RedirectResponse
     {
-        if (! empty($request->session()->get('facebook.user')) && ! empty($request->session()->get('facebook.pages', []))) {
-            return redirect()
-                ->route('admin.bot-settings')
-                ->with('facebook_status', 'Facebook already connected. System is active.');
-        }
-
         $appId = config('services.facebook.app_id');
         $appSecret = config('services.facebook.app_secret');
         $verifyToken = config('services.facebook.verify_token');
@@ -140,12 +133,6 @@ class BotSettingsController extends Controller
 
         $pages = $pagesResponse->json('data', []);
         if ($pages === []) {
-            $request->session()->forget([
-                'bot_settings.selected_page_id',
-                'bot_settings.selected_page_name',
-                'bot_settings.page_services',
-            ]);
-
             return redirect()
                 ->route('admin.bot-settings')
                 ->withErrors(['facebook' => 'Facebook connected, but no pages were found.']);
@@ -193,17 +180,11 @@ class BotSettingsController extends Controller
         $request->session()->forget([
             'bot_settings.facebook.oauth_state',
             'bot_settings.facebook.redirect_uri',
-            'facebook.user_access_token',
-            'facebook.user',
-            'facebook.pages',
-            'bot_settings.selected_page_id',
-            'bot_settings.selected_page_name',
-            'bot_settings.page_services',
         ]);
 
         return redirect()
             ->route('admin.bot-settings')
-            ->with('facebook_status', 'Facebook disconnected successfully.');
+            ->with('facebook_status', 'Disconnect handled by API.');
     }
 
     public function infoFacebook(Request $request): JsonResponse

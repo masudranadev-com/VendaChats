@@ -11,30 +11,22 @@ Task: Give me an exact, step-by-step implementation (Laravel route/controller cl
 - Updates the DOM based on the API response (connected vs disconnected)
 
 Backend API to call (from browser):
-curl http://localhost:8082/api/admin/facebook-auth \                                                                                                                                -H "x-refresh-token: YOUR_TOKEN"
-If connected:
-  {                                                                                                                                                                                         "page_id": "988224154376053",                                                                                                                                                 
-    "page_name": "Advance Metafy",
-    "is_message": true,
-    "is_comment": true,
-    "is_detect_emotion": false,
-    "is_detect_interest": false,
-    "is_suggest_product": false,
-    "is_bergain": false,
-    "is_detect_voice": false,
-    "is_detect_image": false
-  }
+curl -X PUT http://localhost:8082/api/admin/facebook-auth \                                                                                                      -H "Content-Type: application/json" \
+    -H "x-refresh-token: YOUR_TOKEN" \                                                                                                                             -d '{
+      "is_message": true,
+      "is_comment": true,
+      "is_detect_emotion": false,
+      "is_detect_interest": false,
+      "is_suggest_product": false,
+      "is_bergain": false,
+      "is_detect_voice": false,
+      "is_detect_image": false
+    }'
 
-  If not connected:
-  {
-    "status": "disconnected",
-    "msg": "please connect your facebook to enjoy this features"
-  }
+  Response:
+  { "message": "updated" }
 
-  If no record found:
-  {
-    "error": "not found"
-  }
+  
 Requirements (non-negotiable):
 1) Do NOT hardcode any feature flags in Blade or Controller (no dummy booleans). The UI must always reflect the API response.
 2) Use vanilla JS AJAX (fetch recommended) to call the endpoint dynamically using page_id from the page (dataset/hidden input/url param).
