@@ -15,14 +15,11 @@ class BotSettingsController extends Controller
 {
     public function index(Request $request): View
     {
-        $pageId = (string) $request->session()->get('bot_settings.selected_page_id', '');
-        $pageName = (string) $request->session()->get('bot_settings.selected_page_name', '');
-
         return view('admin.bot-settings', [
             'title' => 'Bot Settings',
             'subtitle' => 'Enable and control each automation capability for Messenger and Comment workflows.',
-            'pageId' => $pageId,
-            'pageName' => $pageName,
+            'pageId' => "",
+            'pageName' => "",
             'facebookApiBaseUrl' => rtrim((string) config('services.backend.url', 'http://localhost:8082'), '/'),
             'refreshToken' => (string) $request->session()->get('auth.refresh_token', ''),
         ]);
@@ -185,10 +182,6 @@ class BotSettingsController extends Controller
                 ->route('admin.bot-settings')
                 ->withErrors(['facebook' => $errorMessage]);
         }
-
-        $request->session()->put('facebook.pages', $pages);
-        $request->session()->put('bot_settings.selected_page_id', (string) $impPageId);
-        $request->session()->put('bot_settings.selected_page_name', (string) $impPageName);
 
         return redirect()
             ->route('admin.bot-settings')
