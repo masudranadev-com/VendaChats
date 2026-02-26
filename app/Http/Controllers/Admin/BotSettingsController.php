@@ -10,17 +10,21 @@ use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\View\View;
-use Illuminate\Support\Facades\Log;
 
 class BotSettingsController extends Controller
 {
     public function index(Request $request): View
     {
+        $pageId = (string) $request->session()->get('bot_settings.selected_page_id', '');
+        $pageName = (string) $request->session()->get('bot_settings.selected_page_name', '');
+
         return view('admin.bot-settings', [
             'title' => 'Bot Settings',
             'subtitle' => 'Enable and control each automation capability for Messenger and Comment workflows.',
-            'pageId' => '1',
-            'pageName' => '1',
+            'pageId' => $pageId,
+            'pageName' => $pageName,
+            'facebookApiBaseUrl' => rtrim((string) config('services.backend.url', 'http://localhost:8082'), '/'),
+            'refreshToken' => (string) $request->session()->get('auth.refresh_token', ''),
         ]);
     }
 
@@ -139,42 +143,52 @@ class BotSettingsController extends Controller
 
         $pages = $pagesResponse->json('data', []);
         if ($pages === []) {
-            $request->session()->forget(['bot_settings.selected_page_id', 'bot_settings.page_services']);
+            $request->session()->forget([
+                'bot_settings.selected_page_id',
+                'bot_settings.selected_page_name',
+                'bot_settings.page_services',
+            ]);
 
             return redirect()
                 ->route('admin.bot-settings')
                 ->withErrors(['facebook' => 'Facebook connected, but no pages were found.']);
         }
 
-         if (!isset($pages[0])) {
+        if (! isset($pages[0])) {
             return redirect()
                 ->route('admin.bot-settings')
                 ->withErrors(['facebook' => 'Facebook page id missing. Reconnect and try again.']);
         }
 
-        $impPageAccessToken = $pages[0]['access_token'] ?? "";
-        $impPageId = $pages[0]['id'] ?? "";
-        $impPageName = $pages[0]['name'] ?? "";
+        $impPageAccessToken = $pages[0]['access_token'] ?? '';
+        $impPageId = $pages[0]['id'] ?? '';
+        $impPageName = $pages[0]['name'] ?? '';
        
         // Here connect with  
         $token = $request->session()->get('auth.refresh_token');
+        $apiUrl = rtrim((string) config('services.backend.url', 'http://localhost:8082'), '/');
 
         $response = Http::withHeaders([
             'Content-Type' => 'application/json',
             'x-refresh-token' => $token,
-        ])->post('http://localhost:8082/api/admin/facebook-auth', [
+        ])->post("{$apiUrl}/api/admin/facebook-auth", [
             'page_name' => $impPageName,
             'page_id' => $impPageId,
             'page_access_token' => $impPageAccessToken,
         ]);
 
         // Check if successful
-        if (!$response->successful()) {
+        if (! $response->successful()) {
+            $errorMessage = $response->json('error') ?: $response->json('message') ?: $response->body();
+
             return redirect()
                 ->route('admin.bot-settings')
-                ->withErrors(['facebook' => $response->json()['error']]);
+                ->withErrors(['facebook' => $errorMessage]);
         }
-        
+
+        $request->session()->put('facebook.pages', $pages);
+        $request->session()->put('bot_settings.selected_page_id', (string) $impPageId);
+        $request->session()->put('bot_settings.selected_page_name', (string) $impPageName);
 
         return redirect()
             ->route('admin.bot-settings')
@@ -190,6 +204,7 @@ class BotSettingsController extends Controller
             'facebook.user',
             'facebook.pages',
             'bot_settings.selected_page_id',
+            'bot_settings.selected_page_name',
             'bot_settings.page_services',
         ]);
 

@@ -1533,13 +1533,62 @@ function initOrdersManualOrder() {
 // ══════════════════════════════════════════
 // BOT SETTINGS
 // ══════════════════════════════════════════
+function createSectionLoader(surface) {
+  if (!surface) {
+    return {
+      show() {},
+      hide() {},
+    };
+  }
+
+  const loader = surface.querySelector('[data-ui-loader]');
+  const titleNode = loader?.querySelector('[data-ui-loader-title]');
+  const messageNode = loader?.querySelector('[data-ui-loader-message]');
+
+  return {
+    show({title = null, message = null} = {}) {
+      if (!loader) return;
+      if (titleNode && typeof title === 'string' && title.trim()) {
+        titleNode.textContent = title;
+      }
+      if (messageNode && typeof message === 'string' && message.trim()) {
+        messageNode.textContent = message;
+      }
+      loader.hidden = false;
+      surface.classList.add('is-loading');
+    },
+    hide() {
+      if (!loader) return;
+      loader.hidden = true;
+      surface.classList.remove('is-loading');
+    },
+  };
+}
+
 function initBotSettings() {
   const form = document.querySelector('[data-bot-settings]');
   if (!form) return;
 
+  const facebookCard = document.querySelector('[data-facebook-card]');
+  const connectedArea = document.querySelector('[data-bot-settings-connected-area]');
+  const lockedArea = document.querySelector('[data-bot-settings-locked-area]');
+  const statusBadge = facebookCard?.querySelector('[data-facebook-status-badge]');
+  const statusMessageNode = facebookCard?.querySelector('[data-facebook-status-message]');
+  const connectedBlock = facebookCard?.querySelector('[data-facebook-connected]');
+  const disconnectedBlock = facebookCard?.querySelector('[data-facebook-disconnected]');
+  const pageNameNode = facebookCard?.querySelector('[data-facebook-page-name]');
+  const pageIdNode = facebookCard?.querySelector('[data-facebook-page-id]');
+  const activePageNode = facebookCard?.querySelector('[data-facebook-active-page]');
+  const disconnectedMessageNode = facebookCard?.querySelector('[data-facebook-disconnected-message]');
+  const serviceMessageNode = facebookCard?.querySelector('[data-facebook-service-message]');
+  const serviceCommentNode = facebookCard?.querySelector('[data-facebook-service-comment]');
+
+  const facebookLoader = createSectionLoader(facebookCard);
   const toggles = form.querySelectorAll('.bot-toggle-input');
   if (!toggles.length) return;
 
+  const toBoolean = (value) => value === true || value === 1 || value === '1' || value === 'true';
+  const isObjectPayload = (payload) => payload !== null && typeof payload === 'object' && !Array.isArray(payload);
   const messengerMasterToggle = form.querySelector('#setting_messenger_bot');
   const messengerFeatureToggles = Array.from(toggles).filter(toggle => toggle.dataset.group === 'messenger');
   const saveButton = form.querySelector('[data-bot-save]');
@@ -1552,7 +1601,162 @@ function initBotSettings() {
   const totalFeatures = toggles.length;
   const totalChipFeatures = Number(enabledCountNode?.dataset.total || totalFeatures);
   const initialState = Array.from(toggles).map(toggle => toggle.checked);
+  const toggleByName = new Map(Array.from(toggles).map(toggle => [toggle.name, toggle]));
+  const apiToToggleName = {
+    is_message: 'messenger_bot',
+    is_comment: 'comments_bot',
+    is_detect_emotion: 'detect_users_emotions',
+    is_detect_interest: 'detect_price_vs_quality_buyer',
+    is_suggest_product: 'analysis_and_suggest_products',
+    is_bergain: 'product_bergain',
+    is_detect_voice: 'voice_proccessing',
+    is_detect_image: 'image_proccessing',
+  };
   let isDirty = false;
+
+  const setBadgeState = (label, tone = 'warning') => {
+    if (!statusBadge) return;
+    statusBadge.classList.remove('badge-success', 'badge-warning', 'badge-danger');
+
+    if (tone === 'success') {
+      statusBadge.classList.add('badge-success');
+    } else if (tone === 'danger') {
+      statusBadge.classList.add('badge-danger');
+    } else {
+      statusBadge.classList.add('badge-warning');
+    }
+
+    statusBadge.textContent = label;
+  };
+
+  const setConnectionPanels = (isConnected) => {
+    if (connectedBlock) {
+      connectedBlock.hidden = !isConnected;
+    }
+    if (disconnectedBlock) {
+      disconnectedBlock.hidden = isConnected;
+    }
+    if (connectedArea) {
+      connectedArea.hidden = !isConnected;
+    }
+    if (lockedArea) {
+      lockedArea.hidden = isConnected;
+    }
+  };
+
+  const markCurrentStateAsSaved = () => {
+    Array.from(toggles).forEach((toggle, index) => {
+      initialState[index] = toggle.checked;
+    });
+
+    isDirty = false;
+    updateUi();
+  };
+
+  const clearAllToggles = () => {
+    Array.from(toggles).forEach(toggle => {
+      toggle.checked = false;
+    });
+
+    syncMessengerDependency();
+    markCurrentStateAsSaved();
+  };
+
+  const applyRemoteToggleState = (payload) => {
+    Object.entries(apiToToggleName).forEach(([apiField, toggleName]) => {
+      const toggle = toggleByName.get(toggleName);
+      if (!toggle || typeof payload[apiField] === 'undefined') return;
+      toggle.checked = toBoolean(payload[apiField]);
+    });
+
+    syncMessengerDependency();
+    markCurrentStateAsSaved();
+  };
+
+  const applyConnectedState = (payload) => {
+    const pageId = String(payload.page_id || '').trim();
+    const pageName = String(payload.page_name || '').trim();
+    const resolvedPageName = pageName || 'Unnamed page';
+
+    setBadgeState('Connected', 'success');
+
+    if (statusMessageNode) {
+      statusMessageNode.textContent = `Connected to "${resolvedPageName}" (${pageId || 'Unknown ID'}).`;
+    }
+    if (pageNameNode) {
+      pageNameNode.textContent = resolvedPageName;
+    }
+    if (pageIdNode) {
+      pageIdNode.textContent = pageId || '-';
+    }
+    if (activePageNode) {
+      activePageNode.textContent = resolvedPageName;
+    }
+    if (serviceMessageNode) {
+      serviceMessageNode.checked = toBoolean(payload.is_message);
+    }
+    if (serviceCommentNode) {
+      serviceCommentNode.checked = toBoolean(payload.is_comment);
+    }
+    if (facebookCard && pageId) {
+      facebookCard.dataset.pageId = pageId;
+    }
+
+    applyRemoteToggleState(payload);
+    setConnectionPanels(true);
+  };
+
+  const applyDisconnectedState = (message) => {
+    const nextMessage = message || 'please connect your facebook to enjoy this features';
+
+    setBadgeState('Not Connected', 'warning');
+
+    if (statusMessageNode) {
+      statusMessageNode.textContent = nextMessage;
+    }
+    if (disconnectedMessageNode) {
+      disconnectedMessageNode.textContent = nextMessage;
+    }
+    if (serviceMessageNode) {
+      serviceMessageNode.checked = false;
+    }
+    if (serviceCommentNode) {
+      serviceCommentNode.checked = false;
+    }
+
+    clearAllToggles();
+    setConnectionPanels(false);
+  };
+
+  const applyRequestError = (message) => {
+    const nextMessage = message || 'Unable to check Facebook connection right now.';
+
+    setBadgeState('Unavailable', 'danger');
+
+    if (statusMessageNode) {
+      statusMessageNode.textContent = nextMessage;
+    }
+    if (disconnectedMessageNode) {
+      disconnectedMessageNode.textContent = nextMessage;
+    }
+
+    setConnectionPanels(false);
+  };
+
+  const resolveRefreshToken = () => {
+    const storage = window.sessionStorage;
+    const fromDataset = String(facebookCard?.dataset.refreshToken || '').trim();
+    const fromStorage = String(storage?.getItem('refresh_token') || storage?.getItem('auth.refresh_token') || '').trim();
+
+    // Keep browser storage synced with Laravel session token to avoid stale JWT 401.
+    if (storage && fromDataset && fromDataset !== fromStorage) {
+      storage.setItem('refresh_token', fromDataset);
+      storage.setItem('auth.refresh_token', fromDataset);
+      return fromDataset;
+    }
+
+    return String(fromStorage || fromDataset || '').trim();
+  };
 
   const syncMessengerDependency = () => {
     if (!messengerMasterToggle) return;
@@ -1627,13 +1831,7 @@ function initBotSettings() {
 
   saveButton?.addEventListener('click', () => {
     syncMessengerDependency();
-
-    Array.from(toggles).forEach((toggle, index) => {
-      initialState[index] = toggle.checked;
-    });
-
-    isDirty = false;
-    updateUi();
+    markCurrentStateAsSaved();
     showSuccess('Bot settings preview updated. Frontend only.');
   });
 
@@ -1651,11 +1849,130 @@ function initBotSettings() {
     e.preventDefault();
   });
 
+  const fetchFacebookStatus = async () => {
+    if (!facebookCard) {
+      return;
+    }
+
+    const apiBaseUrl = String(facebookCard.dataset.apiBaseUrl || '').replace(/\/+$/, '');
+    const queryPageId = new URLSearchParams(window.location.search).get('page_id') || '';
+    const pageId = String(queryPageId || facebookCard.dataset.pageId || '').trim();
+    const refreshToken = resolveRefreshToken();
+    const fallbackToken = String(facebookCard?.dataset.refreshToken || '').trim();
+
+    if (!apiBaseUrl) {
+      applyRequestError('Missing backend API URL.');
+      return;
+    }
+
+    if (!refreshToken) {
+      applyRequestError('Missing refresh token. Please login again.');
+      return;
+    }
+
+    const endpoint = pageId
+      ? `${apiBaseUrl}/api/admin/facebook-auth/${encodeURIComponent(pageId)}`
+      : `${apiBaseUrl}/api/admin/facebook-auth`;
+
+    facebookLoader.show({
+      title: 'Checking Facebook connection',
+      message: `Calling ${endpoint.replace(apiBaseUrl, '')}`,
+    });
+    setBadgeState('Checking...', 'warning');
+
+    const abortController = new AbortController();
+    const timeoutId = window.setTimeout(() => abortController.abort(), 12000);
+
+    const requestStatus = async (token) => fetch(endpoint, {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json',
+          'x-refresh-token': token,
+        },
+        signal: abortController.signal,
+      });
+
+    try {
+      let response = await requestStatus(refreshToken);
+      let attemptedFallbackToken = false;
+
+      if (response.status === 401 && fallbackToken && fallbackToken !== refreshToken) {
+        response = await requestStatus(fallbackToken);
+        attemptedFallbackToken = true;
+
+        if (response.ok && window.sessionStorage) {
+          window.sessionStorage.setItem('refresh_token', fallbackToken);
+          window.sessionStorage.setItem('auth.refresh_token', fallbackToken);
+        }
+      }
+
+      const contentType = response.headers.get('content-type') || '';
+      const rawPayload = contentType.includes('application/json')
+        ? await response.json()
+        : {message: await response.text()};
+
+      if (!isObjectPayload(rawPayload)) {
+        throw new Error('Unexpected JSON shape returned from API.');
+      }
+
+      if (!response.ok) {
+        if (response.status === 401) {
+          const tokenSource = attemptedFallbackToken ? 'session (fallback)' : 'sessionStorage/session';
+          throw new Error(`Unauthorized (401). Token from ${tokenSource} is invalid or expired. Please re-login.`);
+        }
+
+        if (rawPayload.status === 'disconnected' || rawPayload.error === 'not found') {
+          applyDisconnectedState(rawPayload.msg || 'please connect your facebook to enjoy this features');
+          return;
+        }
+
+        throw new Error(rawPayload.message || rawPayload.error || 'Failed to load Facebook status.');
+      }
+
+      if (rawPayload.status === 'disconnected' || rawPayload.error === 'not found') {
+        applyDisconnectedState(rawPayload.msg || 'please connect your facebook to enjoy this features');
+        return;
+      }
+
+      const requiredFields = [
+        'page_id',
+        'page_name',
+        'is_message',
+        'is_comment',
+        'is_detect_emotion',
+        'is_detect_interest',
+        'is_suggest_product',
+        'is_bergain',
+        'is_detect_voice',
+        'is_detect_image',
+      ];
+
+      const hasExpectedShape = requiredFields.every((field) =>
+        Object.prototype.hasOwnProperty.call(rawPayload, field)
+      );
+
+      if (!hasExpectedShape) {
+        throw new Error('Unexpected JSON shape returned from API.');
+      }
+
+      applyConnectedState(rawPayload);
+    } catch (error) {
+      if (error?.name === 'AbortError') {
+        applyRequestError('Request timeout. Please try again.');
+        return;
+      }
+
+      applyRequestError(error.message || 'Unable to load Facebook status.');
+    } finally {
+      window.clearTimeout(timeoutId);
+      facebookLoader.hide();
+    }
+  };
+
+  setConnectionPanels(false);
   syncMessengerDependency();
-  Array.from(toggles).forEach((toggle, index) => {
-    initialState[index] = toggle.checked;
-  });
-  updateUi();
+  markCurrentStateAsSaved();
+  fetchFacebookStatus();
 }
 
 // ══════════════════════════════════════════

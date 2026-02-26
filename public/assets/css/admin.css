@@ -1420,6 +1420,79 @@ ul, ol { list-style: none; }
   color: var(--text-secondary);
 }
 
+.ui-loading-surface {
+  position: relative;
+}
+
+.ui-loading-surface.is-loading > :not([data-ui-loader]) {
+  opacity: 0.38;
+  pointer-events: none;
+  filter: saturate(0.85);
+}
+
+.ui-section-loader {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  margin-bottom: var(--spacing-md);
+  border-radius: var(--radius-sm);
+  border: 1px solid rgba(19,82,220,0.22);
+  background: linear-gradient(135deg, rgba(19,82,220,0.11), rgba(59,130,246,0.08));
+}
+
+.ui-section-loader[hidden] {
+  display: none !important;
+}
+
+.ui-section-loader-spinner {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 2px solid rgba(19,82,220,0.2);
+  border-top-color: var(--brand-primary);
+  animation: ui-section-loader-spin 0.75s linear infinite;
+  flex-shrink: 0;
+}
+
+.ui-section-loader-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.ui-section-loader-copy strong {
+  font-size: 13px;
+  line-height: 1.25;
+}
+
+.ui-section-loader-copy span {
+  font-size: 12px;
+  color: var(--text-secondary);
+  line-height: 1.2;
+}
+
+.bot-inline-loader {
+  margin-bottom: var(--spacing-md);
+}
+
+.bot-facebook-status-msg {
+  margin-bottom: var(--spacing-lg);
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.bot-facebook-connected[hidden],
+.bot-facebook-disconnected[hidden] {
+  display: none !important;
+}
+
+@keyframes ui-section-loader-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 .bot-facebook-top {
   display: flex;
   align-items: center;
