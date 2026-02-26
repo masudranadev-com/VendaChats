@@ -44,14 +44,12 @@
     </div>
 
     <form method="GET" action="{{ route('admin.posts') }}" class="posts-filter-form">
-      <div class="">
-        <div class="form-group">
-          <label class="form-label" for="posts-order-by">Order By</label>
-          <select id="posts-order-by" class="form-select" name="order_by">
-            <option value="latest">Order By Latest Post</option>
-            <option value="highest_comments">Order By Heighet Comments Post</option>
-          </select>
-        </div>
+      <div class="form-group">
+        <label class="form-label" for="posts-order-by">Order By</label>
+        <select id="posts-order-by" class="form-select" name="order_by">
+          <option value="latest">Order By Latest Post</option>
+          <option value="highest_comments">Order By Heighet Comments Post</option>
+        </select>
       </div>
 
       <div class="posts-filter-actions">
