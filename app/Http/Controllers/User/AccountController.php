@@ -15,6 +15,11 @@ class AccountController extends Controller
         return view('user.login');
     }
 
+    public function signupIndex(): View
+    {
+        return view('user.signup');
+    }
+
     public function login(Request $request): RedirectResponse
     {
         $request->validate([
@@ -39,6 +44,21 @@ class AccountController extends Controller
         $request->session()->put('auth.refresh_token', $response->json('refresh_token'));
 
         return redirect()->route('admin.dashboard');
+    }
+
+    public function signup(Request $request): RedirectResponse
+    {
+        $request->validate([
+            'email' => ['required', 'email'],
+            'whatsapp_number' => ['required', 'string', 'max:20', 'regex:/^\+?[0-9]{8,15}$/'],
+            'password' => ['required', 'string', 'min:6', 'max:255'],
+        ], [
+            'whatsapp_number.regex' => 'Please enter a valid WhatsApp number (digits only, optional +).',
+        ]);
+
+        return redirect()
+            ->route('login.index')
+            ->with('status', 'Sign up submitted. WhatsApp verification will be required later.');
     }
 
     public function logout(Request $request): RedirectResponse

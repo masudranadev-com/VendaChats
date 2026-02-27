@@ -296,6 +296,9 @@ document.addEventListener('DOMContentLoaded', () => {
   initOrdersManualOrder();
   initBotSettings();
   initProductsAttentionPanel();
+  initProductTypeSelector();
+  initDownloadableLinkType();
+  initSubscriptionEntries();
   initProductCreateSliderControl();
   initProductCreateDiscountOfferControl();
   initProductCreateAiWriter();
@@ -2181,6 +2184,287 @@ function initProductsAttentionPanel() {
 }
 
 // ══════════════════════════════════════════
+// PRODUCTS: TYPE SELECTOR
+// ══════════════════════════════════════════
+function initProductTypeSelector() {
+  const cards = Array.from(document.querySelectorAll('[data-product-type-card]'));
+  if (!cards.length) return;
+
+  const typeSections = Array.from(document.querySelectorAll('[data-product-type-section]'));
+  const physicalOnlyGroups = Array.from(document.querySelectorAll('[data-physical-only]'));
+  const typeInfoItems = Array.from(document.querySelectorAll('[data-product-type-info-item]'));
+  const typeBadge = document.querySelector('[data-product-type-badge]');
+
+  const badgeClasses = {
+    physical: 'badge-info',
+    downloadable: 'badge-primary',
+    subscription: 'badge-warning',
+  };
+
+  const badgeLabels = {
+    physical: 'Physical',
+    downloadable: 'Downloadable',
+    subscription: 'Subscription',
+  };
+
+  const setActiveType = (type) => {
+    // Update card active states
+    cards.forEach((card) => {
+      const input = card.querySelector('input[type="radio"]');
+      const isActive = input?.value === type;
+      card.classList.toggle('is-active', isActive);
+    });
+
+    // Show / hide type-specific sections
+    typeSections.forEach((section) => {
+      const isMatch = section.dataset.productTypeSection === type;
+      section.classList.toggle('hidden', !isMatch);
+    });
+
+    // Show / hide physical-only fields
+    const isPhysical = type === 'physical';
+    physicalOnlyGroups.forEach((group) => {
+      group.classList.toggle('hidden', !isPhysical);
+      group.querySelectorAll('input, select, textarea').forEach((input) => {
+        input.disabled = !isPhysical;
+        if (!isPhysical) {
+          input.value = '';
+        }
+      });
+    });
+
+    // Update sidebar checklist
+    typeInfoItems.forEach((item) => {
+      item.classList.toggle('hidden', item.dataset.productTypeInfoItem !== type);
+    });
+
+    // Update sidebar badge
+    if (typeBadge) {
+      typeBadge.className = `badge ${badgeClasses[type] || 'badge-info'}`;
+      typeBadge.textContent = badgeLabels[type] || type;
+    }
+  };
+
+  cards.forEach((card) => {
+    card.addEventListener('click', () => {
+      const input = card.querySelector('input[type="radio"]');
+      if (!input) return;
+      input.checked = true;
+      sessionStorage.setItem('product_create_type', input.value);
+      setActiveType(input.value);
+    });
+  });
+
+  // Restore from session, then fall back to checked radio, then default
+  const savedType = sessionStorage.getItem('product_create_type');
+  const validTypes = ['physical', 'downloadable', 'subscription'];
+  const initialType = (savedType && validTypes.includes(savedType))
+    ? savedType
+    : (cards.find((c) => c.querySelector('input[type="radio"]')?.checked)?.querySelector('input[type="radio"]')?.value || 'physical');
+
+  // Sync the radio to match the restored type
+  cards.forEach((card) => {
+    const input = card.querySelector('input[type="radio"]');
+    if (input) input.checked = input.value === initialType;
+  });
+
+  setActiveType(initialType);
+}
+
+// ══════════════════════════════════════════
+// PRODUCTS: DOWNLOADABLE LINK TYPE TOGGLE
+// ══════════════════════════════════════════
+function initDownloadableLinkType() {
+  const cards = Array.from(document.querySelectorAll('[data-drive-link-type-card]'));
+  if (!cards.length) return;
+
+  const publicInfo = document.querySelector('[data-drive-public-info]');
+  const privateInfo = document.querySelector('[data-drive-private-info]');
+  const publicHelp = document.querySelector('[data-drive-link-help-public]');
+  const privateHelp = document.querySelector('[data-drive-link-help-private]');
+  const linkInput = document.getElementById('productDriveLink');
+
+  const setLinkType = (type) => {
+    const isPrivate = type === 'private';
+
+    cards.forEach((card) => {
+      const input = card.querySelector('input[type="radio"]');
+      card.classList.toggle('is-active', input?.value === type);
+    });
+
+    publicInfo?.classList.toggle('hidden', isPrivate);
+    privateInfo?.classList.toggle('hidden', !isPrivate);
+    publicHelp?.classList.toggle('hidden', isPrivate);
+    privateHelp?.classList.toggle('hidden', !isPrivate);
+
+    if (linkInput) {
+      linkInput.placeholder = isPrivate
+        ? 'https://drive.google.com/file/d/XXXXXXXXXXXXXXXXXXXX/view'
+        : 'https://drive.google.com/file/d/XXXXXXXXXXXXXXXXXXXX/view?usp=sharing';
+    }
+  };
+
+  cards.forEach((card) => {
+    card.addEventListener('click', () => {
+      const input = card.querySelector('input[type="radio"]');
+      if (!input) return;
+      input.checked = true;
+      sessionStorage.setItem('product_drive_link_type', input.value);
+      setLinkType(input.value);
+    });
+  });
+
+  // Restore from session, fall back to checked radio, then default
+  const savedLinkType = sessionStorage.getItem('product_drive_link_type');
+  const validLinkTypes = ['public', 'private'];
+  const initialLinkType = (savedLinkType && validLinkTypes.includes(savedLinkType))
+    ? savedLinkType
+    : (cards.find((c) => c.querySelector('input[type="radio"]')?.checked)?.querySelector('input[type="radio"]')?.value || 'public');
+
+  cards.forEach((card) => {
+    const input = card.querySelector('input[type="radio"]');
+    if (input) input.checked = input.value === initialLinkType;
+  });
+
+  setLinkType(initialLinkType);
+}
+
+// ══════════════════════════════════════════
+// PRODUCTS: SUBSCRIPTION ENTRY MANAGER
+// ══════════════════════════════════════════
+function initSubscriptionEntries() {
+  const addButton = document.querySelector('[data-subscription-add]');
+  const list = document.querySelector('[data-subscription-list]');
+  const countLabel = document.querySelector('[data-subscription-count]');
+
+  if (!addButton || !list) return;
+
+  let entrySequence = 0;
+
+  const updateCountLabel = () => {
+    const total = list.querySelectorAll('[data-subscription-entry]').length;
+    if (!countLabel) return;
+    if (total === 0) {
+      countLabel.classList.add('hidden');
+      countLabel.textContent = '';
+    } else {
+      countLabel.classList.remove('hidden');
+      countLabel.textContent = `${total} slot${total > 1 ? 's' : ''} added`;
+    }
+  };
+
+  const renumberEntries = () => {
+    const entries = Array.from(list.querySelectorAll('[data-subscription-entry]'));
+    entries.forEach((entry, index) => {
+      const numEl = entry.querySelector('[data-subscription-num]');
+      if (numEl) numEl.textContent = `Subscription #${index + 1}`;
+    });
+    updateCountLabel();
+  };
+
+  const showEmpty = () => {
+    list.innerHTML = `
+      <div class="products-subscription-empty">
+        No subscription slots yet. Click <strong>Add Subscription</strong> below to get started.
+      </div>
+    `;
+  };
+
+  const addEntry = () => {
+    entrySequence += 1;
+    const id = entrySequence;
+
+    // Remove empty state if present
+    const emptyEl = list.querySelector('.products-subscription-empty');
+    if (emptyEl) emptyEl.remove();
+
+    const entry = document.createElement('div');
+    entry.className = 'products-subscription-entry';
+    entry.dataset.subscriptionEntry = id;
+
+    entry.innerHTML = `
+      <div class="products-subscription-entry-header">
+        <span class="products-subscription-entry-num" data-subscription-num>Subscription #1</span>
+        <button type="button" class="btn btn-ghost btn-sm" data-subscription-remove="${id}" aria-label="Remove subscription slot">
+          Remove
+        </button>
+      </div>
+      <div class="products-subscription-entry-body">
+        <div class="form-group">
+          <label class="form-label">
+            Email
+            <span class="products-type-optional">— leave empty if not available</span>
+          </label>
+          <input
+            type="email"
+            class="form-input"
+            name="subscriptions[${id}][email]"
+            placeholder="user@example.com"
+            autocomplete="off"
+          >
+        </div>
+        <div class="form-group">
+          <label class="form-label">
+            Mobile Number
+            <span class="products-type-optional">— leave empty if not available</span>
+          </label>
+          <input
+            type="tel"
+            class="form-input"
+            name="subscriptions[${id}][mobile]"
+            placeholder="+8801XXXXXXXXX"
+            autocomplete="off"
+          >
+        </div>
+        <div class="form-group">
+          <label class="form-label">
+            Username
+            <span class="products-type-optional">— leave empty if not available</span>
+          </label>
+          <input
+            type="text"
+            class="form-input"
+            name="subscriptions[${id}][username]"
+            placeholder="e.g. john_doe"
+            autocomplete="off"
+          >
+        </div>
+        <div class="form-group">
+          <label class="form-label">
+            Password
+            <span class="products-type-optional">— leave empty if not available</span>
+          </label>
+          <input
+            type="text"
+            class="form-input"
+            name="subscriptions[${id}][password]"
+            placeholder="Enter password"
+            autocomplete="new-password"
+          >
+        </div>
+      </div>
+    `;
+
+    entry.querySelector(`[data-subscription-remove="${id}"]`)?.addEventListener('click', () => {
+      entry.remove();
+      if (!list.querySelector('[data-subscription-entry]')) {
+        showEmpty();
+      }
+      renumberEntries();
+    });
+
+    list.appendChild(entry);
+    renumberEntries();
+
+    // Scroll the new entry into view smoothly
+    entry.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  };
+
+  addButton.addEventListener('click', addEntry);
+  showEmpty();
+}
+
+// ══════════════════════════════════════════
 // CATEGORIES: AI DESCRIPTION WRITER (DEMO UI)
 // ══════════════════════════════════════════
 function initProductCreateSliderControl() {
@@ -2726,21 +3010,31 @@ function initProductCreateSliderControl() {
 
 function initProductCreateDiscountOfferControl() {
   const durationInput = document.querySelector('[data-discount-offer-duration]');
+  if (!durationInput) return;
+
+  const discountFieldGroups = Array.from(document.querySelectorAll('[data-discount-offer-fields]'));
   const dateTimeGroups = Array.from(document.querySelectorAll('[data-discount-offer-datetime]'));
 
-  if (!durationInput || !dateTimeGroups.length) return;
-
   const updateDiscountOfferMode = () => {
-    const useDateTimeRange = durationInput.value === 'date_time';
+    const value = durationInput.value;
+    const hasDiscount = value === 'lifetime' || value === 'date_time';
+    const useDateTimeRange = value === 'date_time';
 
+    // Show/hide discount type + amount fields
+    discountFieldGroups.forEach((group) => {
+      group.classList.toggle('hidden', !hasDiscount);
+      group.querySelectorAll('input, select').forEach((el) => {
+        el.disabled = !hasDiscount;
+        if (!hasDiscount) el.value = '';
+      });
+    });
+
+    // Show/hide date & time fields
     dateTimeGroups.forEach((group) => {
       group.classList.toggle('hidden', !useDateTimeRange);
       group.querySelectorAll('input').forEach((input) => {
         input.disabled = !useDateTimeRange;
-
-        if (!useDateTimeRange) {
-          input.value = '';
-        }
+        if (!useDateTimeRange) input.value = '';
       });
     });
   };

@@ -21,6 +21,42 @@
     onsubmit="event.preventDefault(); if (window.showSuccess) { window.showSuccess('Product saved (demo preview).'); }"
   >
     <div class="products-create-main">
+
+      {{-- ══ 1. PRODUCT TYPE ══ --}}
+      <section class="card">
+        <div class="card-header">
+          <h3 class="card-title">Product Type</h3>
+          <span class="badge badge-info">Required</span>
+        </div>
+
+        <div class="products-type-selector">
+          <label class="products-type-card is-active" data-product-type-card>
+            <input type="radio" name="product_type" value="physical" checked>
+            <span class="products-type-card-icon">📦</span>
+            <strong class="products-type-card-title">Physical</strong>
+            <span class="products-type-card-desc">Tangible product shipped to the customer with inventory & shipping management</span>
+            <span class="products-type-card-check" aria-hidden="true">✓</span>
+          </label>
+
+          <label class="products-type-card" data-product-type-card>
+            <input type="radio" name="product_type" value="downloadable">
+            <span class="products-type-card-icon">⬇️</span>
+            <strong class="products-type-card-title">Downloadable</strong>
+            <span class="products-type-card-desc">Digital file delivered via Google Drive — no shipping or inventory needed</span>
+            <span class="products-type-card-check" aria-hidden="true">✓</span>
+          </label>
+
+          <label class="products-type-card" data-product-type-card>
+            <input type="radio" name="product_type" value="subscription">
+            <span class="products-type-card-icon">🔄</span>
+            <strong class="products-type-card-title">Subscription</strong>
+            <span class="products-type-card-desc">Recurring access plan — manage multiple credential slots for buyers</span>
+            <span class="products-type-card-check" aria-hidden="true">✓</span>
+          </label>
+        </div>
+      </section>
+
+      {{-- ══ 2. BASIC INFORMATION ══ --}}
       <section class="card" style="padding-bottom: 80px">
         <div class="card-header">
           <h3 class="card-title">Basic Information</h3>
@@ -33,24 +69,9 @@
             <input id="productName" class="form-input" type="text" placeholder="Premium Cotton T-Shirt" required>
           </div>
 
-          <div class="form-group">
-            <label class="form-label" for="productSku">SKU</label>
-            <input id="productSku" class="form-input" type="text" placeholder="SKU-TS-2109" required>
-          </div>
-
-          <div class="form-group">
-            <label class="form-label" for="productBarcode">Barcode</label>
-            <input id="productBarcode" class="form-input" type="text" placeholder="8901234567890">
-          </div>
-
           <div class="form-group products-field-span-2">
             <label class="form-label" for="productCategory">Category</label>
-            <select
-              id="productCategory"
-              name="category"
-              class="form-select"
-              required
-            >
+            <select id="productCategory" name="category" class="form-select" required>
               <option value="" selected disabled>Select category</option>
               @foreach ($categories as $category)
                 <option value="{{ $category }}">{{ $category }}</option>
@@ -109,6 +130,7 @@
         </div>
       </section>
 
+      {{-- ══ 3. MEDIA ══ --}}
       <section class="card">
         <div class="card-header">
           <h3 class="card-title">Media</h3>
@@ -137,27 +159,16 @@
           <div class="products-media-divider"></div>
 
           <div class="form-group mt-md mb-0">
-            <label class="form-label">Product Image Slider</label>
+            <label class="form-label">Product Slider</label>
             <span class="badge badge-info" data-product-slider-status>Enabled</span>
 
             <div class="products-publish-options mt-sm">
               <label class="products-radio-item">
-                <input
-                  type="radio"
-                  name="image_slider_status"
-                  value="enabled"
-                  data-product-slider-toggle
-                  checked
-                >
+                <input type="radio" name="image_slider_status" value="enabled" data-product-slider-toggle checked>
                 <span>Enabled</span>
               </label>
               <label class="products-radio-item">
-                <input
-                  type="radio"
-                  name="image_slider_status"
-                  value="disabled"
-                  data-product-slider-toggle
-                >
+                <input type="radio" name="image_slider_status" value="disabled" data-product-slider-toggle>
                 <span>Disabled</span>
               </label>
             </div>
@@ -170,31 +181,15 @@
               <label class="form-label">Slider Media Type</label>
               <div class="products-publish-options mt-sm">
                 <label class="products-radio-item">
-                  <input
-                    type="radio"
-                    name="slider_media_type"
-                    value="image"
-                    data-product-slider-media-type
-                    checked
-                  >
+                  <input type="radio" name="slider_media_type" value="image" data-product-slider-media-type checked>
                   <span>Image</span>
                 </label>
                 <label class="products-radio-item">
-                  <input
-                    type="radio"
-                    name="slider_media_type"
-                    value="video"
-                    data-product-slider-media-type
-                  >
+                  <input type="radio" name="slider_media_type" value="video" data-product-slider-media-type>
                   <span>Video Upload</span>
                 </label>
                 <label class="products-radio-item">
-                  <input
-                    type="radio"
-                    name="slider_media_type"
-                    value="youtube"
-                    data-product-slider-media-type
-                  >
+                  <input type="radio" name="slider_media_type" value="youtube" data-product-slider-media-type>
                   <span>YouTube</span>
                 </label>
               </div>
@@ -238,6 +233,178 @@
         </div>
       </section>
 
+      {{-- ══ 4. DOWNLOADABLE DETAILS (shown for downloadable type only) ══ --}}
+      <section class="card hidden" data-product-type-section="downloadable">
+        <div class="card-header">
+          <h3 class="card-title">Download File</h3>
+          <span class="badge badge-primary">Google Drive</span>
+        </div>
+
+        <div class="products-downloadable-box">
+
+          {{-- Link access type toggle --}}
+          <div class="form-group mb-0">
+            <label class="form-label">File Access Type</label>
+            <small class="form-help" style="margin-bottom: 10px; display: block;">
+              Choose how customers will access the file after purchase.
+            </small>
+            <div class="products-link-type-selector">
+              <label class="products-link-type-option is-active" data-drive-link-type-card>
+                <input type="radio" name="drive_link_type" value="public" checked data-drive-link-type>
+                <span class="products-link-type-icon">🌐</span>
+                <span class="products-link-type-text">
+                  <strong>Public Link</strong>
+                  <small>Anyone with the link can access — customers get it automatically</small>
+                </span>
+                <span class="products-link-type-check" aria-hidden="true">✓</span>
+              </label>
+              <label class="products-link-type-option" data-drive-link-type-card>
+                <input type="radio" name="drive_link_type" value="private" data-drive-link-type>
+                <span class="products-link-type-icon">🔒</span>
+                <span class="products-link-type-text">
+                  <strong>Private Link</strong>
+                  <small>Restricted — you manually grant access to each customer</small>
+                </span>
+                <span class="products-link-type-check" aria-hidden="true">✓</span>
+              </label>
+            </div>
+          </div>
+
+          {{-- Public notice --}}
+          <div class="products-downloadable-notice" data-drive-public-info>
+            <span class="products-downloadable-notice-icon">ℹ</span>
+            <div>
+              <strong>How to set up your public link:</strong>
+              Open your file in Google Drive → click <strong>Share</strong> (top-right) →
+              under "General access" select <em>"Anyone with the link"</em> → set role to <strong>Viewer</strong> → click <strong>Copy link</strong> and paste it below.
+            </div>
+          </div>
+
+          {{-- Private notice --}}
+          <div class="products-downloadable-notice products-downloadable-notice--private hidden" data-drive-private-info>
+            <span class="products-downloadable-notice-icon products-downloadable-notice-icon--lock">🔒</span>
+            <div>
+              <strong>Private file — you will need to grant access manually after each sale.</strong>
+              <p style="margin: 8px 0 6px;">Follow these steps for every new customer order:</p>
+              <ol class="products-drive-steps">
+                <li>Open your file in <strong>Google Drive</strong></li>
+                <li>Click <strong>Share</strong> in the top-right corner</li>
+                <li>In the "Add people and groups" field, type the customer's <strong>Gmail address</strong> (found in their order details)</li>
+                <li>Set the permission to <strong>Viewer</strong></li>
+                <li>Uncheck <em>"Notify people"</em> if you prefer to inform them yourself, or leave it checked to auto-send an email</li>
+                <li>Click <strong>Share</strong> — the customer can now access the file</li>
+              </ol>
+              <small>💡 Tip: Keep this tab open alongside your orders so you can quickly grant access after each sale.</small>
+            </div>
+          </div>
+
+          {{-- Link input --}}
+          <div class="products-create-grid">
+            <div class="form-group products-field-span-2">
+              <label class="form-label" for="productDriveLink">Google Drive Link</label>
+              <input
+                id="productDriveLink"
+                name="drive_link"
+                class="form-input"
+                type="url"
+                placeholder="https://drive.google.com/file/d/XXXXXXXXXXXXXXXXXXXX/view?usp=sharing"
+              >
+              <small class="form-help" data-drive-link-help-public>
+                Make sure sharing is set to <strong>"Anyone with the link"</strong> before pasting.
+              </small>
+              <small class="form-help hidden" data-drive-link-help-private>
+                Paste the private file link. Customers cannot open it until you manually grant them access via Google Drive.
+              </small>
+            </div>
+
+            <div class="form-group products-field-span-2">
+              <label class="form-label" for="productDriveNotes">
+                Access Instructions
+                <span class="products-type-optional">— optional</span>
+              </label>
+              <textarea
+                id="productDriveNotes"
+                name="drive_notes"
+                class="form-textarea"
+                rows="3"
+                placeholder="E.g. Download the ZIP, extract it, and follow the README inside."
+              ></textarea>
+              <small class="form-help">Any special steps the buyer needs to follow after accessing the file.</small>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {{-- ══ 5. SUBSCRIPTION SLOTS (shown for subscription type only) ══ --}}
+      <section class="card hidden" data-product-type-section="subscription">
+        <div class="card-header">
+          <h3 class="card-title">Subscription Slots</h3>
+          <span class="badge badge-warning">Credentials</span>
+        </div>
+
+        {{-- Load balancer explanation --}}
+        <div class="products-subscription-how">
+          <div class="products-subscription-how-header">
+            <span class="products-subscription-how-icon">⚡</span>
+            <div>
+              <strong>Smart Auto-Assignment</strong>
+              <span class="badge badge-success" style="margin-left: 8px; font-size: 10px;">Load Balancer</span>
+            </div>
+          </div>
+          <p class="products-subscription-how-desc">
+            When you add <strong>multiple subscription slots</strong>, each new customer order is automatically assigned to the slot with the <strong>fewest active users</strong> — keeping the load balanced evenly across all your accounts.
+          </p>
+          <div class="products-subscription-how-visual">
+            <div class="products-subscription-slot-demo">
+              <span>Slot 1</span>
+              <div class="products-subscription-slot-bar">
+                <div class="products-subscription-slot-fill" style="width: 75%"></div>
+              </div>
+              <small>4 users</small>
+            </div>
+            <div class="products-subscription-slot-demo">
+              <span>Slot 2</span>
+              <div class="products-subscription-slot-bar">
+                <div class="products-subscription-slot-fill" style="width: 40%"></div>
+              </div>
+              <small>2 users</small>
+            </div>
+            <div class="products-subscription-slot-demo products-subscription-slot-demo--next">
+              <span>Slot 3</span>
+              <div class="products-subscription-slot-bar">
+                <div class="products-subscription-slot-fill" style="width: 0%"></div>
+              </div>
+              <small>← Next customer</small>
+            </div>
+          </div>
+          <p class="products-subscription-how-note">
+            This is informational — dynamic assignment will be handled automatically by the system when orders are placed. For now, add all available slots below.
+          </p>
+        </div>
+
+        {{-- Credential note --}}
+        <div class="products-subscription-notice">
+          <span class="products-subscription-notice-icon">🔒</span>
+          <div>
+            Each slot holds the login credentials for that account. <strong>Leave any field empty if it is not available</strong> — it will be marked accordingly in the order details.
+          </div>
+        </div>
+
+        <div class="products-subscription-list" id="subscriptionList" data-subscription-list>
+          <div class="products-subscription-empty">
+            No subscription slots yet. Click <strong>Add Subscription</strong> below to get started.
+          </div>
+        </div>
+
+        <div class="products-subscription-footer">
+          <button type="button" class="btn btn-primary" data-subscription-add>
+            + Add Subscription
+          </button>
+          <span class="products-subscription-count hidden" data-subscription-count></span>
+        </div>
+      </section>
+
+      {{-- ══ 6. PRICING & INVENTORY ══ --}}
       <section class="card">
         <div class="card-header">
           <h3 class="card-title">Pricing & Inventory</h3>
@@ -245,6 +412,7 @@
         </div>
 
         <div class="products-create-grid">
+          {{-- Always visible --}}
           <div class="form-group">
             <label class="form-label" for="productPrice">Product Price (BDT)</label>
             <input
@@ -272,16 +440,28 @@
             >
           </div>
 
-          <div class="form-group">
-            <label class="form-label" for="discountOfferType">Discount Offer Type</label>
+          {{-- Discount duration comes first — controls what fields are visible --}}
+          <div class="form-group products-field-span-2">
+            <label class="form-label" for="discountOfferDuration">Discount Offer</label>
+            <select id="discountOfferDuration" name="discount_offer_duration" class="form-select" data-discount-offer-duration>
+              <option value="none" selected>None</option>
+              <option value="lifetime">Lifetime</option>
+              <option value="date_time">Date & Time</option>
+            </select>
+            <small class="form-help">Select <strong>Lifetime</strong> or <strong>Date & Time</strong> to configure a discount.</small>
+          </div>
+
+          {{-- Shown only when Lifetime or Date & Time is selected --}}
+          <div class="form-group hidden" data-discount-offer-fields>
+            <label class="form-label" for="discountOfferType">Discount Type</label>
             <select id="discountOfferType" name="discount_offer_type" class="form-select">
-              <option value="fixed">Fixed</option>
-              <option value="percentage">Percentage</option>
+              <option value="fixed">Fixed (BDT)</option>
+              <option value="percentage">Percentage (%)</option>
             </select>
           </div>
 
-          <div class="form-group">
-            <label class="form-label" for="discountOffer">Discount Offer</label>
+          <div class="form-group hidden" data-discount-offer-fields>
+            <label class="form-label" for="discountOffer">Discount Amount</label>
             <input
               id="discountOffer"
               name="discount_offer"
@@ -289,20 +469,13 @@
               type="number"
               min="0"
               step="0.01"
-              placeholder="100 or 10"
+              placeholder="100 or 10%"
             >
           </div>
 
-          <div class="form-group">
-            <label class="form-label" for="discountOfferDuration">Discount Offer Date & Time / Lifetime</label>
-            <select id="discountOfferDuration" name="discount_offer_duration" class="form-select" data-discount-offer-duration>
-              <option value="lifetime" selected>Lifetime</option>
-              <option value="date_time">Date & Time</option>
-            </select>
-          </div>
-
+          {{-- Shown only when Date & Time is selected --}}
           <div class="form-group hidden" data-discount-offer-datetime>
-            <label class="form-label" for="discountOfferStartAt">Discount Offer Start Date & Time</label>
+            <label class="form-label" for="discountOfferStartAt">Discount Start Date & Time</label>
             <input
               id="discountOfferStartAt"
               name="discount_offer_start_at"
@@ -313,7 +486,7 @@
           </div>
 
           <div class="form-group hidden" data-discount-offer-datetime>
-            <label class="form-label" for="discountOfferEndAt">Discount Offer End Date & Time</label>
+            <label class="form-label" for="discountOfferEndAt">Discount End Date & Time</label>
             <input
               id="discountOfferEndAt"
               name="discount_offer_end_at"
@@ -323,7 +496,8 @@
             >
           </div>
 
-          <div class="form-group">
+          {{-- Physical only: Stock & Inventory --}}
+          <div class="form-group" data-physical-only>
             <label class="form-label" for="productStock">Available Quantity</label>
             <input
               id="productStock"
@@ -333,11 +507,10 @@
               min="0"
               step="1"
               placeholder="120"
-              required
             >
           </div>
 
-          <div class="form-group">
+          <div class="form-group" data-physical-only>
             <label class="form-label" for="productLowStock">Low Stock Alert At</label>
             <input
               id="productLowStock"
@@ -350,7 +523,8 @@
             >
           </div>
 
-          <div class="form-group">
+          {{-- Physical only: Shipping --}}
+          <div class="form-group" data-physical-only>
             <label class="form-label" for="productWeight">Weight (kg)</label>
             <input
               id="productWeight"
@@ -363,7 +537,7 @@
             >
           </div>
 
-          <div class="form-group">
+          <div class="form-group" data-physical-only>
             <label class="form-label" for="productShippingProfile">Shipping Profile</label>
             <select id="productShippingProfile" name="shipping_profile" class="form-select">
               @foreach ($shippingProfiles as $profile)
@@ -372,7 +546,8 @@
             </select>
           </div>
 
-          <div class="form-group">
+          {{-- Physical only: Variants --}}
+          <div class="form-group" data-physical-only>
             <label class="form-label" for="productColors">Color</label>
             <input
               id="productColors"
@@ -383,7 +558,7 @@
             >
           </div>
 
-          <div class="form-group">
+          <div class="form-group" data-physical-only>
             <label class="form-label" for="productSizes">Size</label>
             <input
               id="productSizes"
@@ -394,6 +569,7 @@
             >
           </div>
 
+          {{-- Always visible --}}
           <div class="form-group">
             <label class="form-label" for="productCatalogTags">Tags</label>
             <input
@@ -407,6 +583,7 @@
         </div>
       </section>
 
+      {{-- ══ 7. SEO ══ --}}
       <section class="card">
         <div class="card-header">
           <h3 class="card-title">Search & Discoverability</h3>
@@ -451,7 +628,10 @@
       </section>
     </div>
 
+    {{-- ══ SIDEBAR ══ --}}
     <aside class="products-create-side">
+
+      {{-- Publishing --}}
       <section class="card">
         <div class="card-header">
           <h3 class="card-title">Publishing</h3>
@@ -460,11 +640,11 @@
 
         <div class="products-publish-options">
           <label class="products-radio-item">
-            <input type="radio" name="publish_state" checked>
+            <input type="radio" name="publish_state">
             <span>Save as Draft</span>
           </label>
           <label class="products-radio-item">
-            <input type="radio" name="publish_state">
+            <input type="radio" name="publish_state" checked>
             <span>Publish Immediately</span>
           </label>
           <label class="products-radio-item">
@@ -476,6 +656,47 @@
         <div class="form-group mt-md">
           <label class="form-label" for="productScheduleAt">Schedule Date & Time</label>
           <input id="productScheduleAt" class="form-input" type="datetime-local">
+        </div>
+      </section>
+
+      {{-- Type-specific Checklist --}}
+      <section class="card">
+        <div class="card-header">
+          <h3 class="card-title">Type Checklist</h3>
+          <span class="badge" id="productTypeInfoBadge" data-product-type-badge>Physical</span>
+        </div>
+
+        <div data-product-type-info-item="physical">
+          <ul class="products-create-checklist">
+            <li>Add product name, SKU &amp; category</li>
+            <li>Upload cover image (1080 × 1080)</li>
+            <li>Set price &amp; available quantity</li>
+            <li>Add weight &amp; select shipping profile</li>
+            <li>Add color &amp; size variants if applicable</li>
+            <li>Fill SEO fields for discoverability</li>
+          </ul>
+        </div>
+
+        <div class="hidden" data-product-type-info-item="downloadable">
+          <ul class="products-create-checklist">
+            <li>Add product name &amp; category</li>
+            <li>Upload an attractive cover image</li>
+            <li>Set file sharing to "Anyone with the link"</li>
+            <li>Paste the Google Drive share link</li>
+            <li>Set the product price</li>
+            <li>Add access instructions if needed</li>
+          </ul>
+        </div>
+
+        <div class="hidden" data-product-type-info-item="subscription">
+          <ul class="products-create-checklist">
+            <li>Add product name &amp; category</li>
+            <li>Upload an attractive cover image</li>
+            <li>Add at least one subscription slot</li>
+            <li>Fill credentials — leave empty if not available</li>
+            <li>Set the subscription price</li>
+            <li>Fill SEO fields for discoverability</li>
+          </ul>
         </div>
       </section>
     </aside>

@@ -8,6 +8,7 @@
     'about.index' => 'about',
     'contact.index' => 'contact',
     'login.index' => 'login',
+    'signup.index' => 'signup',
     'privacy.index' => 'privacy',
     'terms.index' => 'terms',
     'data-deletion.index' => 'data-deletion',

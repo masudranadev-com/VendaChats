@@ -3,21 +3,24 @@
 @section('title', $title)
 
 @section('admin.content')
+
+  {{-- ══ PAGE HEADER ══ --}}
   <div class="page-header products-page-header">
     <div>
       <h1 class="page-title">{{ $title }}</h1>
       <p class="page-subtitle">{{ $subtitle }}</p>
     </div>
-
     <div class="products-header-actions">
-      <a href="{{ route('admin.categories') }}" class="btn btn-secondary">Add Category</a>
-      <a href="{{ route('admin.products.create') }}" class="btn btn-primary">+ Add New Product</a>
+      <a href="{{ route('admin.categories') }}" class="btn btn-secondary">Manage Categories</a>
+      <a href="{{ route('admin.products.create') }}" class="btn btn-primary">+ Add Product</a>
     </div>
   </div>
 
+  {{-- ══ KPI STRIP ══ --}}
   <section class="products-kpi-grid">
-    @foreach ($metrics as $metric)
-      <article class="products-kpi-card">
+    @foreach ($metrics as $index => $metric)
+      @php $kpiAccent = ['is-primary', 'is-success', 'is-warning', 'is-info'][$index] ?? ''; @endphp
+      <article class="products-kpi-card {{ $kpiAccent }}">
         <span>{{ $metric['label'] }}</span>
         <strong>{{ $metric['value'] }}</strong>
         <small>{{ $metric['meta'] }}</small>
@@ -25,65 +28,58 @@
     @endforeach
   </section>
 
-  <section class="products-hero-card mt-xl">
-    <div>
-      <p class="products-hero-eyebrow">Catalog Pulse</p>
-      <h3>Easy Product Control Panel</h3>
-      <p>Review inventory, identify low stock, and launch product actions without confusion.</p>
-    </div>
-    <div class="products-hero-meta">
-      <div>
-        <span>Sync Status</span>
-        <strong>Healthy</strong>
-      </div>
-      <div>
-        <span>Last Update</span>
-        <strong>12m ago</strong>
-      </div>
-      <div>
-        <span>Pending Edits</span>
-        <strong>7</strong>
-      </div>
-    </div>
-  </section>
-
+  {{-- ══ PRODUCT CATALOG ══ --}}
   <section class="card mt-xl">
     <div class="card-header">
-      <h3 class="card-title">Product List</h3>
-      <span class="badge badge-info">Demo Data</span>
+      <h3 class="card-title">Product Catalog</h3>
+      <div class="products-card-tools">
+        <span class="badge badge-info">{{ $products->total() }} Products</span>
+      </div>
     </div>
 
-    <div class="products-filter-grid">
+    {{-- Filters --}}
+    <div class="products-filter-grid products-filter-grid--5">
       <div class="form-group">
-        <label class="form-label">Search Product</label>
-        <input type="text" class="form-input" placeholder="Search by name or SKU">
+        <label class="form-label">Search</label>
+        <input type="text" class="form-input" placeholder="Product name...">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Type</label>
+        <select class="form-select">
+          <option value="">All Types</option>
+          <option value="physical">📦 Physical</option>
+          <option value="downloadable">⬇️ Downloadable</option>
+          <option value="subscription">🔄 Subscription</option>
+        </select>
       </div>
       <div class="form-group">
         <label class="form-label">Category</label>
         <select class="form-select">
-          <option>All Categories</option>
+          <option value="">All Categories</option>
           <option>Apparel</option>
           <option>Electronics</option>
           <option>Footwear</option>
           <option>Accessories</option>
+          <option>Digital</option>
         </select>
       </div>
       <div class="form-group">
-        <label class="form-label">Stock State</label>
+        <label class="form-label">Status</label>
         <select class="form-select">
-          <option>All</option>
-          <option>In Stock</option>
-          <option>Low Stock</option>
-          <option>Critical</option>
+          <option value="">All Status</option>
+          <option>Active</option>
+          <option>Draft</option>
+          <option>Out of Stock</option>
         </select>
       </div>
       <div class="form-group">
         <label class="form-label">Sort By</label>
         <select class="form-select">
-          <option>Latest Updated</option>
+          <option>Latest Added</option>
           <option>Highest Sales (7d)</option>
           <option>Lowest Stock</option>
           <option>Price: High to Low</option>
+          <option>Price: Low to High</option>
         </select>
       </div>
     </div>
@@ -93,92 +89,164 @@
       <button type="button" class="btn btn-ghost btn-sm">Reset</button>
       <span class="products-filter-result">
         @if ($products->count() > 0)
-          Showing {{ $products->firstItem() }}-{{ $products->lastItem() }} of {{ $products->total() }} products
+          Showing {{ $products->firstItem() }}–{{ $products->lastItem() }} of {{ $products->total() }} products
         @else
-          Showing 0 products
+          No products found
         @endif
       </span>
     </div>
 
+    {{-- Table --}}
     <div class="table-container products-table-container">
-      <table class="table">
+      <table class="table products-catalog-table">
         <thead>
           <tr>
             <th>Product</th>
-            <th>Category</th>
             <th>Price</th>
-            <th>Stock</th>
-            <th>Visitors</th>
-            <th>Sales (7d)</th>
+            <th>Stock / Access</th>
+            <th>Performance <small style="font-weight:400; font-size:10px;">(7d)</small></th>
             <th>Status</th>
-            <th>Action</th>
+            <th>Actions</th>
           </tr>
         </thead>
         <tbody>
           @forelse ($products as $product)
             @php
-              $stockClass = match ($product['stock_label']) {
-                'Critical' => 'badge-danger',
+              $type       = $product['product_type'] ?? 'physical';
+              $typeLabels = ['physical' => 'Physical', 'downloadable' => 'Downloadable', 'subscription' => 'Subscription'];
+              $typeIcons  = ['physical' => '📦', 'downloadable' => '⬇️', 'subscription' => '🔄'];
+              $typeCss    = ['physical' => 'products-type-tag--physical', 'downloadable' => 'products-type-tag--downloadable', 'subscription' => 'products-type-tag--subscription'];
+
+              $stockCss   = match ($product['stock_label'] ?? '') {
+                'Critical'  => 'badge-danger',
                 'Low Stock' => 'badge-warning',
-                default => 'badge-success',
+                default     => 'badge-success',
               };
 
-              $statusClass = match ($product['status']) {
-                'Draft' => 'badge-warning',
-                default => 'badge-primary',
+              $statusCss  = match ($product['status']) {
+                'Active'    => 'badge-success',
+                'Draft'     => 'badge-warning',
+                default     => 'badge-info',
               };
+
+              $initial = strtoupper(substr($product['name'], 0, 1));
             @endphp
             <tr>
+
+              {{-- ── Product ── --}}
               <td>
-                <div class="products-product-cell">
+                <div class="products-catalog-cell">
                   @if (!empty($product['image']))
-                    <span class="products-product-thumb">
+                    <span class="products-catalog-thumb">
                       <img src="{{ $product['image'] }}" alt="{{ $product['name'] }}" loading="lazy">
                     </span>
                   @else
-                    <span class="products-product-thumb">{{ strtoupper(substr($product['name'], 0, 1)) }}</span>
+                    <span class="products-catalog-thumb products-catalog-thumb--initial products-catalog-thumb--{{ $type }}">
+                      {{ $initial }}
+                    </span>
                   @endif
-                  <div>
-                    <strong title="{{ $product['name'] }}">{{ \Illuminate\Support\Str::limit($product['name'], 15, '...') }}</strong>
-                    <small>{{ $product['sku'] }}</small>
+
+                  <div class="products-catalog-meta">
+                    <strong class="products-catalog-name" title="{{ $product['name'] }}">
+                      {{ \Illuminate\Support\Str::limit($product['name'], 24, '…') }}
+                    </strong>
+                    <div class="products-catalog-tags">
+                      <span class="products-type-tag {{ $typeCss[$type] ?? '' }}">
+                        {{ $typeIcons[$type] ?? '📦' }} {{ $typeLabels[$type] ?? 'Physical' }}
+                      </span>
+                      <span class="products-catalog-category">{{ $product['category'] }}</span>
+                    </div>
                   </div>
                 </div>
               </td>
-              <td>{{ $product['category'] }}</td>
-              <td class="products-cell-strong">{{ $product['price'] }}</td>
+
+              {{-- ── Price ── --}}
               <td>
-                <div class="products-stock-wrap">
-                  <span class="badge {{ $stockClass }}">{{ $product['stock_label'] }}</span>
-                  <div class="products-stock-track">
-                    <span style="width: {{ $product['stock'] }}%"></span>
-                  </div>
+                <div class="products-catalog-price">
+                  <strong>{{ $product['price'] }}</strong>
+                  @if (!empty($product['has_discount']))
+                    <div class="products-catalog-price-sub">
+                      <del class="products-catalog-original">{{ $product['original_price'] ?? '' }}</del>
+                      <span class="products-catalog-discount-badge">{{ $product['discount_label'] ?? '' }}</span>
+                    </div>
+                  @endif
                 </div>
               </td>
-              <td>{{ number_format($product['visitors']) }}</td>
-              <td>{{ number_format($product['sales']) }}</td>
-              <td><span class="badge {{ $statusClass }}">{{ $product['status'] }}</span></td>
+
+              {{-- ── Stock / Access ── --}}
+              <td>
+                @if ($type === 'physical')
+                  <div class="products-catalog-stock">
+                    <div class="products-catalog-stock-top">
+                      <span class="products-catalog-stock-num">{{ number_format($product['stock'] ?? 0) }} units</span>
+                      <span class="badge badge-xs {{ $stockCss }}">{{ $product['stock_label'] ?? 'In Stock' }}</span>
+                    </div>
+                    <div class="products-catalog-progress">
+                      <div class="products-catalog-progress-fill {{ $stockCss }}" style="width: {{ min($product['stock'] ?? 0, 100) }}%"></div>
+                    </div>
+                  </div>
+
+                @elseif ($type === 'downloadable')
+                  <div class="products-catalog-access">
+                    <span class="products-catalog-access-label products-catalog-access-label--digital">
+                      ∞ Unlimited
+                    </span>
+                    <small class="products-catalog-access-note">No stock tracking — digital delivery</small>
+                  </div>
+
+                @elseif ($type === 'subscription')
+                  <div class="products-catalog-access">
+                    <span class="products-catalog-access-label products-catalog-access-label--slots">
+                      {{ $product['subscription_slots'] ?? 0 }} Slots available
+                    </span>
+                    <small class="products-catalog-access-note">Seller managed · Auto-assigned per order</small>
+                  </div>
+                @endif
+              </td>
+
+              {{-- ── Performance ── --}}
+              <td>
+                <div class="products-catalog-perf">
+                  <strong>{{ number_format($product['sales']) }} sales</strong>
+                  <small>{{ number_format($product['visitors']) }} visitors</small>
+                </div>
+              </td>
+
+              {{-- ── Status ── --}}
+              <td>
+                <span class="badge {{ $statusCss }}">{{ $product['status'] }}</span>
+              </td>
+
+              {{-- ── Actions ── --}}
               <td>
                 <div class="products-table-actions">
                   <button type="button" class="btn btn-ghost btn-sm">View</button>
-                  <button type="button" class="btn btn-secondary btn-sm">Edit</button>
+                  <a href="{{ route('admin.products.create') }}" class="btn btn-secondary btn-sm">Edit</a>
                 </div>
               </td>
+
             </tr>
           @empty
             <tr>
-              <td colspan="8" class="text-center">No products found for this page.</td>
+              <td colspan="6">
+                <div class="products-catalog-empty">
+                  <span class="products-catalog-empty-icon">📦</span>
+                  <p>No products found.</p>
+                  <a href="{{ route('admin.products.create') }}" class="btn btn-primary btn-sm">+ Add First Product</a>
+                </div>
+              </td>
             </tr>
           @endforelse
         </tbody>
       </table>
     </div>
 
+    {{-- Pagination --}}
     @if ($products->hasPages())
       <div class="products-table-footer">
         <p class="products-pagination-summary">
           Page {{ $products->currentPage() }} of {{ $products->lastPage() }}
         </p>
-
         <nav class="products-pagination-controls" aria-label="Products pagination">
           @if ($products->onFirstPage())
             <span class="products-page-btn is-disabled" aria-disabled="true">Prev</span>
@@ -204,6 +272,7 @@
     @endif
   </section>
 
+  {{-- ══ NEEDS ATTENTION TOGGLE ══ --}}
   <button
     type="button"
     class="products-side-toggle"
@@ -224,7 +293,7 @@
       <h3 class="card-title">Needs Attention</h3>
       <div class="products-side-panel-actions">
         <span class="badge badge-warning">{{ count($attentionItems) }} alerts</span>
-        <button type="button" class="products-side-close" data-products-attention-close aria-label="Close Needs Attention panel">&times;</button>
+        <button type="button" class="products-side-close" data-products-attention-close aria-label="Close">&times;</button>
       </div>
     </div>
 
@@ -261,7 +330,8 @@
     <div class="products-quick-actions">
       <button type="button" class="btn btn-primary btn-sm">Restock Planner</button>
       <button type="button" class="btn btn-secondary btn-sm">Price Bulk Update</button>
-      <button type="button" class="btn btn-ghost btn-sm">Export Product Sheet</button>
+      <button type="button" class="btn btn-ghost btn-sm">Export Sheet</button>
     </div>
   </section>
+
 @endsection

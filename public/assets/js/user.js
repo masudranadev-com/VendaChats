@@ -44,7 +44,8 @@ function resolveInitialPage() {
     'how-it-works.html': 'how-it-works',
     'about.html': 'about',
     'contact.html': 'contact',
-    'login.html': 'login'
+    'login.html': 'login',
+    'signup.html': 'signup'
   };
 
   if (fileRouteMap[fileName]) {
@@ -58,7 +59,8 @@ function resolveInitialPage() {
     '/how-it-works': 'how-it-works',
     '/about': 'about',
     '/contact': 'contact',
-    '/login': 'login'
+    '/login': 'login',
+    '/signup': 'signup'
   };
 
   return pathRouteMap[normalizedPath] || 'home';

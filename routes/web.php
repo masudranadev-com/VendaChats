@@ -39,6 +39,8 @@ Route::get('/about', [InfoController::class, 'about'])->name('about.index');
 Route::get('/contact', [InfoController::class, 'contact'])->name('contact.index');
 Route::get('/login', [AccountController::class, 'index'])->name('login.index');
 Route::post('/login', [AccountController::class, 'login'])->name('login.submit');
+Route::get('/signup', [AccountController::class, 'signupIndex'])->name('signup.index');
+Route::post('/signup', [AccountController::class, 'signup'])->name('signup.submit');
 Route::get('/privacy-policy', [InfoController::class, 'privacy'])->name('privacy.index');
 Route::get('/terms-and-conditions', [InfoController::class, 'terms'])->name('terms.index');
 Route::get('/user-data-deletion', [DataDeletionController::class, 'index'])->name('data-deletion.index');
