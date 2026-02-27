@@ -28,11 +28,15 @@ class InfoController extends Controller
 
     public function privacy()
     {
-        return view('user.privacy-policy');
+        return response()
+            ->view('user.privacy-policy')
+            ->header('Cache-Control', 'public, max-age=86400');
     }
 
     public function terms()
     {
-        return view('user.terms-and-conditions');
+        return response()
+            ->view('user.terms-and-conditions')
+            ->header('Cache-Control', 'public, max-age=86400');
     }
 }

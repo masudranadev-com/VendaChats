@@ -4,7 +4,8 @@
       "Bash(xxd:*)",
       "Bash(python3:*)",
       "Bash(php:*)",
-      "Bash(node -e:*)"
+      "Bash(node -e:*)",
+      "WebFetch(domain:ametafy.com)"
     ]
   }
 }
