@@ -162,6 +162,7 @@ class BotSettingsController extends Controller
         $response = Http::withHeaders([
             'Content-Type' => 'application/json',
             'x-refresh-token' => $token,
+            'ngrok-skip-browser-warning' => 'true',
         ])->post("{$apiUrl}/api/admin/facebook-auth", [
             'page_name' => $impPageName,
             'page_id' => $impPageId,

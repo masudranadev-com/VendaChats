@@ -1891,6 +1891,7 @@ function initBotSettings() {
         'Accept': 'application/json',
         'Content-Type': 'application/json',
         'x-refresh-token': token,
+        'ngrok-skip-browser-warning': 'true',
       },
       body: JSON.stringify(payload),
       signal: abortController.signal,
@@ -1976,6 +1977,7 @@ function initBotSettings() {
         headers: {
           'Accept': 'application/json',
           'x-refresh-token': refreshToken,
+          'ngrok-skip-browser-warning': 'true',
         },
         signal: abortController.signal,
       });
@@ -2068,6 +2070,7 @@ function initBotSettings() {
         headers: {
           'Accept': 'application/json',
           'x-refresh-token': token,
+          'ngrok-skip-browser-warning': 'true',
         },
         signal: abortController.signal,
       });
