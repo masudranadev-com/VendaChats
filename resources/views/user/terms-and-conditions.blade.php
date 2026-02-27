@@ -1,6 +1,8 @@
 @extends('user.master')
 
 @section('title', 'Terms and Conditions | Venda Motion Bot')
+@section('og_title', 'Terms and Conditions | Venda Motion Bot')
+@section('og_description', 'Read our Terms and Conditions to understand your rights and responsibilities when using Venda Motion Bot services.')
 
 @section('user.master')
 

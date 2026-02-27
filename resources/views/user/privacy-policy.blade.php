@@ -1,6 +1,8 @@
 @extends('user.master')
 
 @section('title', 'Privacy Policy | Venda Motion Bot')
+@section('og_title', 'Privacy Policy | Venda Motion Bot')
+@section('og_description', 'Read our Privacy Policy to learn how Venda Motion Bot collects, uses, and protects your personal information.')
 
 @section('user.master')
 
