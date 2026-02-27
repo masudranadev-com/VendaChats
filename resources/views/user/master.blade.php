@@ -24,6 +24,7 @@
   <title>@yield('title', 'Venda Motion Bot')</title>
 
   {{-- Open Graph / Facebook --}}
+  <meta property="fb:app_id"      content="{{ env('META_APP_ID') }}">
   <meta property="og:site_name"   content="Venda Motion Bot">
   <meta property="og:type"        content="website">
   <meta property="og:url"         content="{{ url()->current() }}">

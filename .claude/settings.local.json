@@ -6,7 +6,8 @@
       "Bash(php:*)",
       "Bash(node -e:*)",
       "WebFetch(domain:ametafy.com)",
-      "Bash(curl -I --ssl-no-revoke \"https://ametafy.com/privacy-policy\" 2>&1)"
+      "Bash(curl -I --ssl-no-revoke \"https://ametafy.com/privacy-policy\" 2>&1)",
+      "Bash(curl -sv --max-time 15 \"https://ametafy.com/assets/images/og-image.png\" 2>&1 | head -40)"
     ]
   }
 }
