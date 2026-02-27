@@ -29,10 +29,9 @@
   <meta property="og:url"         content="{{ url()->current() }}">
   <meta property="og:title"       content="@yield('og_title', 'Venda Motion Bot – AI Sales Assistant')">
   <meta property="og:description" content="@yield('og_description', 'বাংলাদেশের সেলারদের জন্য সেরা AI সেলস সহকারী। ফেসবুক মেসেঞ্জারে অটোমেটিক অর্ডার, কাস্টমার সার্ভিস ও সেলস ম্যানেজমেন্ট।')">
-  {{-- og:image: upload a 1200×630 PNG to public/assets/images/og-image.png then uncomment --}}
-  {{-- <meta property="og:image"        content="@yield('og_image', asset('assets/images/og-image.png'))"> --}}
-  {{-- <meta property="og:image:width"  content="1200"> --}}
-  {{-- <meta property="og:image:height" content="630"> --}}
+  <meta property="og:image"        content="@yield('og_image', asset('assets/images/og-image.png'))">
+  <meta property="og:image:width"  content="1200">
+  <meta property="og:image:height" content="630">
   <meta property="og:locale"     content="bn_BD">
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
