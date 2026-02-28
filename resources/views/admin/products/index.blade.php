@@ -50,6 +50,7 @@
           <option value="physical">📦 Physical</option>
           <option value="downloadable">⬇️ Downloadable</option>
           <option value="subscription">🔄 Subscription</option>
+          <option value="package">📦 Package</option>
         </select>
       </div>
       <div class="form-group">
@@ -113,9 +114,9 @@
           @forelse ($products as $product)
             @php
               $type       = $product['product_type'] ?? 'physical';
-              $typeLabels = ['physical' => 'Physical', 'downloadable' => 'Downloadable', 'subscription' => 'Subscription'];
-              $typeIcons  = ['physical' => '📦', 'downloadable' => '⬇️', 'subscription' => '🔄'];
-              $typeCss    = ['physical' => 'products-type-tag--physical', 'downloadable' => 'products-type-tag--downloadable', 'subscription' => 'products-type-tag--subscription'];
+              $typeLabels = ['physical' => 'Physical', 'downloadable' => 'Downloadable', 'subscription' => 'Subscription', 'package' => 'Package'];
+              $typeIcons  = ['physical' => '📦', 'downloadable' => '⬇️', 'subscription' => '🔄', 'package' => '📦'];
+              $typeCss    = ['physical' => 'products-type-tag--physical', 'downloadable' => 'products-type-tag--downloadable', 'subscription' => 'products-type-tag--subscription', 'package' => 'products-type-tag--package'];
 
               $stockCss   = match ($product['stock_label'] ?? '') {
                 'Critical'  => 'badge-danger',
@@ -200,6 +201,14 @@
                       {{ $product['subscription_slots'] ?? 0 }} Slots available
                     </span>
                     <small class="products-catalog-access-note">Seller managed · Auto-assigned per order</small>
+                  </div>
+
+                @elseif ($type === 'package')
+                  <div class="products-catalog-access">
+                    <span class="products-catalog-access-label products-catalog-access-label--package">
+                      {{ $product['package_facilities'] ?? 0 }} Facilities included
+                    </span>
+                    <small class="products-catalog-access-note">Bundle package · Multiple facilities</small>
                   </div>
                 @endif
               </td>

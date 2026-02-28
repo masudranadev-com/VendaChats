@@ -299,6 +299,7 @@ document.addEventListener('DOMContentLoaded', () => {
   initProductTypeSelector();
   initDownloadableLinkType();
   initSubscriptionEntries();
+  initFacilityEntries();
   initProductCreateSliderControl();
   initProductCreateDiscountOfferControl();
   initProductCreateAiWriter();
@@ -2202,12 +2203,14 @@ function initProductTypeSelector() {
     physical: 'badge-info',
     downloadable: 'badge-primary',
     subscription: 'badge-warning',
+    package: 'badge-success',
   };
 
   const badgeLabels = {
     physical: 'Physical',
     downloadable: 'Downloadable',
     subscription: 'Subscription',
+    package: 'Package',
   };
 
   const setActiveType = (type) => {
@@ -2260,7 +2263,7 @@ function initProductTypeSelector() {
 
   // Restore from session, then fall back to checked radio, then default
   const savedType = sessionStorage.getItem('product_create_type');
-  const validTypes = ['physical', 'downloadable', 'subscription'];
+  const validTypes = ['physical', 'downloadable', 'subscription', 'package'];
   const initialType = (savedType && validTypes.includes(savedType))
     ? savedType
     : (cards.find((c) => c.querySelector('input[type="radio"]')?.checked)?.querySelector('input[type="radio"]')?.value || 'physical');
@@ -2451,6 +2454,116 @@ function initSubscriptionEntries() {
     entry.querySelector(`[data-subscription-remove="${id}"]`)?.addEventListener('click', () => {
       entry.remove();
       if (!list.querySelector('[data-subscription-entry]')) {
+        showEmpty();
+      }
+      renumberEntries();
+    });
+
+    list.appendChild(entry);
+    renumberEntries();
+
+    // Scroll the new entry into view smoothly
+    entry.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  };
+
+  addButton.addEventListener('click', addEntry);
+  showEmpty();
+}
+
+// ══════════════════════════════════════════
+// PRODUCTS: PACKAGE FACILITY MANAGER
+// ══════════════════════════════════════════
+function initFacilityEntries() {
+  const addButton = document.querySelector('[data-facility-add]');
+  const list = document.querySelector('[data-facilities-list]');
+  const countLabel = document.querySelector('[data-facilities-count]');
+
+  if (!addButton || !list) return;
+
+  let entrySequence = 0;
+
+  const updateCountLabel = () => {
+    const total = list.querySelectorAll('[data-facility-entry]').length;
+    if (!countLabel) return;
+    if (total === 0) {
+      countLabel.classList.add('hidden');
+      countLabel.textContent = '';
+    } else {
+      countLabel.classList.remove('hidden');
+      countLabel.textContent = `${total} facilit${total > 1 ? 'ies' : 'y'} added`;
+    }
+  };
+
+  const renumberEntries = () => {
+    const entries = Array.from(list.querySelectorAll('[data-facility-entry]'));
+    entries.forEach((entry, index) => {
+      const numEl = entry.querySelector('[data-facility-num]');
+      if (numEl) numEl.textContent = `Facility #${index + 1}`;
+    });
+    updateCountLabel();
+  };
+
+  const showEmpty = () => {
+    list.innerHTML = `
+      <div class="products-subscription-empty">
+        No facilities added yet. Click <strong>Add Facility</strong> below to get started.
+      </div>
+    `;
+  };
+
+  const addEntry = () => {
+    entrySequence += 1;
+    const id = entrySequence;
+
+    // Remove empty state if present
+    const emptyEl = list.querySelector('.products-subscription-empty');
+    if (emptyEl) emptyEl.remove();
+
+    const entry = document.createElement('div');
+    entry.className = 'products-subscription-entry';
+    entry.dataset.facilityEntry = id;
+
+    entry.innerHTML = `
+      <div class="products-subscription-entry-header">
+        <span class="products-subscription-entry-num" data-facility-num>Facility #1</span>
+        <button type="button" class="btn btn-ghost btn-sm" data-facility-remove="${id}" aria-label="Remove facility">
+          Remove
+        </button>
+      </div>
+      <div class="products-subscription-entry-body">
+        <div class="form-group">
+          <label class="form-label">
+            Facility Name
+          </label>
+          <input
+            type="text"
+            class="form-input"
+            name="facilities[${id}][name]"
+            placeholder="e.g. Free Shipping, 24/7 Support, Warranty"
+            required
+            autocomplete="off"
+          >
+        </div>
+        <div class="form-group">
+          <label class="form-label">Status</label>
+          <div class="products-publish-options mt-sm">
+            <label class="products-radio-item">
+              <input type="radio" name="facilities[${id}][status]" value="enabled" checked>
+              <span>Enabled</span>
+            </label>
+            <label class="products-radio-item">
+              <input type="radio" name="facilities[${id}][status]" value="disabled">
+              <span>Disabled</span>
+            </label>
+          </div>
+          <small class="form-help">Disabled facilities will not be shown to customers.</small>
+        </div>
+      </div>
+    `;
+
+    entry.querySelector(`[data-facility-remove="${id}"]`)?.addEventListener('click', () => {
+      entry.remove();
+      if (!list.querySelector('[data-facility-entry]')) {
         showEmpty();
       }
       renumberEntries();

@@ -53,6 +53,14 @@
             <span class="products-type-card-desc">Recurring access plan — manage multiple credential slots for buyers</span>
             <span class="products-type-card-check" aria-hidden="true">✓</span>
           </label>
+
+          <label class="products-type-card" data-product-type-card>
+            <input type="radio" name="product_type" value="package">
+            <span class="products-type-card-icon">📦</span>
+            <strong class="products-type-card-title">Package</strong>
+            <span class="products-type-card-desc">Bundle multiple facilities together — perfect for combo deals and service packages</span>
+            <span class="products-type-card-check" aria-hidden="true">✓</span>
+          </label>
         </div>
       </section>
 
@@ -404,6 +412,49 @@
         </div>
       </section>
 
+      {{-- ══ 5B. PACKAGE FACILITIES (shown for package type only) ══ --}}
+      <section class="card hidden" data-product-type-section="package">
+        <div class="card-header">
+          <h3 class="card-title">Package Facilities</h3>
+          <span class="badge badge-info">Features</span>
+        </div>
+
+        {{-- Package explanation --}}
+        <div class="products-subscription-how">
+          <div class="products-subscription-how-header">
+            <span class="products-subscription-how-icon">📦</span>
+            <div>
+              <strong>Package Features & Facilities</strong>
+              <span class="badge badge-info" style="margin-left: 8px; font-size: 10px;">Bundle</span>
+            </div>
+          </div>
+          <p class="products-subscription-how-desc">
+            Add <strong>one or multiple facilities</strong> that are included in this package. Each facility can have a name and description to clearly communicate what customers will receive.
+          </p>
+        </div>
+
+        {{-- Facility note --}}
+        <div class="products-subscription-notice">
+          <span class="products-subscription-notice-icon">ℹ️</span>
+          <div>
+            Define all facilities included in this package. Each facility should clearly describe what the customer will get. You can add as many facilities as needed.
+          </div>
+        </div>
+
+        <div class="products-subscription-list" id="facilitiesList" data-facilities-list>
+          <div class="products-subscription-empty">
+            No facilities added yet. Click <strong>Add Facility</strong> below to get started.
+          </div>
+        </div>
+
+        <div class="products-subscription-footer">
+          <button type="button" class="btn btn-primary" data-facility-add>
+            + Add Facility
+          </button>
+          <span class="products-subscription-count hidden" data-facilities-count></span>
+        </div>
+      </section>
+
       {{-- ══ 6. PRICING & INVENTORY ══ --}}
       <section class="card">
         <div class="card-header">
@@ -695,6 +746,17 @@
             <li>Add at least one subscription slot</li>
             <li>Fill credentials — leave empty if not available</li>
             <li>Set the subscription price</li>
+            <li>Fill SEO fields for discoverability</li>
+          </ul>
+        </div>
+
+        <div class="hidden" data-product-type-info-item="package">
+          <ul class="products-create-checklist">
+            <li>Add product name &amp; category</li>
+            <li>Upload an attractive cover image</li>
+            <li>Add at least one facility to the package</li>
+            <li>Provide clear facility names and descriptions</li>
+            <li>Set the package price</li>
             <li>Fill SEO fields for discoverability</li>
           </ul>
         </div>

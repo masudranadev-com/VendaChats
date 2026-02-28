@@ -172,6 +172,22 @@ class DashboardController extends Controller
                 'sales'                => 41,
                 'status'               => 'Active',
             ],
+            [
+                'product_type'         => 'package',
+                'name'                 => 'Complete Business Package',
+                'image'                => null,
+                'category'             => 'Digital',
+                'price'                => 'BDT 4,500',
+                'original_price'       => 'BDT 5,800',
+                'discount_label'       => '-22%',
+                'has_discount'         => true,
+                'stock'                => 0,
+                'stock_label'          => '',
+                'package_facilities'   => 5,
+                'visitors'             => 1520,
+                'sales'                => 78,
+                'status'               => 'Active',
+            ],
         ];
 
         $perPage = 5;
