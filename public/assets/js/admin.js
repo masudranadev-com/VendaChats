@@ -2172,6 +2172,9 @@ function initProductsCatalogPage() {
   const sortSelect = section.querySelector('[data-products-sort]');
   const applyBtn = section.querySelector('[data-products-apply]');
   const resetBtn = section.querySelector('[data-products-reset]');
+  const deleteModal = document.getElementById('productsDeleteConfirmModal');
+  const deleteNameNode = deleteModal?.querySelector('[data-products-delete-name]');
+  const deleteConfirmBtn = deleteModal?.querySelector('[data-products-delete-confirm]');
 
   if (
     !tbody || !totalBadge || !resultNode || !pageWrap || !pageSummary || !pageControls ||
@@ -2205,6 +2208,11 @@ function initProductsCatalogPage() {
     products: [],
     loading: false,
     requestId: 0,
+  };
+  const deleteState = {
+    pendingId: '',
+    pendingName: '',
+    inFlight: false,
   };
 
   const categories = new Set(
@@ -2313,11 +2321,16 @@ function initProductsCatalogPage() {
     const typeLabelMap = { physical: 'Physical', downloadable: 'Downloadable', subscription: 'Subscription', package: 'Package' };
     const typeCssMap = { physical: 'products-type-tag--physical', downloadable: 'products-type-tag--downloadable', subscription: 'products-type-tag--subscription', package: 'products-type-tag--package' };
     const name = text(product.name) || 'Unnamed Product';
+    const productId = text(product.id);
     const image = text(product.cover);
     const initial = escapeHtml(name.charAt(0).toUpperCase() || 'P');
     const category = text(product.category) || 'Uncategorized';
     const status = text(product.status).toLowerCase();
     const statusCss = status === 'active' ? 'badge-success' : (status === 'draft' || status === 'pending' ? 'badge-warning' : (status === 'inactive' ? 'badge-danger' : 'badge-info'));
+
+    const deleteButton = productId
+      ? `<button type="button" class="btn btn-danger btn-sm" data-products-delete-trigger data-product-id="${escapeHtml(productId)}" data-product-name="${escapeHtml(name)}">Delete</button>`
+      : '';
 
     const tr = document.createElement('tr');
     tr.innerHTML = `
@@ -2337,7 +2350,7 @@ function initProductsCatalogPage() {
       <td>${stockHtml(product, type)}</td>
       <td><div class="products-catalog-perf"><strong>${formatCount(product.sales_7d)} sales</strong><small>${formatCount(product.visitors_7d)} visitors</small></div></td>
       <td><span class="badge ${statusCss}">${escapeHtml(titleCase(status || 'unknown'))}</span></td>
-      <td><div class="products-table-actions"><button type="button" class="btn btn-ghost btn-sm">View</button><a href="/admin/products/${encodeURIComponent(String(product.id ?? ''))}/edit" class="btn btn-secondary btn-sm">Edit</a></div></td>
+      <td><div class="products-table-actions"><button type="button" class="btn btn-ghost btn-sm">View</button><a href="/admin/products/${encodeURIComponent(productId)}/edit" class="btn btn-secondary btn-sm">Edit</a>${deleteButton}</div></td>
     `;
     return tr;
   };
@@ -2453,6 +2466,21 @@ function initProductsCatalogPage() {
     resetBtn.disabled = loading;
   };
 
+  const setDeletePending = (id = '', name = '') => {
+    deleteState.pendingId = text(id);
+    deleteState.pendingName = text(name);
+    if (deleteNameNode) {
+      deleteNameNode.textContent = deleteState.pendingName || 'this product';
+    }
+  };
+
+  const setDeleteLoading = (loading) => {
+    deleteState.inFlight = Boolean(loading);
+    if (!deleteConfirmBtn) return;
+    deleteConfirmBtn.disabled = deleteState.inFlight;
+    deleteConfirmBtn.textContent = deleteState.inFlight ? 'Deleting...' : 'Delete Product';
+  };
+
   async function loadProducts(page) {
     if (!token) {
       const message = 'Missing refresh token. Please login again.';
@@ -2555,6 +2583,82 @@ function initProductsCatalogPage() {
     if (event.key === 'Enter') {
       event.preventDefault();
       renderTable();
+    }
+  });
+
+  tbody.addEventListener('click', (event) => {
+    const trigger = event.target.closest('[data-products-delete-trigger]');
+    if (!trigger || !tbody.contains(trigger)) return;
+    event.preventDefault();
+
+    const productId = text(trigger.dataset.productId);
+    if (!productId) {
+      if (typeof window.showError === 'function') window.showError('Invalid product id.');
+      return;
+    }
+
+    const productName = text(trigger.dataset.productName) || 'this product';
+    setDeletePending(productId, productName);
+    setDeleteLoading(false);
+    if (deleteModal) openModal('productsDeleteConfirmModal');
+  });
+
+  deleteConfirmBtn?.addEventListener('click', async () => {
+    if (deleteState.inFlight) return;
+
+    const productId = text(deleteState.pendingId);
+    if (!productId) {
+      if (typeof window.showError === 'function') window.showError('Please select a product to delete.');
+      return;
+    }
+
+    if (!token) {
+      if (typeof window.showError === 'function') window.showError('Missing refresh token. Please login again.');
+      return;
+    }
+
+    if (!apiBase) {
+      if (typeof window.showError === 'function') window.showError('Backend API URL is missing.');
+      return;
+    }
+
+    setDeleteLoading(true);
+    const controller = new AbortController();
+    const timeoutId = window.setTimeout(() => controller.abort(), 12000);
+
+    try {
+      const response = await fetch(`${apiBase}/api/admin/products/${encodeURIComponent(productId)}`, {
+        method: 'DELETE',
+        headers: {
+          'Accept': 'application/json',
+          'x-refresh-token': token,
+        },
+        signal: controller.signal,
+      });
+
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        if (response.status === 404) throw new Error(payload.error || 'product not found');
+        if (response.status === 401) throw new Error('Unauthorized (401). Refresh token expired or invalid.');
+        throw new Error(payload.error || payload.message || `Delete failed (${response.status}).`);
+      }
+
+      closeAllModals();
+      setDeletePending();
+      if (typeof window.showSuccess === 'function') {
+        window.showSuccess(text(payload.message) || 'product deleted');
+      }
+
+      const nextPage = state.page > 1 && state.products.length <= 1 ? state.page - 1 : state.page;
+      await loadProducts(nextPage);
+    } catch (error) {
+      const message = error?.name === 'AbortError'
+        ? 'Delete request timed out. Please try again.'
+        : (error?.message || 'Failed to delete product.');
+      if (typeof window.showError === 'function') window.showError(message);
+    } finally {
+      window.clearTimeout(timeoutId);
+      setDeleteLoading(false);
     }
   });
 

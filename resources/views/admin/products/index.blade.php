@@ -184,5 +184,25 @@
     </ul>
   </section>
 
+  <div class="modal-overlay" id="productsDeleteConfirmModal" aria-hidden="true">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="productsDeleteConfirmTitle">
+      <div class="modal-header">
+        <h3 class="modal-title" id="productsDeleteConfirmTitle">Delete Product</h3>
+        <button type="button" class="modal-close" data-modal-close aria-label="Close">x</button>
+      </div>
+      <div class="modal-body">
+        <p>
+          Are you sure you want to delete
+          <strong data-products-delete-name>this product</strong>?
+          This action cannot be undone.
+        </p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-ghost" data-modal-close>Cancel</button>
+        <button type="button" class="btn btn-danger" data-products-delete-confirm>Delete Product</button>
+      </div>
+    </div>
+  </div>
+
 @endsection
 
