@@ -237,12 +237,20 @@ class DashboardController extends Controller
 
     public function productCreate()
     {
+        $refreshToken = (string) (
+            request()->session()->get('auth.refresh_token')
+            ?? request()->session()->get('refresh_token')
+            ?? ''
+        );
+
         return view('admin.products.create', [
             'title' => 'Add Product',
             'subtitle' => 'Set core product details, pricing, stock, media, and channel visibility before publishing.',
             'categories' => ['Apparel', 'Electronics', 'Footwear', 'Accessories'],
             'channels' => ['Website', 'Facebook', 'Messenger', 'WhatsApp', 'Instagram'],
             'shippingProfiles' => ['Standard', 'Express', 'Fragile Item', 'Outside Dhaka'],
+            'refreshToken' => $refreshToken,
+            'isLocal' => app()->environment('local'),
         ]);
     }
 

@@ -1,13 +1,18 @@
 products:{
     user_id
 
-    type: physical
+    type: physical/digital/subscription
     name, 
     category
     short_description
     description 
     product_price,
     bargaining_price,
+    is_discount_offer: inactive/lifetime/limited
+    is_discount_type: inactive/fixed/percentage
+    discount_value: ,
+    discount_start_at: 
+    discount_end_at: 
 
     #Publishing
     publish_type: draft/immediatly
@@ -29,16 +34,12 @@ product_media_items{
 
 product_inventory{
     product_id:-
-    is_discount_offer: inactive/lifetime/limited
-    is_discount_type: inactive/fixed/percentage
-    discount_value: ,
-    discount_start_at: 
-    discount_end_at: 
     
     shipping_profile:
     is_variants: true/false
     available_qty:  is_variants == true ? null : val
     stock_alert: is_variants == true ? null : val
+    weight:
 }
 product_variants{
     product_id:-
@@ -72,9 +73,4 @@ product_subscriptions{
     username
     password
     is_authenticated
-}
-
-product_packages{
-    product_id
-    facilities
 }

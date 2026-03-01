@@ -303,7 +303,9 @@ document.addEventListener('DOMContentLoaded', () => {
   initProductVariants();
   initProductCreateSliderControl();
   initProductCreateDiscountOfferControl();
+  initProductDemoAutoFill();
   initProductCreateAiWriter();
+  initProductCreateSubmit();
   setActivePage();
 });
 
@@ -2198,8 +2200,45 @@ function initProductTypeSelector() {
   const typeSections = Array.from(document.querySelectorAll('[data-product-type-section]'));
   const physicalOnlyGroups = Array.from(document.querySelectorAll('[data-physical-only]'));
   const nonPhysicalOnlyGroups = Array.from(document.querySelectorAll('[data-non-physical-only]'));
-  const typeInfoItems = Array.from(document.querySelectorAll('[data-product-type-info-item]'));
   const typeBadge = document.querySelector('[data-product-type-badge]');
+  const checklistContainer = document.querySelector('[data-product-type-checklist]');
+
+  const checklistData = {
+    physical: [
+      'Add product name & category',
+      'Upload cover image (1080 × 1080)',
+      'Select shipping profile',
+      'Choose: No variants or Has variants',
+      'Set pricing & inventory for each variant',
+      'Add weight for variants / simple product',
+      'Fill SEO fields for discoverability',
+    ],
+    downloadable: [
+      'Add product name & category',
+      'Upload an attractive cover image',
+      'Set product price & bargaining price',
+      'Set file sharing to "Anyone with the link"',
+      'Paste the Google Drive share link',
+      'Add access instructions if needed',
+      'Fill SEO fields for discoverability',
+    ],
+    subscription: [
+      'Add product name & category',
+      'Upload an attractive cover image',
+      'Set subscription price & bargaining price',
+      'Add at least one subscription slot',
+      'Fill credentials — leave empty if not available',
+      'Fill SEO fields for discoverability',
+    ],
+  };
+
+  const renderChecklist = (type) => {
+    if (!checklistContainer) return;
+    const items = checklistData[type] || [];
+    checklistContainer.innerHTML = `<ul class="products-create-checklist">${
+      items.map((item) => `<li>${item}</li>`).join('')
+    }</ul>`;
+  };
 
   const badgeClasses = {
     physical: 'badge-info',
@@ -2253,16 +2292,14 @@ function initProductTypeSelector() {
       });
     });
 
-    // Update sidebar checklist
-    typeInfoItems.forEach((item) => {
-      item.classList.toggle('hidden', item.dataset.productTypeInfoItem !== type);
-    });
-
     // Update sidebar badge
     if (typeBadge) {
       typeBadge.className = `badge ${badgeClasses[type] || 'badge-info'}`;
       typeBadge.textContent = badgeLabels[type] || type;
     }
+
+    // Render type checklist
+    renderChecklist(type);
   };
 
   cards.forEach((card) => {
@@ -2790,7 +2827,7 @@ function initProductVariants() {
               data-variant-alert="${id}"
             >
           </div>
-          <div class="form-group">
+          <div class="products-variant-attribute-input">
             <label class="form-label">
               <span class="products-label-with-icon">
                 ⚖️ Weight (kg)
@@ -3438,6 +3475,15 @@ function initProductCreateSliderControl() {
   renderSliderList();
   updateSliderTypeInput();
   updateSliderStatus();
+
+  window._productCreateMedia = {
+    getCover: () => coverItem?.url ?? null,
+    getSliderItems: () => sliderItems.map((item) => ({
+      media_type: item.type === 'youtube' ? 'yt_video' : item.type === 'video' ? 'upload_video' : 'image',
+      source_url: item.url,
+    })),
+    isSliderEnabled: () => sliderInputs.find((i) => i.checked)?.value !== 'disabled',
+  };
 }
 
 function initProductCreateDiscountOfferControl() {
@@ -4149,6 +4195,280 @@ function debounce(func, wait) {
     clearTimeout(timeout);
     timeout = setTimeout(later, wait);
   };
+}
+
+// ══════════════════════════════════════════
+// PRODUCTS: DEV AUTO-FILL (local env only)
+// ══════════════════════════════════════════
+function initProductDemoAutoFill() {
+  const form = document.getElementById('createProductForm');
+  if (!form || form.dataset.devAutofill !== '1') return;
+
+  const set = (selector, value) => {
+    const el = form.querySelector(selector);
+    if (!el) return;
+    el.value = value;
+    el.dispatchEvent(new Event('input', { bubbles: true }));
+    el.dispatchEvent(new Event('change', { bubbles: true }));
+  };
+
+  const checkRadio = (name, value) => {
+    const radio = form.querySelector(`[name="${name}"][value="${value}"]`);
+    if (!radio) return;
+    radio.checked = true;
+    radio.dispatchEvent(new Event('change', { bubbles: true }));
+    radio.closest('[data-variant-toggle-card], [data-product-type-card]')?.click();
+  };
+
+  // ── Basic info ──
+  set('#productName', 'Classic T-Shirt');
+  set('#productCategory', 'Apparel');
+  set('#productShortDescription', '100% cotton tee — premium quality, available in multiple sizes.');
+  // Set the hidden textarea so Quill reads it on init
+  set('#productDescription', '<p>Premium quality cotton t-shirt available in multiple sizes and colors. Made from 100% natural cotton for all-day comfort and breathability.</p>');
+
+  // ── Variants: keep "No Variants" (default) ──
+  // no change needed, "no" is already checked
+
+  // ── Pricing & inventory (no variants) ──
+  set('#simplePrice', '1150');
+  set('#simpleBargainingPrice', '1050');
+  set('#simpleQuantity', '120');
+  set('#simpleAlertQty', '10');
+  set('#simpleWeight', '0.40');
+
+  // ── Shipping ──
+  set('#productShippingProfile', 'Standard');
+
+  // ── Discount: none (default) ──
+  set('[data-discount-offer-duration]', 'none');
+
+  // ── Publish: immediately (default) ──
+  // already checked
+
+  // ── Tags ──
+  set('#productCatalogTags', 'tshirt, cotton, apparel');
+
+  // ── SEO ──
+  set('#productSlug', 'classic-tshirt');
+  set('#productMetaTitle', 'Classic T-Shirt | Shop');
+  set('#productMetaDescription', 'Buy our premium cotton t-shirt in multiple sizes and colors.');
+  set('#productTags', 'buy tshirt online, cotton tee shop');
+}
+
+// ══════════════════════════════════════════
+// PRODUCTS: CREATE SUBMIT
+// ══════════════════════════════════════════
+function initProductCreateSubmit() {
+  const form = document.getElementById('createProductForm');
+  if (!form) return;
+
+  const getToken = () =>
+    form.dataset.refreshToken ||
+    localStorage.getItem('refresh_token') ||
+    '';
+
+  const parseTagInput = (value) =>
+    String(value || '').split(',').map((t) => t.trim()).filter(Boolean);
+
+  const toIsoOrNull = (value) => {
+    if (!value) return null;
+    try { return new Date(value).toISOString(); } catch { return null; }
+  };
+
+  const collectPayload = () => {
+    const type = form.querySelector('[name="product_type"]:checked')?.value || 'physical';
+    const isPhysical = type === 'physical';
+    const hasVariants = form.querySelector('[name="has_variants"]:checked')?.value === 'yes';
+
+    const name = form.querySelector('#productName')?.value?.trim() || '';
+    const category = form.querySelector('#productCategory')?.value || '';
+    const short_description = form.querySelector('#productShortDescription')?.value?.trim() || '';
+    const description = form.querySelector('#productDescription')?.value?.trim() || '';
+
+    let product_price = null;
+    let bargaining_price = null;
+    let available_qty = null;
+    let stock_alert = null;
+    let weight = null;
+
+    if (isPhysical && !hasVariants) {
+      product_price = parseFloat(form.querySelector('#simplePrice')?.value) || null;
+      bargaining_price = parseFloat(form.querySelector('#simpleBargainingPrice')?.value) || null;
+      available_qty = parseInt(form.querySelector('#simpleQuantity')?.value, 10) || null;
+      stock_alert = parseInt(form.querySelector('#simpleAlertQty')?.value, 10) || null;
+      weight = parseFloat(form.querySelector('#simpleWeight')?.value) || null;
+    } else if (!isPhysical) {
+      product_price = parseFloat(form.querySelector('#productPrice')?.value) || null;
+      bargaining_price = parseFloat(form.querySelector('#bargainingPrice')?.value) || null;
+    }
+
+    const shipping_profile = isPhysical
+      ? (form.querySelector('#productShippingProfile')?.value || null)
+      : null;
+
+    const discountDuration = form.querySelector('[data-discount-offer-duration]')?.value || 'none';
+    let is_discount_offer = 'inactive';
+    if (discountDuration === 'lifetime') is_discount_offer = 'lifetime';
+    else if (discountDuration === 'date_time') is_discount_offer = 'limited';
+
+    const hasDiscount = is_discount_offer !== 'inactive';
+    const is_discount_type = hasDiscount
+      ? (form.querySelector('#discountOfferType')?.value || 'fixed')
+      : 'inactive';
+    const discount_value = hasDiscount
+      ? (parseFloat(form.querySelector('#discountOffer')?.value) || null)
+      : null;
+    const discount_start_at = (hasDiscount && discountDuration === 'date_time')
+      ? toIsoOrNull(form.querySelector('#discountOfferStartAt')?.value)
+      : null;
+    const discount_end_at = (hasDiscount && discountDuration === 'date_time')
+      ? toIsoOrNull(form.querySelector('#discountOfferEndAt')?.value)
+      : null;
+
+    const publishValue = form.querySelector('[name="publish_state"]:checked')?.value || 'immediately';
+    const publish_type = publishValue === 'scheduled' ? 'scheduled' : 'immediately';
+    const publish_at = publish_type === 'scheduled'
+      ? toIsoOrNull(form.querySelector('#productScheduleAt')?.value)
+      : null;
+
+    const media = window._productCreateMedia;
+    const cover = media?.getCover() ?? null;
+    const is_slider = media?.isSliderEnabled() ?? false;
+    const media_items = is_slider ? (media?.getSliderItems() ?? []) : [];
+
+    const variants = [];
+    if (isPhysical && hasVariants) {
+      Array.from(form.querySelectorAll('[data-variant-card]')).forEach((card) => {
+        const id = card.dataset.variantCard;
+        const colorToggle = card.querySelector(`[data-variant-color-toggle="${id}"]`);
+        const sizeToggle = card.querySelector(`[data-variant-size-toggle="${id}"]`);
+        variants.push({
+          have_color: colorToggle?.checked || false,
+          color: colorToggle?.checked ? (card.querySelector(`[data-variant-color-field="${id}"]`)?.value || '') : '',
+          have_size: sizeToggle?.checked || false,
+          size: sizeToggle?.checked ? (card.querySelector(`[data-variant-size-field="${id}"]`)?.value || '') : '',
+          qty: parseInt(card.querySelector(`[data-variant-qty="${id}"]`)?.value, 10) || 0,
+          alert_qty: parseInt(card.querySelector(`[data-variant-alert="${id}"]`)?.value, 10) || 0,
+          weight: parseFloat(card.querySelector(`[data-variant-weight="${id}"]`)?.value) || 0,
+        });
+      });
+    }
+
+    const downloadables = [];
+    if (type === 'downloadable') {
+      const driveLink = form.querySelector('#productDriveLink')?.value?.trim() || '';
+      const accessInstruction = form.querySelector('#productDriveNotes')?.value?.trim() || '';
+      const linkTypeValue = form.querySelector('[data-drive-link-type]:checked')?.value || 'public';
+      downloadables.push({
+        access_type: linkTypeValue === 'private' ? 'manual' : 'direct',
+        drive_link: driveLink,
+        access_instruction: accessInstruction,
+      });
+    }
+
+    const subscriptions = [];
+    if (type === 'subscription') {
+      Array.from(document.querySelectorAll('[data-subscription-entry]')).forEach((entry) => {
+        const id = entry.dataset.subscriptionEntry;
+        subscriptions.push({
+          email: entry.querySelector(`[name="subscriptions[${id}][email]"]`)?.value || '',
+          number: entry.querySelector(`[name="subscriptions[${id}][mobile]"]`)?.value || '',
+          username: entry.querySelector(`[name="subscriptions[${id}][username]"]`)?.value || '',
+          password: entry.querySelector(`[name="subscriptions[${id}][password]"]`)?.value || '',
+        });
+      });
+    }
+
+    const tags = parseTagInput(form.querySelector('#productCatalogTags')?.value);
+    const slug = form.querySelector('#productSlug')?.value?.trim() || '';
+    const meta_title = form.querySelector('#productMetaTitle')?.value?.trim() || '';
+    const meta_description = form.querySelector('#productMetaDescription')?.value?.trim() || '';
+    const seo_tags = parseTagInput(form.querySelector('#productTags')?.value);
+
+    const payload = {
+      type,
+      name,
+      category,
+      short_description,
+      description,
+      is_variants: isPhysical ? hasVariants : false,
+      product_price,
+      bargaining_price,
+      available_qty,
+      stock_alert,
+      weight,
+      shipping_profile,
+      is_discount_offer,
+      is_discount_type,
+      discount_value,
+      discount_start_at,
+      discount_end_at,
+      publish_type,
+      publish_at,
+      cover,
+      is_slider,
+      media_items,
+      variants,
+      tags,
+      slug,
+      meta_title,
+      meta_description,
+      seo_tags,
+    };
+
+    if (type === 'downloadable') payload.downloadables = downloadables;
+    if (type === 'subscription') payload.subscriptions = subscriptions;
+
+    return payload;
+  };
+
+  form.addEventListener('submit', async (event) => {
+    event.preventDefault();
+
+    const token = getToken();
+    if (!token) {
+      showWarning('Authentication token not found. Please log in again.');
+      return;
+    }
+
+    const saveBtn = document.querySelector('[type="submit"][form="createProductForm"]');
+    const originalText = saveBtn?.textContent || 'Save Product';
+    if (saveBtn) {
+      saveBtn.disabled = true;
+      saveBtn.textContent = 'Saving…';
+    }
+
+    try {
+      const payload = collectPayload();
+      const response = await fetch('http://localhost:8082/api/admin/products', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-refresh-token': token,
+        },
+        body: JSON.stringify(payload),
+      });
+
+      const data = await response.json().catch(() => ({}));
+
+      if (response.ok) {
+        showSuccess(data.message || 'Product created successfully.');
+        sessionStorage.removeItem('product_create_type');
+        sessionStorage.removeItem('product_drive_link_type');
+        setTimeout(() => { window.location.href = '/admin/products'; }, 1500);
+      } else {
+        showError(data.error || data.message || `Server error (${response.status})`);
+      }
+    } catch {
+      showError('Network error. Could not reach the server.');
+    } finally {
+      if (saveBtn) {
+        saveBtn.disabled = false;
+        saveBtn.textContent = originalText;
+      }
+    }
+  });
 }
 
 // ══════════════════════════════════════════

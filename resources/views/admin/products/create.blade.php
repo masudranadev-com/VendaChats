@@ -18,7 +18,8 @@
   <form
     id="createProductForm"
     class="products-create-layout"
-    onsubmit="event.preventDefault(); if (window.showSuccess) { window.showSuccess('Product saved (demo preview).'); }"
+    data-refresh-token="{{ $refreshToken }}"
+    data-dev-autofill="{{ $isLocal ? '1' : '0' }}"
   >
     <div class="products-create-main">
 
@@ -51,14 +52,6 @@
             <span class="products-type-card-icon">🔄</span>
             <strong class="products-type-card-title">Subscription</strong>
             <span class="products-type-card-desc">Recurring access plan — manage multiple credential slots for buyers</span>
-            <span class="products-type-card-check" aria-hidden="true">✓</span>
-          </label>
-
-          <label class="products-type-card" data-product-type-card>
-            <input type="radio" name="product_type" value="package">
-            <span class="products-type-card-icon">📦</span>
-            <strong class="products-type-card-title">Package</strong>
-            <span class="products-type-card-desc">Bundle multiple facilities together — perfect for combo deals and service packages</span>
             <span class="products-type-card-check" aria-hidden="true">✓</span>
           </label>
         </div>
@@ -412,49 +405,6 @@
         </div>
       </section>
 
-      {{-- ══ 5B. PACKAGE FACILITIES (shown for package type only) ══ --}}
-      <section class="card hidden" data-product-type-section="package">
-        <div class="card-header">
-          <h3 class="card-title">Package Facilities</h3>
-          <span class="badge badge-info">Features</span>
-        </div>
-
-        {{-- Package explanation --}}
-        <div class="products-subscription-how">
-          <div class="products-subscription-how-header">
-            <span class="products-subscription-how-icon">📦</span>
-            <div>
-              <strong>Package Features & Facilities</strong>
-              <span class="badge badge-info" style="margin-left: 8px; font-size: 10px;">Bundle</span>
-            </div>
-          </div>
-          <p class="products-subscription-how-desc">
-            Add <strong>one or multiple facilities</strong> that are included in this package. Each facility can have a name and description to clearly communicate what customers will receive.
-          </p>
-        </div>
-
-        {{-- Facility note --}}
-        <div class="products-subscription-notice">
-          <span class="products-subscription-notice-icon">ℹ️</span>
-          <div>
-            Define all facilities included in this package. Each facility should clearly describe what the customer will get. You can add as many facilities as needed.
-          </div>
-        </div>
-
-        <div class="products-subscription-list" id="facilitiesList" data-facilities-list>
-          <div class="products-subscription-empty">
-            No facilities added yet. Click <strong>Add Facility</strong> below to get started.
-          </div>
-        </div>
-
-        <div class="products-subscription-footer">
-          <button type="button" class="btn btn-primary" data-facility-add>
-            + Add Facility
-          </button>
-          <span class="products-subscription-count hidden" data-facilities-count></span>
-        </div>
-      </section>
-
       {{-- ══ 6. PRICING & INVENTORY ══ --}}
       <section class="card">
         <div class="card-header">
@@ -784,15 +734,15 @@
 
         <div class="products-publish-options">
           <label class="products-radio-item">
-            <input type="radio" name="publish_state">
+            <input type="radio" name="publish_state" value="draft">
             <span>Save as Draft</span>
           </label>
           <label class="products-radio-item">
-            <input type="radio" name="publish_state" checked>
+            <input type="radio" name="publish_state" value="immediately" checked>
             <span>Publish Immediately</span>
           </label>
           <label class="products-radio-item">
-            <input type="radio" name="publish_state">
+            <input type="radio" name="publish_state" value="scheduled">
             <span>Schedule Publish</span>
           </label>
         </div>
@@ -810,51 +760,7 @@
           <span class="badge" id="productTypeInfoBadge" data-product-type-badge>Physical</span>
         </div>
 
-        <div data-product-type-info-item="physical">
-          <ul class="products-create-checklist">
-            <li>Add product name &amp; category</li>
-            <li>Upload cover image (1080 × 1080)</li>
-            <li>Select shipping profile</li>
-            <li>Choose: No variants or Has variants</li>
-            <li>Set pricing &amp; inventory for each variant</li>
-            <li>Add weight for variants/simple product</li>
-            <li>Fill SEO fields for discoverability</li>
-          </ul>
-        </div>
-
-        <div class="hidden" data-product-type-info-item="downloadable">
-          <ul class="products-create-checklist">
-            <li>Add product name &amp; category</li>
-            <li>Upload an attractive cover image</li>
-            <li>Set product price &amp; bargaining price</li>
-            <li>Set file sharing to "Anyone with the link"</li>
-            <li>Paste the Google Drive share link</li>
-            <li>Add access instructions if needed</li>
-            <li>Fill SEO fields for discoverability</li>
-          </ul>
-        </div>
-
-        <div class="hidden" data-product-type-info-item="subscription">
-          <ul class="products-create-checklist">
-            <li>Add product name &amp; category</li>
-            <li>Upload an attractive cover image</li>
-            <li>Set subscription price &amp; bargaining price</li>
-            <li>Add at least one subscription slot</li>
-            <li>Fill credentials — leave empty if not available</li>
-            <li>Fill SEO fields for discoverability</li>
-          </ul>
-        </div>
-
-        <div class="hidden" data-product-type-info-item="package">
-          <ul class="products-create-checklist">
-            <li>Add product name &amp; category</li>
-            <li>Upload an attractive cover image</li>
-            <li>Set package price &amp; bargaining price</li>
-            <li>Add at least one facility to the package</li>
-            <li>Enable/disable facilities as needed</li>
-            <li>Fill SEO fields for discoverability</li>
-          </ul>
-        </div>
+        <div data-product-type-checklist></div>
       </section>
     </aside>
   </form>
