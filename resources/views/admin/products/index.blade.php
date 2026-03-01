@@ -18,15 +18,28 @@
 
   {{-- -- KPI STRIP -- --}}
   <section class="products-kpi-grid">
-    @foreach ($metrics as $index => $metric)
-      @php $kpiAccent = ['is-primary', 'is-success', 'is-warning', 'is-info'][$index] ?? ''; @endphp
-      <article class="products-kpi-card {{ $kpiAccent }}">
-        <span>{{ $metric['label'] }}</span>
-        <strong>{{ $metric['value'] }}</strong>
-        <small>{{ $metric['meta'] }}</small>
-      </article>
-    @endforeach
+    <article class="products-kpi-card is-primary">
+        <span>Total Products</span>
+        <strong>286</strong>
+        <small>+14 this month</small>
+    </article>
+    <article class="products-kpi-card is-success">
+        <span>Live Products</span>
+        <strong>249</strong>
+        <small>37 need review</small>
+    </article>
+    <article class="products-kpi-card is-warning">
+        <span>Low Stock Alert</span>
+        <strong>18</strong>
+        <small>Restock in 24h</small>
+    </article>
+    <article class="products-kpi-card is-info">
+        <span>Total Visitor</span>
+        <strong>249</strong>
+        <small>+10% this month</small>
+    </article>
   </section>
+
 
   {{-- -- PRODUCT CATALOG -- --}}
   <section
@@ -141,7 +154,7 @@
   >
     <span class="products-side-toggle-icon">&#9888;</span>
     <span class="products-side-toggle-text">Needs Attention</span>
-    <span class="products-side-toggle-count">{{ count($attentionItems) }}</span>
+    <span class="products-side-toggle-count">3</span>
   </button>
 
   <div class="products-side-backdrop" data-products-attention-backdrop aria-hidden="true"></div>
@@ -150,46 +163,25 @@
     <div class="card-header products-side-panel-header">
       <h3 class="card-title">Needs Attention</h3>
       <div class="products-side-panel-actions">
-        <span class="badge badge-warning">{{ count($attentionItems) }} alerts</span>
+        <span class="badge badge-warning">3 alerts</span>
         <button type="button" class="products-side-close" data-products-attention-close aria-label="Close">&times;</button>
       </div>
     </div>
 
     <ul class="products-attention-list">
-      @foreach ($attentionItems as $item)
-        <li>
-          <strong>{{ $item['title'] }}</strong>
-          <p>{{ $item['note'] }}</p>
-        </li>
-      @endforeach
+      <li>
+          <strong>11 units left on Leather Office Backpack</strong>
+          <p>Top wishlist item. Create urgent restock request.</p>
+      </li>
+      <li>
+          <strong>Hoodie return rate increased to 6.2%</strong>
+          <p>Check size chart and fabric details on product page.</p>
+      </li>
+      <li>
+          <strong>3 products missing size variation</strong>
+          <p>Publish size options to reduce drop-off on checkout.</p>
+      </li>
     </ul>
-
-    <div class="products-divider"></div>
-
-    <div class="card-header products-inline-header">
-      <h3 class="card-title">Category Share</h3>
-      <span class="badge badge-success">Sales mix</span>
-    </div>
-
-    <div class="products-category-list">
-      @foreach ($categoryHealth as $category)
-        <div class="products-category-item">
-          <div class="flex-between">
-            <span>{{ $category['name'] }}</span>
-            <strong>{{ $category['share'] }}%</strong>
-          </div>
-          <div class="products-category-track">
-            <span style="width: {{ $category['share'] }}%"></span>
-          </div>
-        </div>
-      @endforeach
-    </div>
-
-    <div class="products-quick-actions">
-      <button type="button" class="btn btn-primary btn-sm">Restock Planner</button>
-      <button type="button" class="btn btn-secondary btn-sm">Price Bulk Update</button>
-      <button type="button" class="btn btn-ghost btn-sm">Export Sheet</button>
-    </div>
   </section>
 
 @endsection

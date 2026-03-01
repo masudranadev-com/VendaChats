@@ -3,6 +3,7 @@
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Admin\BotSettingsController;
+use App\Http\Controllers\Admin\AdminProductsController;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\AdminUsersController;
 use App\Http\Controllers\Admin\AdminPostController;
@@ -127,10 +128,12 @@ Route::prefix('admin')->name('admin.')->middleware('admin.auth')->group(function
     Route::get('/analytics', [DashboardController::class, 'analytics'])->name('analytics');
     Route::get('/conversations', [DashboardController::class, 'conversations'])->name('conversations');
     Route::get('/customers', [DashboardController::class, 'customers'])->name('customers');
-    Route::get('/products', [DashboardController::class, 'products'])->name('products');
-    Route::get('/products/create', [DashboardController::class, 'productCreate'])->name('products.create');
-    Route::get('/products/{productId}/edit', [DashboardController::class, 'productEdit'])->name('products.edit');
-    Route::get('/categories', [DashboardController::class, 'categories'])->name('categories');
+
+    // products
+    Route::get('/products', [AdminProductsController::class, 'products'])->name('products');
+    Route::get('/products/create', [AdminProductsController::class, 'productCreate'])->name('products.create');
+    Route::get('/products/{productId}/edit', [AdminProductsController::class, 'productEdit'])->name('products.edit');
+    Route::get('/categories', [AdminProductsController::class, 'categories'])->name('categories');
 
     // orders 
     Route::get('/orders', [AdminOrderController::class, 'orders'])->name('orders');

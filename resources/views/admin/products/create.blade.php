@@ -8,13 +8,6 @@
       <h1 class="page-title">{{ $formMode === 'edit' ? 'Edit Product' : 'Add New Product' }}</h1>
       <p class="page-subtitle">{{ $subtitle }}</p>
     </div>
-
-    <div class="products-header-actions">
-      <a href="{{ route('admin.products') }}" class="btn btn-secondary">Back to Products</a>
-      <button type="submit" form="createProductForm" class="btn btn-primary">
-        {{ $formMode === 'edit' ? 'Update Product' : 'Save Product' }}
-      </button>
-    </div>
   </div>
 
   <form
@@ -736,6 +729,14 @@
         </div>
 
         <div class="products-publish-options">
+          
+          <div class="products-header-actions">
+            <a href="{{ route('admin.products') }}" class="btn btn-secondary">Back to Products</a>
+            <button type="submit" form="createProductForm" class="btn btn-primary">
+              {{ $formMode === 'edit' ? 'Update Product' : 'Save Product' }}
+            </button>
+          </div>
+
           <label class="products-radio-item">
             <input type="radio" name="publish_state" value="draft">
             <span>Save as Draft</span>
