@@ -14,6 +14,7 @@
     'admin.customers' => 'customers',
     'admin.products' => 'products',
     'admin.products.create' => 'products',
+    'admin.products.edit' => 'products',
     'admin.categories' => 'products',
     'admin.users' => 'users',
     'admin.users.views' => 'users',

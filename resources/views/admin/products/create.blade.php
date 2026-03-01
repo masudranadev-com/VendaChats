@@ -5,21 +5,26 @@
 @section('admin.content')
   <div class="page-header products-page-header">
     <div>
-      <h1 class="page-title">Add New Product</h1>
+      <h1 class="page-title">{{ $formMode === 'edit' ? 'Edit Product' : 'Add New Product' }}</h1>
       <p class="page-subtitle">{{ $subtitle }}</p>
     </div>
 
     <div class="products-header-actions">
       <a href="{{ route('admin.products') }}" class="btn btn-secondary">Back to Products</a>
-      <button type="submit" form="createProductForm" class="btn btn-primary">Save Product</button>
+      <button type="submit" form="createProductForm" class="btn btn-primary">
+        {{ $formMode === 'edit' ? 'Update Product' : 'Save Product' }}
+      </button>
     </div>
   </div>
 
   <form
     id="createProductForm"
     class="products-create-layout"
+    data-form-mode="{{ $formMode }}"
+    data-product-id="{{ $productId }}"
+    data-api-base-url="{{ $backendApiBaseUrl }}"
     data-refresh-token="{{ $refreshToken }}"
-    data-dev-autofill="{{ $isLocal ? '1' : '0' }}"
+    data-dev-autofill="{{ $enableDevAutofill ? '1' : '0' }}"
   >
     <div class="products-create-main">
 
@@ -428,7 +433,6 @@
               min="0"
               step="0.01"
               placeholder="e.g. 850"
-              required
             >
           </div>
 
@@ -584,7 +588,6 @@
                   min="0"
                   step="0.01"
                   placeholder="e.g. 1150"
-                  required
                 >
               </div>
 

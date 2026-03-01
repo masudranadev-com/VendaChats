@@ -73,142 +73,10 @@ class DashboardController extends Controller
 
     public function products(Request $request)
     {
-        $allProducts = [
-            [
-                'product_type'     => 'physical',
-                'name'             => 'Premium Cotton T-Shirt',
-                'image'            => asset('assets/images/products/premium-cotton-tshirt.svg'),
-                'category'         => 'Apparel',
-                'price'            => 'BDT 1,150',
-                'original_price'   => 'BDT 1,400',
-                'discount_label'   => '-18%',
-                'has_discount'     => true,
-                'has_variants'     => true,
-                'variant_count'    => 12,
-                'total_stock'      => 284,
-                'stock_label'      => 'In Stock',
-                'visitors'         => 2340,
-                'sales'            => 146,
-                'status'           => 'Active',
-            ],
-            [
-                'product_type'  => 'physical',
-                'name'          => 'Smart Casual Hoodie',
-                'image'         => asset('assets/images/products/smart-casual-hoodie.svg'),
-                'category'      => 'Apparel',
-                'price'         => 'BDT 1,890',
-                'has_discount'  => false,
-                'has_variants'  => false,
-                'stock'         => 22,
-                'stock_label'   => 'Low Stock',
-                'visitors'      => 1288,
-                'sales'         => 67,
-                'status'        => 'Active',
-            ],
-            [
-                'product_type'  => 'physical',
-                'name'          => 'Wireless Earbuds Pro',
-                'image'         => asset('assets/images/products/wireless-earbuds-pro.svg'),
-                'category'      => 'Electronics',
-                'price'         => 'BDT 3,250',
-                'has_discount'  => false,
-                'has_variants'  => false,
-                'stock'         => 56,
-                'stock_label'   => 'In Stock',
-                'visitors'      => 3610,
-                'sales'         => 201,
-                'status'        => 'Active',
-            ],
-            [
-                'product_type'     => 'physical',
-                'name'             => 'Leather Office Backpack',
-                'image'            => asset('assets/images/products/leather-office-backpack.svg'),
-                'category'         => 'Accessories',
-                'price'            => 'BDT 2,780',
-                'has_discount'     => false,
-                'has_variants'     => true,
-                'variant_count'    => 3,
-                'total_stock'      => 45,
-                'stock_label'      => 'In Stock',
-                'visitors'         => 910,
-                'sales'            => 39,
-                'status'           => 'Draft',
-            ],
-            [
-                'product_type'     => 'physical',
-                'name'             => 'AirFlex Running Shoes',
-                'image'            => asset('assets/images/products/airflex-running-shoes.svg'),
-                'category'         => 'Footwear',
-                'price'            => 'BDT 2,450',
-                'original_price'   => 'BDT 2,800',
-                'discount_label'   => '-12%',
-                'has_discount'     => true,
-                'has_variants'     => true,
-                'variant_count'    => 8,
-                'total_stock'      => 156,
-                'stock_label'      => 'In Stock',
-                'visitors'         => 2062,
-                'sales'            => 128,
-                'status'           => 'Active',
-            ],
-            [
-                'product_type'       => 'downloadable',
-                'name'               => 'UI Design Masterclass',
-                'image'              => null,
-                'category'           => 'Digital',
-                'price'              => 'BDT 850',
-                'original_price'     => 'BDT 1,200',
-                'discount_label'     => '-29%',
-                'has_discount'       => true,
-                'stock'              => 0,
-                'stock_label'        => '',
-                'visitors'           => 1840,
-                'sales'              => 93,
-                'status'             => 'Active',
-            ],
-            [
-                'product_type'         => 'subscription',
-                'name'                 => 'Netflix Premium Account',
-                'image'                => null,
-                'category'             => 'Digital',
-                'price'                => 'BDT 320',
-                'has_discount'         => false,
-                'stock'                => 0,
-                'stock_label'          => '',
-                'subscription_slots'   => 4,
-                'visitors'             => 760,
-                'sales'                => 41,
-                'status'               => 'Active',
-            ],
-            [
-                'product_type'         => 'package',
-                'name'                 => 'Complete Business Package',
-                'image'                => null,
-                'category'             => 'Digital',
-                'price'                => 'BDT 4,500',
-                'original_price'       => 'BDT 5,800',
-                'discount_label'       => '-22%',
-                'has_discount'         => true,
-                'stock'                => 0,
-                'stock_label'          => '',
-                'package_facilities'   => 5,
-                'visitors'             => 1520,
-                'sales'                => 78,
-                'status'               => 'Active',
-            ],
-        ];
-
-        $perPage = 5;
-        $currentPage = max(1, (int) $request->query('page', 1));
-        $products = new LengthAwarePaginator(
-            array_slice($allProducts, ($currentPage - 1) * $perPage, $perPage),
-            count($allProducts),
-            $perPage,
-            $currentPage,
-            [
-                'path' => $request->url(),
-                'query' => $request->query(),
-            ]
+        $refreshToken = (string) (
+            $request->session()->get('auth.refresh_token')
+            ?? $request->session()->get('refresh_token')
+            ?? ''
         );
 
         return view('admin.products.index', [
@@ -220,7 +88,8 @@ class DashboardController extends Controller
                 ['label' => 'Low Stock Alert', 'value' => '18', 'meta' => 'Restock in 24h'],
                 ['label' => 'Avg Visitors', 'value' => '5.8%', 'meta' => '+0.9% this week'],
             ],
-            'products' => $products,
+            'productsApiBaseUrl' => rtrim((string) config('services.backend.url', 'http://localhost:8082'), '/'),
+            'productsRefreshToken' => $refreshToken,
             'attentionItems' => [
                 ['title' => '11 units left on Leather Office Backpack', 'note' => 'Top wishlist item. Create urgent restock request.'],
                 ['title' => 'Hoodie return rate increased to 6.2%', 'note' => 'Check size chart and fabric details on product page.'],
@@ -249,8 +118,35 @@ class DashboardController extends Controller
             'categories' => ['Apparel', 'Electronics', 'Footwear', 'Accessories'],
             'channels' => ['Website', 'Facebook', 'Messenger', 'WhatsApp', 'Instagram'],
             'shippingProfiles' => ['Standard', 'Express', 'Fragile Item', 'Outside Dhaka'],
+            'backendApiBaseUrl' => rtrim((string) config('services.backend.url', 'http://localhost:8082'), '/'),
             'refreshToken' => $refreshToken,
+            'formMode' => 'create',
+            'productId' => null,
             'isLocal' => app()->environment('local'),
+            'enableDevAutofill' => app()->environment('local'),
+        ]);
+    }
+
+    public function productEdit(Request $request, int $productId)
+    {
+        $refreshToken = (string) (
+            $request->session()->get('auth.refresh_token')
+            ?? $request->session()->get('refresh_token')
+            ?? ''
+        );
+
+        return view('admin.products.create', [
+            'title' => 'Edit Product',
+            'subtitle' => 'Review and update product information, pricing, inventory, and publishing settings.',
+            'categories' => ['Apparel', 'Electronics', 'Footwear', 'Accessories'],
+            'channels' => ['Website', 'Facebook', 'Messenger', 'WhatsApp', 'Instagram'],
+            'shippingProfiles' => ['Standard', 'Express', 'Fragile Item', 'Outside Dhaka'],
+            'backendApiBaseUrl' => rtrim((string) config('services.backend.url', 'http://localhost:8082'), '/'),
+            'refreshToken' => $refreshToken,
+            'formMode' => 'edit',
+            'productId' => $productId,
+            'isLocal' => app()->environment('local'),
+            'enableDevAutofill' => false,
         ]);
     }
 

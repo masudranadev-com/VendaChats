@@ -295,6 +295,7 @@ document.addEventListener('DOMContentLoaded', () => {
   initCampaignBuilder();
   initOrdersManualOrder();
   initBotSettings();
+  initProductsCatalogPage();
   initProductsAttentionPanel();
   initProductTypeSelector();
   initDownloadableLinkType();
@@ -306,6 +307,7 @@ document.addEventListener('DOMContentLoaded', () => {
   initProductDemoAutoFill();
   initProductCreateAiWriter();
   initProductCreateSubmit();
+  initProductEditPrefill();
   setActivePage();
 });
 
@@ -2153,6 +2155,412 @@ function initBotSettings() {
 // ══════════════════════════════════════════
 // PRODUCTS: NEEDS ATTENTION DRAWER
 // ══════════════════════════════════════════
+function initProductsCatalogPage() {
+  const section = document.getElementById('productsCatalogSection');
+  if (!section) return;
+
+  const tbody = section.querySelector('[data-products-tbody]');
+  const totalBadge = section.querySelector('[data-products-total-badge]');
+  const resultNode = section.querySelector('[data-products-result]');
+  const pageWrap = section.querySelector('[data-products-pagination-wrap]');
+  const pageSummary = section.querySelector('[data-products-pagination-summary]');
+  const pageControls = section.querySelector('[data-products-pagination-controls]');
+  const searchInput = section.querySelector('[data-products-search]');
+  const typeSelect = section.querySelector('[data-products-type]');
+  const categorySelect = section.querySelector('[data-products-category]');
+  const statusSelect = section.querySelector('[data-products-status]');
+  const sortSelect = section.querySelector('[data-products-sort]');
+  const applyBtn = section.querySelector('[data-products-apply]');
+  const resetBtn = section.querySelector('[data-products-reset]');
+
+  if (
+    !tbody || !totalBadge || !resultNode || !pageWrap || !pageSummary || !pageControls ||
+    !searchInput || !typeSelect || !categorySelect || !statusSelect || !sortSelect || !applyBtn || !resetBtn
+  ) {
+    return;
+  }
+
+  const apiBase = String(section.dataset.apiBaseUrl || '').replace(/\/+$/, '');
+  const perPage = Math.max(1, Number.parseInt(section.dataset.perPage || '5', 10) || 5);
+  const sessionToken = String(section.dataset.refreshToken || '').trim();
+  let storageToken = '';
+  try {
+    storageToken = String(window.localStorage.getItem('refresh_token') || '').trim();
+  } catch {
+    storageToken = '';
+  }
+  const token = sessionToken || storageToken;
+
+  const state = {
+    page: (() => {
+      const params = new URLSearchParams(window.location.search);
+      const parsed = Number.parseInt(params.get('page') || '1', 10);
+      return Number.isFinite(parsed) && parsed > 0 ? parsed : 1;
+    })(),
+    perPage,
+    total: 0,
+    from: 0,
+    to: 0,
+    lastPage: 1,
+    products: [],
+    loading: false,
+    requestId: 0,
+  };
+
+  const categories = new Set(
+    Array.from(categorySelect.options)
+      .map((option) => String(option.value || '').trim())
+      .filter(Boolean)
+  );
+
+  const toInt = (value, fallback = 0) => {
+    const parsed = Number.parseInt(String(value ?? ''), 10);
+    return Number.isFinite(parsed) ? parsed : fallback;
+  };
+
+  const toNumber = (value, fallback = NaN) => {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : fallback;
+  };
+
+  const text = (value) => String(value ?? '').trim();
+  const titleCase = (value) => text(value).replace(/[_-]+/g, ' ').replace(/\s+/g, ' ').trim().replace(/\b\w/g, (char) => char.toUpperCase());
+  const formatCount = (value) => toInt(value, 0).toLocaleString('en-US');
+  const formatAmount = (value) => {
+    const amount = toNumber(value, NaN);
+    if (!Number.isFinite(amount)) return '-';
+    return amount.toLocaleString('en-US', {
+      minimumFractionDigits: Number.isInteger(amount) ? 0 : 2,
+      maximumFractionDigits: 2,
+    });
+  };
+  const escapeHtml = (value) => text(value)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+
+  const setMessage = (message, showAdd = false) => {
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="6">
+          <div class="products-catalog-empty">
+            <p>${escapeHtml(message)}</p>
+            ${showAdd ? '<a href="/admin/products/create" class="btn btn-primary btn-sm">+ Add First Product</a>' : ''}
+          </div>
+        </td>
+      </tr>
+    `;
+  };
+
+  const stockMeta = (product) => {
+    const stock = toInt(product.total_stock, 0);
+    const alert = toInt(product.stock_alert, 0);
+    if (stock <= 0) return { label: 'Out of Stock', css: 'badge-danger' };
+    if (alert > 0 && stock <= alert) return { label: 'Low Stock', css: 'badge-warning' };
+    return { label: 'In Stock', css: 'badge-success' };
+  };
+
+  const priceHtml = (product) => {
+    const price = formatAmount(product.price);
+    const bargaining = Number.isFinite(toNumber(product.bargaining_price, NaN))
+      ? formatAmount(product.bargaining_price)
+      : '';
+    const offer = text(product.is_discount_offer).toLowerCase();
+    const discountType = text(product.is_discount_type).toLowerCase();
+    const discountValue = toNumber(product.discount_value, NaN);
+    const hasDiscount = (offer === 'limited' || offer === 'lifetime') && Number.isFinite(discountValue);
+    const discountLabel = !hasDiscount ? '' : (discountType === 'percentage' ? `-${formatAmount(discountValue)}%` : `-${formatAmount(discountValue)}`);
+
+    return `
+      <div class="products-catalog-price">
+        <strong>${escapeHtml(price)}</strong>
+        ${discountLabel || bargaining ? `
+          <div class="products-catalog-price-sub">
+            ${discountLabel ? `<span class="products-catalog-discount-badge">${escapeHtml(discountLabel)}</span>` : ''}
+            ${bargaining ? `<small class="products-catalog-original">Bargain ${escapeHtml(bargaining)}</small>` : ''}
+          </div>
+        ` : ''}
+      </div>
+    `;
+  };
+
+  const stockHtml = (product, type) => {
+    if (type === 'downloadable') {
+      return '<div class="products-catalog-access"><span class="products-catalog-access-label products-catalog-access-label--digital">Unlimited</span><small class="products-catalog-access-note">No stock tracking</small></div>';
+    }
+    if (type === 'subscription') {
+      return `<div class="products-catalog-access"><span class="products-catalog-access-label products-catalog-access-label--slots">${formatCount(product.subscription_slots)} Slots available</span><small class="products-catalog-access-note">Seller managed account slots</small></div>`;
+    }
+    if (type === 'package') {
+      return `<div class="products-catalog-access"><span class="products-catalog-access-label products-catalog-access-label--package">${formatCount(product.package_facilities)} Facilities included</span><small class="products-catalog-access-note">Bundle package</small></div>`;
+    }
+
+    const meta = stockMeta(product);
+    const stock = toInt(product.total_stock, 0);
+    if (Boolean(product.is_variants)) {
+      const variants = toInt(product.variant_count, 0);
+      return `<div class="products-catalog-stock"><div class="products-catalog-stock-top"><span class="products-catalog-stock-num">${formatCount(stock)} units total</span><span class="badge badge-xs ${meta.css}">${meta.label}</span></div><div class="products-catalog-variants-info"><span class="products-catalog-variants-badge">${formatCount(variants)} Variant${variants === 1 ? '' : 's'}</span></div></div>`;
+    }
+
+    const progress = Math.max(0, Math.min(100, stock));
+    return `<div class="products-catalog-stock"><div class="products-catalog-stock-top"><span class="products-catalog-stock-num">${formatCount(stock)} units</span><span class="badge badge-xs ${meta.css}">${meta.label}</span></div><div class="products-catalog-progress"><div class="products-catalog-progress-fill ${meta.css}" style="width: ${progress}%"></div></div></div>`;
+  };
+
+  const rowNode = (product) => {
+    const type = text(product.type).toLowerCase() || 'physical';
+    const typeLabelMap = { physical: 'Physical', downloadable: 'Downloadable', subscription: 'Subscription', package: 'Package' };
+    const typeCssMap = { physical: 'products-type-tag--physical', downloadable: 'products-type-tag--downloadable', subscription: 'products-type-tag--subscription', package: 'products-type-tag--package' };
+    const name = text(product.name) || 'Unnamed Product';
+    const image = text(product.cover);
+    const initial = escapeHtml(name.charAt(0).toUpperCase() || 'P');
+    const category = text(product.category) || 'Uncategorized';
+    const status = text(product.status).toLowerCase();
+    const statusCss = status === 'active' ? 'badge-success' : (status === 'draft' || status === 'pending' ? 'badge-warning' : (status === 'inactive' ? 'badge-danger' : 'badge-info'));
+
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>
+        <div class="products-catalog-cell">
+          ${image ? `<span class="products-catalog-thumb"><img src="${escapeHtml(image)}" alt="${escapeHtml(name)}" loading="lazy"></span>` : `<span class="products-catalog-thumb products-catalog-thumb--initial products-catalog-thumb--${escapeHtml(type)}">${initial}</span>`}
+          <div class="products-catalog-meta">
+            <strong class="products-catalog-name" title="${escapeHtml(name)}">${escapeHtml(name)}</strong>
+            <div class="products-catalog-tags">
+              <span class="products-type-tag ${typeCssMap[type] || ''}">${escapeHtml(typeLabelMap[type] || titleCase(type))}</span>
+              <span class="products-catalog-category">${escapeHtml(category)}</span>
+            </div>
+          </div>
+        </div>
+      </td>
+      <td>${priceHtml(product)}</td>
+      <td>${stockHtml(product, type)}</td>
+      <td><div class="products-catalog-perf"><strong>${formatCount(product.sales_7d)} sales</strong><small>${formatCount(product.visitors_7d)} visitors</small></div></td>
+      <td><span class="badge ${statusCss}">${escapeHtml(titleCase(status || 'unknown'))}</span></td>
+      <td><div class="products-table-actions"><button type="button" class="btn btn-ghost btn-sm">View</button><a href="/admin/products/${encodeURIComponent(String(product.id ?? ''))}/edit" class="btn btn-secondary btn-sm">Edit</a></div></td>
+    `;
+    return tr;
+  };
+
+  const filteredProducts = () => {
+    const search = text(searchInput.value).toLowerCase();
+    const type = text(typeSelect.value).toLowerCase();
+    const category = text(categorySelect.value).toLowerCase();
+    const status = text(statusSelect.value).toLowerCase();
+    const sort = text(sortSelect.value).toLowerCase();
+
+    const list = state.products.filter((product) => {
+      const name = text(product.name).toLowerCase();
+      const productType = text(product.type).toLowerCase();
+      const productCategory = text(product.category).toLowerCase();
+      const productStatus = text(product.status).toLowerCase();
+      if (search && !name.includes(search)) return false;
+      if (type && productType !== type) return false;
+      if (category && productCategory !== category) return false;
+      if (status && productStatus !== status) return false;
+      return true;
+    });
+
+    return list.sort((a, b) => {
+      if (sort === 'sales_desc') return toInt(b.sales_7d, 0) - toInt(a.sales_7d, 0);
+      if (sort === 'stock_asc') {
+        const aStock = text(a.type).toLowerCase() === 'physical' ? toInt(a.total_stock, Number.MAX_SAFE_INTEGER) : Number.MAX_SAFE_INTEGER;
+        const bStock = text(b.type).toLowerCase() === 'physical' ? toInt(b.total_stock, Number.MAX_SAFE_INTEGER) : Number.MAX_SAFE_INTEGER;
+        return aStock - bStock;
+      }
+      if (sort === 'price_desc') return toNumber(b.price, -1) - toNumber(a.price, -1);
+      if (sort === 'price_asc') return toNumber(a.price, Number.MAX_SAFE_INTEGER) - toNumber(b.price, Number.MAX_SAFE_INTEGER);
+      return (Date.parse(text(b.created_at)) || 0) - (Date.parse(text(a.created_at)) || 0);
+    });
+  };
+
+  const renderTable = () => {
+    const list = filteredProducts();
+    tbody.innerHTML = '';
+
+    if (!list.length) {
+      setMessage('No products matched current filters.', state.products.length === 0);
+      resultNode.textContent = state.products.length === 0 ? 'No products found' : 'No products matched current filters';
+      return;
+    }
+
+    const fragment = document.createDocumentFragment();
+    list.forEach((product) => fragment.appendChild(rowNode(product)));
+    tbody.appendChild(fragment);
+
+    if (list.length !== state.products.length) {
+      resultNode.textContent = `Showing ${list.length} filtered product(s) on this page`;
+    } else if (state.total > 0 && state.from > 0 && state.to > 0) {
+      resultNode.textContent = `Showing ${state.from}-${state.to} of ${state.total} products`;
+    } else {
+      resultNode.textContent = `Showing ${list.length} products`;
+    }
+  };
+
+  const renderPagination = () => {
+    const current = Math.max(1, toInt(state.page, 1));
+    const last = Math.max(1, toInt(state.lastPage, 1));
+    if (last <= 1) {
+      pageWrap.hidden = true;
+      return;
+    }
+
+    pageWrap.hidden = false;
+    pageSummary.textContent = `Page ${current} of ${last}`;
+    pageControls.innerHTML = '';
+
+    const btn = (label, page, disabled = false, active = false) => {
+      const node = document.createElement('button');
+      node.type = 'button';
+      node.className = `products-page-btn${disabled ? ' is-disabled' : ''}${active ? ' is-active' : ''}`;
+      node.textContent = label;
+      if (disabled || active) {
+        node.disabled = true;
+        if (disabled) node.setAttribute('aria-disabled', 'true');
+        if (active) node.setAttribute('aria-current', 'page');
+      } else {
+        node.addEventListener('click', () => !state.loading && loadProducts(page));
+      }
+      return node;
+    };
+
+    const pages = [];
+    if (last <= 7) {
+      for (let page = 1; page <= last; page += 1) pages.push(page);
+    } else {
+      pages.push(1);
+      if (current > 3) pages.push('...');
+      for (let page = Math.max(2, current - 1); page <= Math.min(last - 1, current + 1); page += 1) pages.push(page);
+      if (current < last - 2) pages.push('...');
+      pages.push(last);
+    }
+
+    pageControls.appendChild(btn('Prev', current - 1, current <= 1, false));
+    pages.forEach((page) => pageControls.appendChild(page === '...' ? btn('...', 0, true, false) : btn(String(page), page, false, page === current)));
+    pageControls.appendChild(btn('Next', current + 1, current >= last, false));
+  };
+
+  const updateUrlPage = (page) => {
+    const url = new URL(window.location.href);
+    if (page > 1) url.searchParams.set('page', String(page));
+    else url.searchParams.delete('page');
+    window.history.replaceState({}, '', url.toString());
+  };
+
+  const setLoading = (loading) => {
+    state.loading = loading;
+    applyBtn.disabled = loading;
+    resetBtn.disabled = loading;
+  };
+
+  async function loadProducts(page) {
+    if (!token) {
+      const message = 'Missing refresh token. Please login again.';
+      totalBadge.textContent = 'Unavailable';
+      resultNode.textContent = message;
+      setMessage(message);
+      pageWrap.hidden = true;
+      if (typeof window.showError === 'function') window.showError(message);
+      return;
+    }
+
+    if (!apiBase) {
+      const message = 'Backend API URL is missing.';
+      totalBadge.textContent = 'Unavailable';
+      resultNode.textContent = message;
+      setMessage(message);
+      pageWrap.hidden = true;
+      return;
+    }
+
+    const requestId = ++state.requestId;
+    setLoading(true);
+    setMessage('Loading products...');
+    resultNode.textContent = 'Loading products...';
+
+    const controller = new AbortController();
+    const timeoutId = window.setTimeout(() => controller.abort(), 12000);
+
+    try {
+      const response = await fetch(`${apiBase}/api/admin/products?page=${page}&per_page=${state.perPage}`, {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json',
+          'x-refresh-token': token,
+        },
+        signal: controller.signal,
+      });
+
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        if (response.status === 401) throw new Error('Unauthorized (401). Refresh token expired or invalid.');
+        throw new Error(payload.error || payload.message || `Request failed (${response.status}).`);
+      }
+      if (requestId !== state.requestId) return;
+
+      const list = Array.isArray(payload.data) ? payload.data : [];
+      const pagination = payload.pagination && typeof payload.pagination === 'object' ? payload.pagination : {};
+      state.products = list;
+      state.page = Math.max(1, toInt(pagination.current_page, page));
+      state.lastPage = Math.max(1, toInt(pagination.last_page, 1));
+      state.total = Math.max(0, toInt(pagination.total, list.length));
+      state.from = Math.max(0, toInt(pagination.from, list.length ? ((state.page - 1) * state.perPage) + 1 : 0));
+      state.to = Math.max(0, toInt(pagination.to, state.from ? state.from + list.length - 1 : 0));
+
+      list.forEach((product) => {
+        const category = text(product.category);
+        if (category) categories.add(category);
+      });
+      const selectedCategory = text(categorySelect.value);
+      categorySelect.innerHTML = ['<option value="">All Categories</option>']
+        .concat(Array.from(categories).sort((a, b) => a.localeCompare(b)).map((category) => `<option value="${escapeHtml(category)}"${category === selectedCategory ? ' selected' : ''}>${escapeHtml(category)}</option>`))
+        .join('');
+
+      totalBadge.textContent = `${formatCount(state.total)} Products`;
+      renderTable();
+      renderPagination();
+      updateUrlPage(state.page);
+    } catch (error) {
+      if (requestId !== state.requestId) return;
+      const message = error?.name === 'AbortError'
+        ? 'Request timed out. Please try again.'
+        : (error?.message || 'Failed to load products.');
+      state.products = [];
+      state.total = 0;
+      state.from = 0;
+      state.to = 0;
+      state.lastPage = 1;
+      totalBadge.textContent = 'Unavailable';
+      resultNode.textContent = message;
+      setMessage(message);
+      pageWrap.hidden = true;
+      if (typeof window.showError === 'function') window.showError(message);
+    } finally {
+      window.clearTimeout(timeoutId);
+      if (requestId === state.requestId) setLoading(false);
+    }
+  }
+
+  applyBtn.addEventListener('click', () => renderTable());
+  resetBtn.addEventListener('click', () => {
+    searchInput.value = '';
+    typeSelect.value = '';
+    categorySelect.value = '';
+    statusSelect.value = '';
+    sortSelect.value = 'latest';
+    renderTable();
+  });
+  sortSelect.addEventListener('change', () => renderTable());
+  searchInput.addEventListener('keydown', (event) => {
+    if (event.key === 'Enter') {
+      event.preventDefault();
+      renderTable();
+    }
+  });
+
+  loadProducts(state.page);
+}
+
 function initProductsAttentionPanel() {
   const toggle = document.querySelector('[data-products-attention-toggle]');
   const panel = document.getElementById('productsAttentionPanel');
@@ -2427,7 +2835,7 @@ function initSubscriptionEntries() {
     `;
   };
 
-  const addEntry = () => {
+  const addEntry = (seed = null) => {
     entrySequence += 1;
     const id = entrySequence;
 
@@ -2511,6 +2919,22 @@ function initSubscriptionEntries() {
     });
 
     list.appendChild(entry);
+
+    if (seed && typeof seed === 'object') {
+      const setValue = (selector, value) => {
+        const field = entry.querySelector(selector);
+        if (!field) return;
+        field.value = String(value ?? '');
+        field.dispatchEvent(new Event('input', { bubbles: true }));
+        field.dispatchEvent(new Event('change', { bubbles: true }));
+      };
+
+      setValue(`[name="subscriptions[${id}][email]"]`, seed.email || '');
+      setValue(`[name="subscriptions[${id}][mobile]"]`, seed.number || seed.mobile || '');
+      setValue(`[name="subscriptions[${id}][username]"]`, seed.username || '');
+      setValue(`[name="subscriptions[${id}][password]"]`, seed.password || '');
+    }
+
     renumberEntries();
 
     // Scroll the new entry into view smoothly
@@ -2518,6 +2942,21 @@ function initSubscriptionEntries() {
   };
 
   addButton.addEventListener('click', addEntry);
+  window._productCreateSubscriptions = {
+    clear() {
+      entrySequence = 0;
+      showEmpty();
+      renumberEntries();
+    },
+    add(seed = null) {
+      addEntry(seed);
+    },
+    setEntries(items = []) {
+      this.clear();
+      if (!Array.isArray(items) || !items.length) return;
+      items.forEach((item) => addEntry(item));
+    },
+  };
   showEmpty();
 }
 
@@ -2666,7 +3105,7 @@ function initProductVariants() {
   };
 
   // Add variant card
-  const addVariant = () => {
+  const addVariant = (seed = null) => {
     variantCounter += 1;
     const id = variantCounter;
 
@@ -2766,7 +3205,6 @@ function initProductVariants() {
               min="0"
               step="0.01"
               placeholder="e.g. 1500"
-              required
               data-variant-price="${id}"
             >
           </div>
@@ -2889,6 +3327,35 @@ function initProductVariants() {
     variants.push({ id });
     variantList.appendChild(card);
 
+    if (seed && typeof seed === 'object') {
+      const setValue = (selector, value) => {
+        const field = card.querySelector(selector);
+        if (!field) return;
+        field.value = String(value ?? '');
+        field.dispatchEvent(new Event('input', { bubbles: true }));
+        field.dispatchEvent(new Event('change', { bubbles: true }));
+      };
+
+      const enableColor = Boolean(seed.have_color);
+      const enableSize = Boolean(seed.have_size);
+      if (colorToggle) {
+        colorToggle.checked = enableColor;
+        colorToggle.dispatchEvent(new Event('change', { bubbles: true }));
+      }
+      if (sizeToggle) {
+        sizeToggle.checked = enableSize;
+        sizeToggle.dispatchEvent(new Event('change', { bubbles: true }));
+      }
+
+      setValue(`[data-variant-color-field="${id}"]`, enableColor ? (seed.color || '') : '');
+      setValue(`[data-variant-size-field="${id}"]`, enableSize ? (seed.size || '') : '');
+      setValue(`[data-variant-price="${id}"]`, seed.price ?? seed.product_price ?? '');
+      setValue(`[data-variant-bargaining="${id}"]`, seed.bargaining_price ?? '');
+      setValue(`[data-variant-qty="${id}"]`, seed.qty ?? seed.quantity ?? 0);
+      setValue(`[data-variant-alert="${id}"]`, seed.alert_qty ?? 0);
+      setValue(`[data-variant-weight="${id}"]`, seed.weight ?? '');
+    }
+
     // Scroll into view
     card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   };
@@ -2931,6 +3398,32 @@ function initProductVariants() {
   if (checkedInput) {
     handleToggle(checkedInput.value);
   }
+
+  window._productCreateVariants = {
+    setMode(hasVariants) {
+      const targetValue = hasVariants ? 'yes' : 'no';
+      const targetInput = toggleInputs.find((input) => input.value === targetValue);
+      if (targetInput) {
+        targetInput.checked = true;
+        targetInput.dispatchEvent(new Event('change', { bubbles: true }));
+      } else {
+        handleToggle(targetValue);
+      }
+    },
+    clear() {
+      variants = [];
+      variantCounter = 0;
+      showEmptyState();
+    },
+    add(seed = null) {
+      addVariant(seed);
+    },
+    setVariants(items = []) {
+      this.clear();
+      if (!Array.isArray(items) || !items.length) return;
+      items.forEach((item) => addVariant(item));
+    },
+  };
 }
 
 // ══════════════════════════════════════════
@@ -3483,6 +3976,81 @@ function initProductCreateSliderControl() {
       source_url: item.url,
     })),
     isSliderEnabled: () => sliderInputs.find((i) => i.checked)?.value !== 'disabled',
+    setCoverFromUrl(url) {
+      releaseMediaUrl(coverItem);
+      const sourceUrl = String(url || '').trim();
+      if (!sourceUrl) {
+        coverItem = null;
+        renderCoverList();
+        return;
+      }
+
+      coverItem = {
+        type: 'image',
+        name: 'Existing Cover',
+        size: 0,
+        width: '-',
+        height: '-',
+        url: sourceUrl,
+      };
+      renderCoverList();
+    },
+    setSliderEnabled(isEnabled) {
+      const value = isEnabled ? 'enabled' : 'disabled';
+      const input = sliderInputs.find((item) => item.value === value);
+      if (!input) return;
+      input.checked = true;
+      input.dispatchEvent(new Event('change', { bubbles: true }));
+    },
+    setSliderItemsFromApi(items = []) {
+      while (sliderItems.length) {
+        releaseMediaUrl(sliderItems[0]);
+        sliderItems.shift();
+      }
+      sliderSequence = 1;
+
+      if (!Array.isArray(items)) {
+        renderSliderList();
+        return;
+      }
+
+      items.forEach((item) => {
+        const mediaType = String(item?.media_type || '').toLowerCase();
+        const sourceUrl = String(item?.source_url || '').trim();
+        if (!sourceUrl) return;
+
+        let type = 'image';
+        let name = 'Slider Image';
+        let embedUrl = null;
+        let videoId = null;
+
+        if (mediaType === 'upload_video' || mediaType === 'video') {
+          type = 'video';
+          name = 'Slider Video';
+        } else if (mediaType === 'yt_video' || mediaType === 'youtube') {
+          type = 'youtube';
+          name = 'YouTube Video';
+          const parsedVideoId = parseYouTubeVideoId(sourceUrl);
+          videoId = parsedVideoId || null;
+          embedUrl = parsedVideoId ? getYouTubeEmbedUrl(parsedVideoId) : sourceUrl;
+        }
+
+        sliderItems.push({
+          id: sliderSequence,
+          type,
+          name,
+          size: 0,
+          width: null,
+          height: null,
+          url: sourceUrl,
+          videoId,
+          embedUrl,
+        });
+        sliderSequence += 1;
+      });
+
+      renderSliderList();
+    },
   };
 }
 
@@ -3778,7 +4346,18 @@ function initProductCreateAiWriter() {
     });
   });
 
-  productNameInput.addEventListener('input', updateAiButtonState);
+  let slugUserEdited = !!(slugInput && slugInput.value.trim());
+
+  slugInput?.addEventListener('input', () => {
+    slugUserEdited = slugInput.value.trim() !== '';
+  });
+
+  productNameInput.addEventListener('input', () => {
+    if (!slugUserEdited && slugInput) {
+      slugInput.value = slugify(productNameInput.value);
+    }
+    updateAiButtonState();
+  });
 
   shortDescriptionInput?.addEventListener('input', () => {
     if (shortDescriptionInput.value.length > shortDescriptionMaxLength) {
@@ -3792,6 +4371,15 @@ function initProductCreateAiWriter() {
 
   initFullDescriptionEditor();
   updateShortDescriptionCounter();
+
+  window._productCreateEditor = {
+    setFullDescription(htmlValue) {
+      const html = String(htmlValue || '').trim();
+      const fallback = htmlToPlainText(html);
+      setFullDescriptionContent(html, fallback);
+      updateAiButtonState();
+    },
+  };
 
   updateAiButtonState();
 }
@@ -4259,6 +4847,241 @@ function initProductDemoAutoFill() {
 // ══════════════════════════════════════════
 // PRODUCTS: CREATE SUBMIT
 // ══════════════════════════════════════════
+// ============================================
+// PRODUCTS: EDIT PREFILL
+// ============================================
+function initProductEditPrefill() {
+  const form = document.getElementById('createProductForm');
+  if (!form || form.dataset.formMode !== 'edit') return;
+
+  const productId = Number.parseInt(String(form.dataset.productId || ''), 10);
+  if (!Number.isFinite(productId) || productId <= 0) return;
+
+  const apiBase = String(form.dataset.apiBaseUrl || 'http://localhost:8082').replace(/\/+$/, '');
+  const token =
+    String(form.dataset.refreshToken || '').trim() ||
+    localStorage.getItem('refresh_token') ||
+    '';
+
+  const setInput = (selector, value) => {
+    const field = form.querySelector(selector);
+    if (!field) return;
+    field.value = String(value ?? '');
+    field.dispatchEvent(new Event('input', { bubbles: true }));
+    field.dispatchEvent(new Event('change', { bubbles: true }));
+  };
+
+  const setSelectSmart = (selector, rawValue) => {
+    const select = form.querySelector(selector);
+    if (!select) return;
+
+    const value = String(rawValue ?? '').trim();
+    if (!value) {
+      select.value = '';
+      select.dispatchEvent(new Event('change', { bubbles: true }));
+      return;
+    }
+
+    const optionByValue = Array.from(select.options).find(
+      (opt) => String(opt.value || '').trim().toLowerCase() === value.toLowerCase()
+    );
+    const optionByLabel = optionByValue || Array.from(select.options).find(
+      (opt) => String(opt.textContent || '').trim().toLowerCase() === value.toLowerCase()
+    );
+
+    if (optionByLabel) {
+      select.value = optionByLabel.value;
+    } else {
+      const option = document.createElement('option');
+      option.value = value;
+      option.textContent = value;
+      select.appendChild(option);
+      select.value = value;
+    }
+
+    select.dispatchEvent(new Event('change', { bubbles: true }));
+  };
+
+  const setRadio = (name, value) => {
+    const radio = form.querySelector(`[name="${name}"][value="${value}"]`);
+    if (!radio) return;
+    radio.checked = true;
+    radio.dispatchEvent(new Event('change', { bubbles: true }));
+    radio.closest('[data-product-type-card], [data-variant-toggle-card], [data-drive-link-type-card]')?.click();
+  };
+
+  const toDatetimeLocal = (value) => {
+    if (!value) return '';
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return '';
+    const pad = (n) => String(n).padStart(2, '0');
+    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+  };
+
+  const parseList = (value) => Array.isArray(value) ? value : [];
+
+  const applyProductToForm = (product) => {
+    const type = String(product?.type || 'physical').toLowerCase();
+    setRadio('product_type', type);
+
+    setInput('#productName', product?.name || '');
+    setSelectSmart('#productCategory', product?.category || '');
+    setInput('#productShortDescription', product?.short_description || '');
+
+    if (window._productCreateEditor && typeof window._productCreateEditor.setFullDescription === 'function') {
+      window._productCreateEditor.setFullDescription(product?.description || '');
+    } else {
+      setInput('#productDescription', product?.description || '');
+    }
+
+    setInput('#productCatalogTags', parseList(product?.tags).join(', '));
+    setInput('#productSlug', product?.slug || '');
+    setInput('#productMetaTitle', product?.meta_title || '');
+    setInput('#productMetaDescription', product?.meta_description || '');
+    setInput('#productTags', parseList(product?.seo_tags).join(', '));
+
+    const publishType = String(product?.publish_type || 'immediately').toLowerCase();
+    if (publishType === 'scheduled') {
+      setRadio('publish_state', 'scheduled');
+      setInput('#productScheduleAt', toDatetimeLocal(product?.publish_at));
+    } else if (publishType === 'draft') {
+      setRadio('publish_state', 'draft');
+      setInput('#productScheduleAt', '');
+    } else {
+      setRadio('publish_state', 'immediately');
+      setInput('#productScheduleAt', '');
+    }
+
+    const discountOffer = String(product?.is_discount_offer || 'inactive').toLowerCase();
+    let discountDuration = 'none';
+    if (discountOffer === 'lifetime') {
+      discountDuration = 'lifetime';
+    } else if (discountOffer === 'limited') {
+      discountDuration = (product?.discount_start_at || product?.discount_end_at) ? 'date_time' : 'lifetime';
+    }
+    setInput('[data-discount-offer-duration]', discountDuration);
+    setInput('#discountOfferType', product?.is_discount_type || 'fixed');
+    setInput('#discountOffer', product?.discount_value ?? '');
+    setInput('#discountOfferStartAt', toDatetimeLocal(product?.discount_start_at));
+    setInput('#discountOfferEndAt', toDatetimeLocal(product?.discount_end_at));
+
+    if (window._productCreateMedia) {
+      if (typeof window._productCreateMedia.setCoverFromUrl === 'function') {
+        window._productCreateMedia.setCoverFromUrl(product?.cover || '');
+      }
+      if (typeof window._productCreateMedia.setSliderEnabled === 'function') {
+        window._productCreateMedia.setSliderEnabled(Boolean(product?.is_slider));
+      }
+      if (typeof window._productCreateMedia.setSliderItemsFromApi === 'function') {
+        window._productCreateMedia.setSliderItemsFromApi(parseList(product?.media_items));
+      }
+    }
+
+    if (type === 'physical') {
+      setSelectSmart('#productShippingProfile', product?.shipping_profile || '');
+      const hasVariants = Boolean(product?.is_variants);
+      if (window._productCreateVariants && typeof window._productCreateVariants.setMode === 'function') {
+        window._productCreateVariants.setMode(hasVariants);
+      } else {
+        setRadio('has_variants', hasVariants ? 'yes' : 'no');
+      }
+
+      if (hasVariants) {
+        if (window._productCreateVariants && typeof window._productCreateVariants.setVariants === 'function') {
+          window._productCreateVariants.setVariants(parseList(product?.variants));
+        }
+      } else {
+        setInput('#simplePrice', product?.product_price ?? '');
+        setInput('#simpleBargainingPrice', product?.bargaining_price ?? '');
+        setInput('#simpleQuantity', product?.available_qty ?? '');
+        setInput('#simpleAlertQty', product?.stock_alert ?? '');
+        setInput('#simpleWeight', product?.weight ?? '');
+      }
+    } else {
+      setInput('#productPrice', product?.product_price ?? '');
+      setInput('#bargainingPrice', product?.bargaining_price ?? '');
+    }
+
+    if (type === 'downloadable') {
+      const downloadableItems = parseList(product?.downloadables);
+      const firstDownloadable = downloadableItems[0] || {};
+      const accessType = String(firstDownloadable.access_type || '').toLowerCase();
+      setRadio('drive_link_type', accessType === 'direct' ? 'public' : 'private');
+      setInput('#productDriveLink', firstDownloadable.drive_link || '');
+      setInput('#productDriveNotes', firstDownloadable.access_instruction || '');
+      if (downloadableItems.length > 1) {
+        showInfo('Multiple downloadable entries found. First entry loaded into edit fields.');
+      }
+    }
+
+    if (type === 'subscription') {
+      if (window._productCreateSubscriptions && typeof window._productCreateSubscriptions.setEntries === 'function') {
+        window._productCreateSubscriptions.setEntries(parseList(product?.subscriptions));
+      }
+    }
+  };
+
+  const saveBtn = document.querySelector('[type="submit"][form="createProductForm"]');
+  const originalSaveBtnText = saveBtn?.textContent || 'Update Product';
+
+  const fetchAndFill = async () => {
+    if (!token) {
+      showWarning('Authentication token not found. Please log in again.');
+      return;
+    }
+
+    if (saveBtn) {
+      saveBtn.disabled = true;
+      saveBtn.textContent = 'Loading...';
+    }
+
+    const abortController = new AbortController();
+    const timeoutId = window.setTimeout(() => abortController.abort(), 12000);
+
+    try {
+      const response = await fetch(`${apiBase}/api/admin/products/${productId}`, {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json',
+          'x-refresh-token': token,
+        },
+        signal: abortController.signal,
+      });
+
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        if (response.status === 404) {
+          showError(payload?.error || 'Product not found.');
+          return;
+        }
+        if (response.status === 401) {
+          showError('Unauthorized (401). Please log in again.');
+          return;
+        }
+        showError(payload?.error || payload?.message || `Server error (${response.status})`);
+        return;
+      }
+
+      applyProductToForm(payload || {});
+      showSuccess('Product loaded for editing.');
+    } catch (error) {
+      if (error?.name === 'AbortError') {
+        showError('Request timed out while loading product.');
+      } else {
+        showError('Network error. Could not load product data.');
+      }
+    } finally {
+      window.clearTimeout(timeoutId);
+      if (saveBtn) {
+        saveBtn.disabled = false;
+        saveBtn.textContent = originalSaveBtnText;
+      }
+    }
+  };
+
+  fetchAndFill();
+}
+
 function initProductCreateSubmit() {
   const form = document.getElementById('createProductForm');
   if (!form) return;
@@ -4361,7 +5184,7 @@ function initProductCreateSubmit() {
       const accessInstruction = form.querySelector('#productDriveNotes')?.value?.trim() || '';
       const linkTypeValue = form.querySelector('[data-drive-link-type]:checked')?.value || 'public';
       downloadables.push({
-        access_type: linkTypeValue === 'private' ? 'manual' : 'direct',
+        access_type: linkTypeValue === 'private' ? 'email' : 'direct',
         drive_link: driveLink,
         access_instruction: accessInstruction,
       });
@@ -4369,7 +5192,7 @@ function initProductCreateSubmit() {
 
     const subscriptions = [];
     if (type === 'subscription') {
-      Array.from(document.querySelectorAll('[data-subscription-entry]')).forEach((entry) => {
+      Array.from(form.querySelectorAll('[data-subscription-entry]')).forEach((entry) => {
         const id = entry.dataset.subscriptionEntry;
         subscriptions.push({
           email: entry.querySelector(`[name="subscriptions[${id}][email]"]`)?.value || '',
@@ -4417,8 +5240,8 @@ function initProductCreateSubmit() {
       seo_tags,
     };
 
-    if (type === 'downloadable') payload.downloadables = downloadables;
-    if (type === 'subscription') payload.subscriptions = subscriptions;
+    payload.downloadables = downloadables;
+    payload.subscriptions = subscriptions;
 
     return payload;
   };
@@ -4433,7 +5256,15 @@ function initProductCreateSubmit() {
     }
 
     const saveBtn = document.querySelector('[type="submit"][form="createProductForm"]');
-    const originalText = saveBtn?.textContent || 'Save Product';
+    const isEditMode = form.dataset.formMode === 'edit';
+    const editProductId = Number.parseInt(String(form.dataset.productId || ''), 10);
+    const apiBaseUrl = String(form.dataset.apiBaseUrl || 'http://localhost:8082').replace(/\/+$/, '');
+    const submitUrl = (isEditMode && Number.isFinite(editProductId) && editProductId > 0)
+      ? `${apiBaseUrl}/api/admin/products/${editProductId}`
+      : `${apiBaseUrl}/api/admin/products`;
+    const submitMethod = (isEditMode && Number.isFinite(editProductId) && editProductId > 0) ? 'PUT' : 'POST';
+
+    const originalText = saveBtn?.textContent || (isEditMode ? 'Update Product' : 'Save Product');
     if (saveBtn) {
       saveBtn.disabled = true;
       saveBtn.textContent = 'Saving…';
@@ -4441,8 +5272,8 @@ function initProductCreateSubmit() {
 
     try {
       const payload = collectPayload();
-      const response = await fetch('http://localhost:8082/api/admin/products', {
-        method: 'POST',
+      const response = await fetch(submitUrl, {
+        method: submitMethod,
         headers: {
           'Content-Type': 'application/json',
           'x-refresh-token': token,
@@ -4453,7 +5284,7 @@ function initProductCreateSubmit() {
       const data = await response.json().catch(() => ({}));
 
       if (response.ok) {
-        showSuccess(data.message || 'Product created successfully.');
+        showSuccess(data.message || (isEditMode ? 'Product updated successfully.' : 'Product created successfully.'));
         sessionStorage.removeItem('product_create_type');
         sessionStorage.removeItem('product_drive_link_type');
         setTimeout(() => { window.location.href = '/admin/products'; }, 1500);

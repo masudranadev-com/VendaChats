@@ -129,6 +129,7 @@ Route::prefix('admin')->name('admin.')->middleware('admin.auth')->group(function
     Route::get('/customers', [DashboardController::class, 'customers'])->name('customers');
     Route::get('/products', [DashboardController::class, 'products'])->name('products');
     Route::get('/products/create', [DashboardController::class, 'productCreate'])->name('products.create');
+    Route::get('/products/{productId}/edit', [DashboardController::class, 'productEdit'])->name('products.edit');
     Route::get('/categories', [DashboardController::class, 'categories'])->name('categories');
 
     // orders 
