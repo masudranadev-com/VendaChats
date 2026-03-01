@@ -463,9 +463,13 @@
         </div>
 
         <div class="products-create-grid">
-          {{-- Always visible --}}
-          <div class="form-group">
-            <label class="form-label" for="productPrice">Product Price (BDT)</label>
+          {{-- Pricing fields for non-physical products (downloadable, subscription, package) --}}
+          <div class="form-group hidden" data-non-physical-only>
+            <label class="form-label" for="productPrice">
+              <span class="products-label-with-icon">
+                💵 Product Price (BDT)
+              </span>
+            </label>
             <input
               id="productPrice"
               name="product_price"
@@ -473,13 +477,17 @@
               type="number"
               min="0"
               step="0.01"
-              placeholder="1150"
+              placeholder="e.g. 850"
               required
             >
           </div>
 
-          <div class="form-group">
-            <label class="form-label" for="bargainingPrice">Bargaining Price (BDT)</label>
+          <div class="form-group hidden" data-non-physical-only>
+            <label class="form-label" for="bargainingPrice">
+              <span class="products-label-with-icon">
+                💸 Bargaining Price (BDT)
+              </span>
+            </label>
             <input
               id="bargainingPrice"
               name="bargaining_price"
@@ -487,7 +495,7 @@
               type="number"
               min="0"
               step="0.01"
-              placeholder="1050"
+              placeholder="e.g. 750"
             >
           </div>
 
@@ -547,47 +555,7 @@
             >
           </div>
 
-          {{-- Physical only: Stock & Inventory --}}
-          <div class="form-group" data-physical-only>
-            <label class="form-label" for="productStock">Available Quantity</label>
-            <input
-              id="productStock"
-              name="available_quantity"
-              class="form-input"
-              type="number"
-              min="0"
-              step="1"
-              placeholder="120"
-            >
-          </div>
-
-          <div class="form-group" data-physical-only>
-            <label class="form-label" for="productLowStock">Low Stock Alert At</label>
-            <input
-              id="productLowStock"
-              name="low_stock_alert_at"
-              class="form-input"
-              type="number"
-              min="1"
-              step="1"
-              placeholder="15"
-            >
-          </div>
-
           {{-- Physical only: Shipping --}}
-          <div class="form-group" data-physical-only>
-            <label class="form-label" for="productWeight">Weight (kg)</label>
-            <input
-              id="productWeight"
-              name="weight_kg"
-              class="form-input"
-              type="number"
-              min="0"
-              step="0.01"
-              placeholder="0.40"
-            >
-          </div>
-
           <div class="form-group" data-physical-only>
             <label class="form-label" for="productShippingProfile">Shipping Profile</label>
             <select id="productShippingProfile" name="shipping_profile" class="form-select">
@@ -595,29 +563,6 @@
                 <option value="{{ $profile }}">{{ $profile }}</option>
               @endforeach
             </select>
-          </div>
-
-          {{-- Physical only: Variants --}}
-          <div class="form-group" data-physical-only>
-            <label class="form-label" for="productColors">Color</label>
-            <input
-              id="productColors"
-              name="colors"
-              class="form-input"
-              type="text"
-              placeholder="Black, White, Blue"
-            >
-          </div>
-
-          <div class="form-group" data-physical-only>
-            <label class="form-label" for="productSizes">Size</label>
-            <input
-              id="productSizes"
-              name="sizes"
-              class="form-input"
-              type="text"
-              placeholder="S, M, L, XL"
-            >
           </div>
 
           {{-- Always visible --}}
@@ -634,7 +579,155 @@
         </div>
       </section>
 
-      {{-- ══ 7. SEO ══ --}}
+      {{-- ══ 7. PRODUCT VARIANTS & INVENTORY (Physical products only) ══ --}}
+      <section class="card hidden" data-physical-only>
+        <div class="card-header">
+          <h3 class="card-title">Product Variants & Inventory</h3>
+          <span class="badge badge-info">Stock Management</span>
+        </div>
+
+        <div class="products-variants-container">
+          {{-- Has Variants Toggle --}}
+          <div class="products-variant-toggle-wrapper">
+            <label class="form-label" style="margin-bottom: 12px; display: block;">Does this product have variants?</label>
+            <div class="products-variant-toggle-group">
+              <label class="products-variant-toggle-card is-active" data-variant-toggle-card>
+                <input type="radio" name="has_variants" value="no" checked data-has-variants-toggle>
+                <div class="products-variant-toggle-content">
+                  <span class="products-variant-toggle-icon">📦</span>
+                  <div class="products-variant-toggle-text">
+                    <strong>No Variants</strong>
+                    <small>Single product with one quantity</small>
+                  </div>
+                  <span class="products-variant-toggle-check">✓</span>
+                </div>
+              </label>
+
+              <label class="products-variant-toggle-card" data-variant-toggle-card>
+                <input type="radio" name="has_variants" value="yes" data-has-variants-toggle>
+                <div class="products-variant-toggle-content">
+                  <span class="products-variant-toggle-icon">🎨</span>
+                  <div class="products-variant-toggle-text">
+                    <strong>Has Variants</strong>
+                    <small>Multiple colors, sizes, or combinations</small>
+                  </div>
+                  <span class="products-variant-toggle-check">✓</span>
+                </div>
+              </label>
+            </div>
+          </div>
+
+          {{-- No Variants: Simple Quantity Fields --}}
+          <div class="products-simple-inventory" data-simple-inventory>
+            <div class="products-create-grid" style="margin-top: 24px;">
+              <div class="form-group">
+                <label class="form-label" for="simplePrice">
+                  <span class="products-label-with-icon">
+                    💵 Product Price (BDT)
+                  </span>
+                </label>
+                <input
+                  id="simplePrice"
+                  name="simple_price"
+                  class="form-input"
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  placeholder="e.g. 1150"
+                  required
+                >
+              </div>
+
+              <div class="form-group">
+                <label class="form-label" for="simpleBargainingPrice">
+                  <span class="products-label-with-icon">
+                    💸 Bargaining Price (BDT)
+                  </span>
+                </label>
+                <input
+                  id="simpleBargainingPrice"
+                  name="simple_bargaining_price"
+                  class="form-input"
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  placeholder="e.g. 1050"
+                >
+              </div>
+
+              <div class="form-group">
+                <label class="form-label" for="simpleQuantity">
+                  <span class="products-label-with-icon">
+                    📦 Available Quantity
+                  </span>
+                </label>
+                <input
+                  id="simpleQuantity"
+                  name="simple_quantity"
+                  class="form-input"
+                  type="number"
+                  min="0"
+                  step="1"
+                  placeholder="e.g. 120"
+                >
+              </div>
+
+              <div class="form-group">
+                <label class="form-label" for="simpleAlertQty">
+                  <span class="products-label-with-icon">
+                    🔔 Low Stock Alert At
+                  </span>
+                </label>
+                <input
+                  id="simpleAlertQty"
+                  name="simple_alert_qty"
+                  class="form-input"
+                  type="number"
+                  min="1"
+                  step="1"
+                  placeholder="e.g. 10"
+                >
+              </div>
+
+              <div class="form-group">
+                <label class="form-label" for="simpleWeight">
+                  <span class="products-label-with-icon">
+                    ⚖️ Weight (kg)
+                  </span>
+                </label>
+                <input
+                  id="simpleWeight"
+                  name="simple_weight"
+                  class="form-input"
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  placeholder="e.g. 0.40"
+                >
+              </div>
+            </div>
+          </div>
+
+          {{-- Has Variants: Variant Management --}}
+          <div class="products-variant-management hidden" data-variant-management>
+            <div class="products-variant-list" data-variant-list>
+              <div class="products-variant-empty-state">
+                <span class="products-variant-empty-icon">📦</span>
+                <p>No variants added yet</p>
+                <small>Click the button below to add your first variant</small>
+              </div>
+            </div>
+
+            <div class="products-variant-add-section">
+              <button type="button" class="btn btn-primary" data-add-variant-btn>
+                <span style="font-size: 16px; margin-right: 4px;">+</span> Add Variant
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {{-- ══ 8. SEO ══ --}}
       <section class="card">
         <div class="card-header">
           <h3 class="card-title">Search & Discoverability</h3>
@@ -719,11 +812,12 @@
 
         <div data-product-type-info-item="physical">
           <ul class="products-create-checklist">
-            <li>Add product name, SKU &amp; category</li>
+            <li>Add product name &amp; category</li>
             <li>Upload cover image (1080 × 1080)</li>
-            <li>Set price &amp; available quantity</li>
-            <li>Add weight &amp; select shipping profile</li>
-            <li>Add color &amp; size variants if applicable</li>
+            <li>Select shipping profile</li>
+            <li>Choose: No variants or Has variants</li>
+            <li>Set pricing &amp; inventory for each variant</li>
+            <li>Add weight for variants/simple product</li>
             <li>Fill SEO fields for discoverability</li>
           </ul>
         </div>
@@ -732,10 +826,11 @@
           <ul class="products-create-checklist">
             <li>Add product name &amp; category</li>
             <li>Upload an attractive cover image</li>
+            <li>Set product price &amp; bargaining price</li>
             <li>Set file sharing to "Anyone with the link"</li>
             <li>Paste the Google Drive share link</li>
-            <li>Set the product price</li>
             <li>Add access instructions if needed</li>
+            <li>Fill SEO fields for discoverability</li>
           </ul>
         </div>
 
@@ -743,9 +838,9 @@
           <ul class="products-create-checklist">
             <li>Add product name &amp; category</li>
             <li>Upload an attractive cover image</li>
+            <li>Set subscription price &amp; bargaining price</li>
             <li>Add at least one subscription slot</li>
             <li>Fill credentials — leave empty if not available</li>
-            <li>Set the subscription price</li>
             <li>Fill SEO fields for discoverability</li>
           </ul>
         </div>
@@ -754,9 +849,9 @@
           <ul class="products-create-checklist">
             <li>Add product name &amp; category</li>
             <li>Upload an attractive cover image</li>
+            <li>Set package price &amp; bargaining price</li>
             <li>Add at least one facility to the package</li>
-            <li>Provide clear facility names and descriptions</li>
-            <li>Set the package price</li>
+            <li>Enable/disable facilities as needed</li>
             <li>Fill SEO fields for discoverability</li>
           </ul>
         </div>

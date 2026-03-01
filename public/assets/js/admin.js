@@ -300,6 +300,7 @@ document.addEventListener('DOMContentLoaded', () => {
   initDownloadableLinkType();
   initSubscriptionEntries();
   initFacilityEntries();
+  initProductVariants();
   initProductCreateSliderControl();
   initProductCreateDiscountOfferControl();
   initProductCreateAiWriter();
@@ -2196,6 +2197,7 @@ function initProductTypeSelector() {
 
   const typeSections = Array.from(document.querySelectorAll('[data-product-type-section]'));
   const physicalOnlyGroups = Array.from(document.querySelectorAll('[data-physical-only]'));
+  const nonPhysicalOnlyGroups = Array.from(document.querySelectorAll('[data-non-physical-only]'));
   const typeInfoItems = Array.from(document.querySelectorAll('[data-product-type-info-item]'));
   const typeBadge = document.querySelector('[data-product-type-badge]');
 
@@ -2234,6 +2236,18 @@ function initProductTypeSelector() {
       group.querySelectorAll('input, select, textarea').forEach((input) => {
         input.disabled = !isPhysical;
         if (!isPhysical) {
+          input.value = '';
+        }
+      });
+    });
+
+    // Show / hide non-physical-only fields (for downloadable, subscription, package)
+    const isNonPhysical = type !== 'physical';
+    nonPhysicalOnlyGroups.forEach((group) => {
+      group.classList.toggle('hidden', !isNonPhysical);
+      group.querySelectorAll('input, select, textarea').forEach((input) => {
+        input.disabled = !isNonPhysical;
+        if (!isNonPhysical) {
           input.value = '';
         }
       });
@@ -2578,6 +2592,308 @@ function initFacilityEntries() {
 
   addButton.addEventListener('click', addEntry);
   showEmpty();
+}
+
+// ══════════════════════════════════════════
+// PRODUCTS: VARIANT SYSTEM (NEW BEAUTIFUL UI)
+// ══════════════════════════════════════════
+function initProductVariants() {
+  const toggleCards = Array.from(document.querySelectorAll('[data-variant-toggle-card]'));
+  const toggleInputs = Array.from(document.querySelectorAll('[data-has-variants-toggle]'));
+  const simpleInventory = document.querySelector('[data-simple-inventory]');
+  const variantManagement = document.querySelector('[data-variant-management]');
+  const variantList = document.querySelector('[data-variant-list]');
+  const addVariantBtn = document.querySelector('[data-add-variant-btn]');
+
+  if (!toggleInputs.length || !simpleInventory || !variantManagement) return;
+
+  let variantCounter = 0;
+  let variants = [];
+
+  // Handle toggle between simple and variant mode
+  const handleToggle = (value) => {
+    // Update active card state
+    toggleCards.forEach(card => {
+      const input = card.querySelector('input[type="radio"]');
+      card.classList.toggle('is-active', input?.value === value);
+    });
+
+    // Show/hide appropriate sections
+    if (value === 'no') {
+      simpleInventory.classList.remove('hidden');
+      variantManagement.classList.add('hidden');
+    } else {
+      simpleInventory.classList.add('hidden');
+      variantManagement.classList.remove('hidden');
+    }
+  };
+
+  // Add variant card
+  const addVariant = () => {
+    variantCounter += 1;
+    const id = variantCounter;
+
+    // Remove empty state if present
+    const emptyState = variantList.querySelector('.products-variant-empty-state');
+    if (emptyState) emptyState.remove();
+
+    // Create variant card
+    const card = document.createElement('div');
+    card.className = 'products-variant-card';
+    card.dataset.variantCard = id;
+
+    card.innerHTML = `
+      <div class="products-variant-card-header">
+        <span class="products-variant-card-title">
+          <span style="color: var(--brand-primary);">📦</span> Variant #${id}
+        </span>
+        <button type="button" class="btn btn-ghost btn-sm" data-remove-variant="${id}">
+          Remove
+        </button>
+      </div>
+      <div class="products-variant-card-body">
+
+        <!-- Section: Attributes -->
+        <div class="products-variant-section-divider">
+          <span class="products-variant-section-title">🎨 Attributes</span>
+        </div>
+
+        <!-- Color Attribute -->
+        <div class="products-variant-attribute-group">
+          <div class="products-variant-attribute-header">
+            <span class="products-variant-attribute-label">
+              <span style="font-size: 16px;">🎨</span> Color
+            </span>
+            <label class="products-variant-switch">
+              <input type="checkbox" data-variant-color-toggle="${id}">
+              <span class="products-variant-switch-track">
+                <span class="products-variant-switch-thumb"></span>
+              </span>
+              <span class="products-variant-switch-label">Enable</span>
+            </label>
+          </div>
+          <div class="products-variant-attribute-input is-disabled" data-variant-color-input-group="${id}">
+            <input
+              type="text"
+              class="form-input"
+              name="variants[${id}][color]"
+              placeholder="e.g. Red, Blue, Black"
+              disabled
+              data-variant-color-field="${id}"
+            >
+          </div>
+        </div>
+
+        <!-- Size Attribute -->
+        <div class="products-variant-attribute-group">
+          <div class="products-variant-attribute-header">
+            <span class="products-variant-attribute-label">
+              <span style="font-size: 16px;">📏</span> Size
+            </span>
+            <label class="products-variant-switch">
+              <input type="checkbox" data-variant-size-toggle="${id}">
+              <span class="products-variant-switch-track">
+                <span class="products-variant-switch-thumb"></span>
+              </span>
+              <span class="products-variant-switch-label">Enable</span>
+            </label>
+          </div>
+          <div class="products-variant-attribute-input is-disabled" data-variant-size-input-group="${id}">
+            <input
+              type="text"
+              class="form-input"
+              name="variants[${id}][size]"
+              placeholder="e.g. S, M, L, XL, 32, 34"
+              disabled
+              data-variant-size-field="${id}"
+            >
+          </div>
+        </div>
+
+        <!-- Section: Pricing -->
+        <div class="products-variant-section-divider">
+          <span class="products-variant-section-title">💰 Pricing</span>
+        </div>
+
+        <div class="products-create-grid">
+          <div class="form-group">
+            <label class="form-label">
+              <span class="products-label-with-icon">
+                💵 Price (BDT)
+              </span>
+            </label>
+            <input
+              type="number"
+              class="form-input"
+              name="variants[${id}][price]"
+              min="0"
+              step="0.01"
+              placeholder="e.g. 1500"
+              required
+              data-variant-price="${id}"
+            >
+          </div>
+          <div class="form-group">
+            <label class="form-label">
+              <span class="products-label-with-icon">
+                💸 Bargaining Price (BDT)
+              </span>
+            </label>
+            <input
+              type="number"
+              class="form-input"
+              name="variants[${id}][bargaining_price]"
+              min="0"
+              step="0.01"
+              placeholder="e.g. 1350"
+              data-variant-bargaining="${id}"
+            >
+          </div>
+        </div>
+
+        <!-- Section: Inventory & Shipping -->
+        <div class="products-variant-section-divider">
+          <span class="products-variant-section-title">📦 Inventory & Shipping</span>
+        </div>
+
+        <div class="products-create-grid">
+          <div class="form-group">
+            <label class="form-label">
+              <span class="products-label-with-icon">
+                📦 Quantity
+              </span>
+            </label>
+            <input
+              type="number"
+              class="form-input"
+              name="variants[${id}][quantity]"
+              min="0"
+              step="1"
+              placeholder="e.g. 50"
+              required
+              data-variant-qty="${id}"
+            >
+          </div>
+          <div class="form-group">
+            <label class="form-label">
+              <span class="products-label-with-icon">
+                🔔 Alert Quantity
+              </span>
+            </label>
+            <input
+              type="number"
+              class="form-input"
+              name="variants[${id}][alert_qty]"
+              min="1"
+              step="1"
+              placeholder="e.g. 10"
+              data-variant-alert="${id}"
+            >
+          </div>
+          <div class="form-group">
+            <label class="form-label">
+              <span class="products-label-with-icon">
+                ⚖️ Weight (kg)
+              </span>
+            </label>
+            <input
+              type="number"
+              class="form-input"
+              name="variants[${id}][weight]"
+              min="0"
+              step="0.01"
+              placeholder="e.g. 0.40"
+              data-variant-weight="${id}"
+            >
+          </div>
+        </div>
+
+      </div>
+    `;
+
+    // Attach event listeners for this variant
+    const colorToggle = card.querySelector(`[data-variant-color-toggle="${id}"]`);
+    const colorInputGroup = card.querySelector(`[data-variant-color-input-group="${id}"]`);
+    const colorField = card.querySelector(`[data-variant-color-field="${id}"]`);
+
+    const sizeToggle = card.querySelector(`[data-variant-size-toggle="${id}"]`);
+    const sizeInputGroup = card.querySelector(`[data-variant-size-input-group="${id}"]`);
+    const sizeField = card.querySelector(`[data-variant-size-field="${id}"]`);
+
+    const removeBtn = card.querySelector(`[data-remove-variant="${id}"]`);
+
+    // Color toggle
+    colorToggle?.addEventListener('change', () => {
+      const isEnabled = colorToggle.checked;
+      colorInputGroup?.classList.toggle('is-disabled', !isEnabled);
+      if (colorField) colorField.disabled = !isEnabled;
+      if (!isEnabled && colorField) colorField.value = '';
+    });
+
+    // Size toggle
+    sizeToggle?.addEventListener('change', () => {
+      const isEnabled = sizeToggle.checked;
+      sizeInputGroup?.classList.toggle('is-disabled', !isEnabled);
+      if (sizeField) sizeField.disabled = !isEnabled;
+      if (!isEnabled && sizeField) sizeField.value = '';
+    });
+
+    // Remove variant
+    removeBtn?.addEventListener('click', () => {
+      card.remove();
+      variants = variants.filter(v => v.id !== id);
+
+      // Show empty state if no variants left
+      if (!variantList.querySelector('[data-variant-card]')) {
+        showEmptyState();
+      }
+    });
+
+    variants.push({ id });
+    variantList.appendChild(card);
+
+    // Scroll into view
+    card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  };
+
+  // Show empty state
+  const showEmptyState = () => {
+    variantList.innerHTML = `
+      <div class="products-variant-empty-state">
+        <span class="products-variant-empty-icon">📦</span>
+        <p>No variants added yet</p>
+        <small>Click the button below to add your first variant</small>
+      </div>
+    `;
+  };
+
+  // Toggle card click handlers
+  toggleCards.forEach(card => {
+    card.addEventListener('click', () => {
+      const input = card.querySelector('input[type="radio"]');
+      if (!input) return;
+      input.checked = true;
+      handleToggle(input.value);
+    });
+  });
+
+  // Toggle input change handlers
+  toggleInputs.forEach(input => {
+    input.addEventListener('change', () => {
+      if (input.checked) {
+        handleToggle(input.value);
+      }
+    });
+  });
+
+  // Add variant button
+  addVariantBtn?.addEventListener('click', addVariant);
+
+  // Initialize with default state
+  const checkedInput = toggleInputs.find(input => input.checked);
+  if (checkedInput) {
+    handleToggle(checkedInput.value);
+  }
 }
 
 // ══════════════════════════════════════════

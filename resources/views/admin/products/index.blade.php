@@ -177,15 +177,31 @@
               {{-- ── Stock / Access ── --}}
               <td>
                 @if ($type === 'physical')
-                  <div class="products-catalog-stock">
-                    <div class="products-catalog-stock-top">
-                      <span class="products-catalog-stock-num">{{ number_format($product['stock'] ?? 0) }} units</span>
-                      <span class="badge badge-xs {{ $stockCss }}">{{ $product['stock_label'] ?? 'In Stock' }}</span>
+                  @if (!empty($product['has_variants']))
+                    {{-- Product with variants --}}
+                    <div class="products-catalog-stock">
+                      <div class="products-catalog-stock-top">
+                        <span class="products-catalog-stock-num">{{ number_format($product['total_stock'] ?? 0) }} units total</span>
+                        <span class="badge badge-xs {{ $stockCss }}">{{ $product['stock_label'] ?? 'In Stock' }}</span>
+                      </div>
+                      <div class="products-catalog-variants-info">
+                        <span class="products-catalog-variants-badge">
+                          🎨 {{ $product['variant_count'] ?? 0 }} Variant{{ ($product['variant_count'] ?? 0) > 1 ? 's' : '' }}
+                        </span>
+                      </div>
                     </div>
-                    <div class="products-catalog-progress">
-                      <div class="products-catalog-progress-fill {{ $stockCss }}" style="width: {{ min($product['stock'] ?? 0, 100) }}%"></div>
+                  @else
+                    {{-- Simple product without variants --}}
+                    <div class="products-catalog-stock">
+                      <div class="products-catalog-stock-top">
+                        <span class="products-catalog-stock-num">{{ number_format($product['stock'] ?? 0) }} units</span>
+                        <span class="badge badge-xs {{ $stockCss }}">{{ $product['stock_label'] ?? 'In Stock' }}</span>
+                      </div>
+                      <div class="products-catalog-progress">
+                        <div class="products-catalog-progress-fill {{ $stockCss }}" style="width: {{ min($product['stock'] ?? 0, 100) }}%"></div>
+                      </div>
                     </div>
-                  </div>
+                  @endif
 
                 @elseif ($type === 'downloadable')
                   <div class="products-catalog-access">

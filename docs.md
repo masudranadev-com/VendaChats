@@ -34,12 +34,21 @@ product_inventory{
     discount_value: ,
     discount_start_at: 
     discount_end_at: 
-    available_qty: 
-    stock_alert:
-    weight:
+    
     shipping_profile:
-    color: 
+    is_variants: true/false
+    available_qty:  is_variants == true ? null : val
+    stock_alert: is_variants == true ? null : val
+}
+product_variants{
+    product_id:-
+    have_size: true/false
     size: 
+    have_color: true/fasle
+    color:
+    qty:
+    alert_qty:
+    weight:
 }
 
 product_discoverability{
@@ -63,4 +72,9 @@ product_subscriptions{
     username
     password
     is_authenticated
+}
+
+product_packages{
+    product_id
+    facilities
 }
