@@ -11,17 +11,8 @@
 
     <div class="settings-header-actions">
       <a href="{{ route('admin.products') }}" class="btn btn-ghost">Back to Products</a>
-      <button type="button" class="btn btn-primary" data-category-save-setup>Refresh Categories</button>
     </div>
   </div>
-
-  <section class="settings-stats-grid" data-categories-metrics>
-    <article class="settings-stat-card is-info">
-      <span>Loading...</span>
-      <strong>--</strong>
-      <small>Please wait</small>
-    </article>
-  </section>
 
   <article class="card settings-panel mt-xl categories-create-panel" data-category-create-panel>
     <div class="card-header">
@@ -69,7 +60,7 @@
           data-category-image-input
           accept="image/*"
         >
-        <small class="categories-image-upload-hint">Upload an image for this category (demo only).</small>
+        <small class="categories-image-upload-hint">Upload an image under 2MB. Recommended: 1080 x 1080 px (1:1) in JPG/WEBP.</small>
         <div class="categories-image-upload-preview" data-category-image-preview>
           <span class="categories-image-upload-placeholder">No image selected</span>
         </div>
@@ -223,4 +214,35 @@
       </li>
     </ul>
   </section>
+
+  <div class="modal-overlay" id="categoriesValidationModal" aria-hidden="true">
+    <div class="modal categories-validation-modal" role="dialog" aria-modal="true" aria-labelledby="categoriesValidationModalTitle">
+      <div class="modal-header categories-validation-modal-header">
+        <div class="categories-validation-modal-title-wrap">
+          <span class="categories-validation-modal-icon" aria-hidden="true">!</span>
+          <div>
+            <h3 class="modal-title categories-validation-modal-title" id="categoriesValidationModalTitle" data-category-validation-title>
+              Category Image Error
+            </h3>
+            <p class="categories-validation-modal-subtitle">Please follow image upload rules.</p>
+          </div>
+        </div>
+        <button type="button" class="modal-close categories-validation-modal-close" data-modal-close aria-label="Close">x</button>
+      </div>
+      <div class="modal-body">
+        <p class="categories-validation-modal-message" data-category-validation-message>
+          Please check your image and try again.
+        </p>
+        <ul class="categories-validation-modal-rules">
+          <li>Allowed files: JPG, PNG, WEBP.</li>
+          <li>Max upload size: less than 2MB.</li>
+          <li>Minimum dimensions: 600 x 600 px.</li>
+          <li>Best quality: 1080 x 1080 px (1:1 square).</li>
+        </ul>
+      </div>
+      <div class="modal-footer categories-validation-modal-footer">
+        <button type="button" class="btn btn-primary" data-modal-close data-category-validation-close>Got it</button>
+      </div>
+    </div>
+  </div>
 @endsection

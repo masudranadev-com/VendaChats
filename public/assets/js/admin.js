@@ -4413,10 +4413,8 @@ function initProductCreateAiWriter() {
 }
 
 function initCategoryCreateForm() {
-  const metricsNode = document.querySelector('[data-categories-metrics]');
   const tableBody = document.querySelector('[data-categories-table-body]');
   const totalNode = document.querySelector('[data-categories-total]');
-  const saveSetupButton = document.querySelector('[data-category-save-setup]');
   const addButton = document.querySelector('[data-category-add-button]');
   const nameInput = document.querySelector('[data-category-name-input]');
   const slugInput = document.querySelector('[data-category-slug-input]');
@@ -4425,6 +4423,10 @@ function initCategoryCreateForm() {
   const descriptionInput = document.querySelector('[data-category-description-input]');
   const imageInput = document.querySelector('[data-category-image-input]');
   const imagePreview = document.querySelector('[data-category-image-preview]');
+  const categoryValidationModal = document.getElementById('categoriesValidationModal');
+  const categoryValidationTitleNode = categoryValidationModal?.querySelector('[data-category-validation-title]');
+  const categoryValidationMessageNode = categoryValidationModal?.querySelector('[data-category-validation-message]');
+  const categoryValidationCloseButton = categoryValidationModal?.querySelector('[data-category-validation-close]');
 
   if (
     !tableBody ||
@@ -4460,6 +4462,28 @@ function initCategoryCreateForm() {
   const statusToLabel = (visibility) => (text(visibility).toLowerCase() === 'visible' ? 'Active' : 'Draft');
   const normalizeApiBase = (value) => text(value).replace(/\/+$/, '');
   const now = () => Date.now();
+  const showCategoryValidationModal = (message, title = 'Category Image Error') => {
+    const dialogMessage = text(message) || 'Please check your image and try again.';
+    const dialogTitle = text(title) || 'Category Image Error';
+
+    if (!categoryValidationModal) {
+      showError(dialogMessage);
+      return;
+    }
+
+    if (categoryValidationTitleNode) {
+      categoryValidationTitleNode.textContent = dialogTitle;
+    }
+
+    if (categoryValidationMessageNode) {
+      categoryValidationMessageNode.textContent = dialogMessage;
+    }
+
+    openModal('categoriesValidationModal');
+    window.setTimeout(() => {
+      categoryValidationCloseButton?.focus();
+    }, 20);
+  };
 
   const formatDateTime = (value) => {
     const rawValue = text(value);
@@ -4540,38 +4564,6 @@ function initCategoryCreateForm() {
     totalNode.textContent = `${total} total`;
   };
 
-  runtime.renderMetrics = () => {
-    if (!metricsNode) return;
-    const categories = Array.isArray(runtime.categories) ? runtime.categories : [];
-    const total = categories.length;
-    const visible = categories.filter((item) => text(item?.visibility).toLowerCase() === 'visible').length;
-    const hidden = total - visible;
-    const topLevel = categories.filter((item) => toInt(item?.parent_category, 0) <= 0).length;
-
-    metricsNode.innerHTML = `
-      <article class="settings-stat-card is-info">
-        <span>Total Categories</span>
-        <strong>${total}</strong>
-        <small>${visible} visible, ${hidden} hidden</small>
-      </article>
-      <article class="settings-stat-card">
-        <span>Top Level</span>
-        <strong>${topLevel}</strong>
-        <small>${Math.max(0, total - topLevel)} sub-categories</small>
-      </article>
-      <article class="settings-stat-card">
-        <span>API Base</span>
-        <strong>Live</strong>
-        <small>${escapeHtml(runtime.apiBase || 'Not configured')}</small>
-      </article>
-      <article class="settings-stat-card is-warning">
-        <span>Auth Token</span>
-        <strong>${runtime.refreshToken ? 'Present' : 'Missing'}</strong>
-        <small>${runtime.refreshToken ? 'x-refresh-token header ready' : 'Set refresh token in session'}</small>
-      </article>
-    `;
-  };
-
   runtime.setCreateParentOptions = (selectedValue = '') => {
     const currentValue = text(selectedValue || parentInput.value);
     const options = ['<option value="">None (Top level)</option>'];
@@ -4609,7 +4601,6 @@ function initCategoryCreateForm() {
     if (!categories.length) {
       setTableMessage('No categories found.');
       runtime.refreshTotal();
-      runtime.renderMetrics();
       runtime.setCreateParentOptions('');
       return;
     }
@@ -4675,7 +4666,6 @@ function initCategoryCreateForm() {
 
     tableBody.appendChild(fragment);
     runtime.refreshTotal();
-    runtime.renderMetrics();
     runtime.setCreateParentOptions(parentInput.value);
   };
 
@@ -4711,7 +4701,6 @@ function initCategoryCreateForm() {
       runtime.pagination = {total: 0, current_page: 1, per_page: 0, last_page: 1};
       setTableMessage(error?.message || 'Failed to load categories.');
       runtime.refreshTotal();
-      runtime.renderMetrics();
       runtime.setCreateParentOptions('');
       showError(error?.message || 'Failed to load categories.');
     } finally {
@@ -4724,6 +4713,32 @@ function initCategoryCreateForm() {
   let slugUserEdited = text(slugInput.value) !== '';
   let selectedImageUrl = '';
   let selectedImageName = '';
+  const maxCategoryImageBytes = 2 * 1024 * 1024;
+  const categoryImageMinWidth = 600;
+  const categoryImageMinHeight = 600;
+  const categoryImageExpectedRatio = 1; // 1:1 square
+  const categoryImageRatioTolerance = 0.03;
+
+  const readImageDimensions = (file) => new Promise((resolve, reject) => {
+    const objectUrl = window.URL.createObjectURL(file);
+    const image = new Image();
+
+    image.onload = () => {
+      const result = {
+        width: image.naturalWidth,
+        height: image.naturalHeight,
+      };
+      window.URL.revokeObjectURL(objectUrl);
+      resolve(result);
+    };
+
+    image.onerror = () => {
+      window.URL.revokeObjectURL(objectUrl);
+      reject(new Error('Unable to read image dimensions.'));
+    };
+
+    image.src = objectUrl;
+  });
 
   nameInput.addEventListener('input', () => {
     if (!slugUserEdited) {
@@ -4735,7 +4750,7 @@ function initCategoryCreateForm() {
     slugUserEdited = text(slugInput.value) !== '';
   });
 
-  imageInput?.addEventListener('change', (event) => {
+  imageInput?.addEventListener('change', async (event) => {
     const file = event.target?.files?.[0];
     if (!file) {
       selectedImageUrl = '';
@@ -4745,7 +4760,10 @@ function initCategoryCreateForm() {
     }
 
     if (!file.type.startsWith('image/')) {
-      showWarning('Please select an image file for category image.');
+      showCategoryValidationModal(
+        'Please select an image file for category image.',
+        'Invalid File Type'
+      );
       imageInput.value = '';
       selectedImageUrl = '';
       selectedImageName = '';
@@ -4753,19 +4771,69 @@ function initCategoryCreateForm() {
       return;
     }
 
-    const reader = new FileReader();
-    reader.onload = (loadEvent) => {
-      selectedImageUrl = text(loadEvent?.target?.result);
-      selectedImageName = file.name || 'Category image';
-      renderImagePreview(selectedImageUrl, selectedImageName);
-    };
-    reader.onerror = () => {
+    if (file.size >= maxCategoryImageBytes) {
+      const sizeInMb = (file.size / (1024 * 1024)).toFixed(2);
+      showCategoryValidationModal(
+        `Category image must be smaller than 2MB. Selected file size: ${sizeInMb}MB.`,
+        'File Too Large'
+      );
+      imageInput.value = '';
       selectedImageUrl = '';
       selectedImageName = '';
-      showError('Unable to read selected category image.');
       renderImagePreview('');
-    };
-    reader.readAsDataURL(file);
+      return;
+    }
+
+    try {
+      const {width, height} = await readImageDimensions(file);
+      const ratio = width / Math.max(1, height);
+      const ratioDiff = Math.abs(ratio - categoryImageExpectedRatio);
+
+      if (width < categoryImageMinWidth || height < categoryImageMinHeight) {
+        showCategoryValidationModal(
+          `Category image is too small. Minimum ${categoryImageMinWidth}x${categoryImageMinHeight}px required. ` +
+          `Selected: ${width}x${height}px.`,
+          'Image Dimensions Too Small'
+        );
+        imageInput.value = '';
+        selectedImageUrl = '';
+        selectedImageName = '';
+        renderImagePreview('');
+        return;
+      }
+
+      if (ratioDiff > categoryImageRatioTolerance) {
+        showCategoryValidationModal(
+          `Category image must be square (1:1 ratio). Selected: ${width}x${height}px. ` +
+          'Recommended: 1080x1080px.',
+          'Image Ratio Mismatch'
+        );
+        imageInput.value = '';
+        selectedImageUrl = '';
+        selectedImageName = '';
+        renderImagePreview('');
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = (loadEvent) => {
+        selectedImageUrl = text(loadEvent?.target?.result);
+        selectedImageName = file.name || 'Category image';
+        renderImagePreview(selectedImageUrl, selectedImageName);
+      };
+      reader.onerror = () => {
+        selectedImageUrl = '';
+        selectedImageName = '';
+        showCategoryValidationModal('Unable to read selected category image.', 'Image Read Failed');
+        renderImagePreview('');
+      };
+      reader.readAsDataURL(file);
+    } catch {
+      selectedImageUrl = '';
+      selectedImageName = '';
+      showCategoryValidationModal('Unable to validate selected category image.', 'Image Validation Failed');
+      renderImagePreview('');
+    }
   });
 
   addButton.addEventListener('click', async () => {
@@ -4824,12 +4892,7 @@ function initCategoryCreateForm() {
     }
   });
 
-  saveSetupButton?.addEventListener('click', async () => {
-    await runtime.loadCategories({showLoading: true});
-  });
-
   renderImagePreview('');
-  runtime.renderMetrics();
   runtime.refreshTotal();
   runtime.setCreateParentOptions('');
   runtime.loadCategories({showLoading: true});
