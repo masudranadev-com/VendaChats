@@ -56,7 +56,7 @@
       </section>
 
       {{-- ══ 2. BASIC INFORMATION ══ --}}
-      <section class="card" style="padding-bottom: 80px">
+      <section class="card products-basic-info-card">
         <div class="card-header">
           <h3 class="card-title">Basic Information</h3>
           <span class="badge badge-info">Required</span>
@@ -97,11 +97,11 @@
               id="productShortDescription"
               class="form-textarea"
               rows="3"
-              maxlength="150"
+              maxlength="250"
               placeholder="One-line value proposition and key feature highlights."
               required
             ></textarea>
-            <small class="products-short-counter" data-product-short-count>0/150 characters</small>
+            <small class="products-short-counter" data-product-short-count>0/250 characters</small>
           </div>
 
           <div class="form-group products-field-span-2">
@@ -244,7 +244,7 @@
           {{-- Link access type toggle --}}
           <div class="form-group mb-0">
             <label class="form-label">File Access Type</label>
-            <small class="form-help" style="margin-bottom: 10px; display: block;">
+            <small class="form-help products-form-help-lead">
               Choose how customers will access the file after purchase.
             </small>
             <div class="products-link-type-selector">
@@ -284,7 +284,7 @@
             <span class="products-downloadable-notice-icon products-downloadable-notice-icon--lock">🔒</span>
             <div>
               <strong>Private file — you will need to grant access manually after each sale.</strong>
-              <p style="margin: 8px 0 6px;">Follow these steps for every new customer order:</p>
+              <p class="products-drive-private-steps-intro">Follow these steps for every new customer order:</p>
               <ol class="products-drive-steps">
                 <li>Open your file in <strong>Google Drive</strong></li>
                 <li>Click <strong>Share</strong> in the top-right corner</li>
@@ -347,7 +347,7 @@
             <span class="products-subscription-how-icon">⚡</span>
             <div>
               <strong>Smart Auto-Assignment</strong>
-              <span class="badge badge-success" style="margin-left: 8px; font-size: 10px;">Load Balancer</span>
+              <span class="badge badge-success products-load-balancer-badge">Load Balancer</span>
             </div>
           </div>
           <p class="products-subscription-how-desc">
@@ -357,21 +357,21 @@
             <div class="products-subscription-slot-demo">
               <span>Slot 1</span>
               <div class="products-subscription-slot-bar">
-                <div class="products-subscription-slot-fill" style="width: 75%"></div>
+                <div class="products-subscription-slot-fill products-subscription-slot-fill--75"></div>
               </div>
               <small>4 users</small>
             </div>
             <div class="products-subscription-slot-demo">
               <span>Slot 2</span>
               <div class="products-subscription-slot-bar">
-                <div class="products-subscription-slot-fill" style="width: 40%"></div>
+                <div class="products-subscription-slot-fill products-subscription-slot-fill--40"></div>
               </div>
               <small>2 users</small>
             </div>
             <div class="products-subscription-slot-demo products-subscription-slot-demo--next">
               <span>Slot 3</span>
               <div class="products-subscription-slot-bar">
-                <div class="products-subscription-slot-fill" style="width: 0%"></div>
+                <div class="products-subscription-slot-fill products-subscription-slot-fill--0"></div>
               </div>
               <small>← Next customer</small>
             </div>
@@ -536,7 +536,7 @@
         <div class="products-variants-container">
           {{-- Has Variants Toggle --}}
           <div class="products-variant-toggle-wrapper">
-            <label class="form-label" style="margin-bottom: 12px; display: block;">Does this product have variants?</label>
+            <label class="form-label products-variant-toggle-label">Does this product have variants?</label>
             <div class="products-variant-toggle-group">
               <label class="products-variant-toggle-card is-active" data-variant-toggle-card>
                 <input type="radio" name="has_variants" value="no" checked data-has-variants-toggle>
@@ -566,7 +566,7 @@
 
           {{-- No Variants: Simple Quantity Fields --}}
           <div class="products-simple-inventory" data-simple-inventory>
-            <div class="products-create-grid" style="margin-top: 24px;">
+            <div class="products-create-grid products-simple-inventory-grid">
               <div class="form-group">
                 <label class="form-label" for="simplePrice">
                   <span class="products-label-with-icon">
@@ -666,7 +666,7 @@
 
             <div class="products-variant-add-section">
               <button type="button" class="btn btn-primary" data-add-variant-btn>
-                <span style="font-size: 16px; margin-right: 4px;">+</span> Add Variant
+                <span class="products-variant-add-icon">+</span> Add Variant
               </button>
             </div>
           </div>

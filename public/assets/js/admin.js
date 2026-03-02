@@ -4279,7 +4279,7 @@ function initProductCreateAiWriter() {
   const shortAiButton = document.querySelector('[data-product-ai-short]');
   const fullAiButton = document.querySelector('[data-product-ai-full]');
   const seoAiButton = document.querySelector('[data-product-ai-seo]');
-  const shortDescriptionMaxLength = 150;
+  const shortDescriptionMaxLength = 250;
 
   if (!productNameInput || !shortAiButton || !fullAiButton || !seoAiButton) return;
 
@@ -4296,8 +4296,9 @@ function initProductCreateAiWriter() {
     if (!fullDescriptionInput) return;
 
     if (fullDescriptionEditor) {
-      const contentText = fullDescriptionEditor.getText().trim();
-      fullDescriptionInput.value = contentText ? fullDescriptionEditor.root.innerHTML : '';
+      const html = fullDescriptionEditor.summernote('code');
+      const isBlank = !html || html === '<p><br></p>' || html.trim() === '';
+      fullDescriptionInput.value = isBlank ? '' : html;
       return;
     }
 
@@ -4305,54 +4306,51 @@ function initProductCreateAiWriter() {
   };
 
   const initFullDescriptionEditor = () => {
-    if (!fullDescriptionInput) return;
+    if (!fullDescriptionInput || !fullDescriptionEditorHost) return;
 
-    if (
-      fullDescriptionEditorHost &&
-      typeof window !== 'undefined' &&
-      typeof window.Quill !== 'undefined'
-    ) {
-      if (fullDescriptionEditor) return;
-
-      fullDescriptionInput.hidden = true;
-
-      fullDescriptionEditor = new window.Quill(fullDescriptionEditorHost, {
-        theme: 'snow',
-        placeholder: fullDescriptionEditorHost.dataset.placeholder || fullDescriptionInput.placeholder || 'Write full description...',
-        modules: {
-          toolbar: [
-            [{header: [2, 3, false]}],
-            ['bold', 'italic', 'underline'],
-            [{list: 'ordered'}, {list: 'bullet'}],
-            ['link', 'blockquote'],
-            [{align: []}],
-            ['clean'],
-          ],
-        },
-      });
-
-      const initialContent = fullDescriptionInput.value.trim();
-      if (initialContent) {
-        fullDescriptionEditor.clipboard.dangerouslyPasteHTML(initialContent);
-      }
-
-      syncFullDescriptionInput();
-      fullDescriptionEditor.on('text-change', () => {
-        syncFullDescriptionInput();
-        fullDescriptionInput.dispatchEvent(new Event('input', {bubbles: true}));
-      });
+    if (typeof window.$ === 'undefined' || typeof window.$.fn.summernote === 'undefined') {
+      fullDescriptionEditorHost.hidden = true;
+      fullDescriptionInput.hidden = false;
       return;
     }
 
-    if (fullDescriptionEditorHost) {
-      fullDescriptionEditorHost.hidden = true;
+    if (fullDescriptionEditor) return;
+
+    fullDescriptionInput.hidden = true;
+
+    const placeholder = fullDescriptionEditorHost.dataset.placeholder || fullDescriptionInput.placeholder || 'Write full description...';
+
+    window.$(fullDescriptionEditorHost).summernote({
+      placeholder,
+      height: 250,
+      toolbar: [
+        ['style', ['style']],
+        ['font', ['bold', 'italic', 'underline', 'strikethrough', 'clear']],
+        ['para', ['ul', 'ol', 'paragraph']],
+        ['insert', ['link']],
+        ['view', ['codeview']],
+      ],
+      callbacks: {
+        onChange: () => {
+          syncFullDescriptionInput();
+          fullDescriptionInput.dispatchEvent(new Event('input', {bubbles: true}));
+        },
+      },
+    });
+
+    fullDescriptionEditor = window.$(fullDescriptionEditorHost);
+
+    const initialContent = fullDescriptionInput.value.trim();
+    if (initialContent) {
+      fullDescriptionEditor.summernote('code', initialContent);
     }
-    fullDescriptionInput.hidden = false;
+
+    syncFullDescriptionInput();
   };
 
   const getFullDescriptionText = () => {
     if (fullDescriptionEditor) {
-      return fullDescriptionEditor.getText().trim();
+      return htmlToPlainText(fullDescriptionEditor.summernote('code'));
     }
 
     return htmlToPlainText(fullDescriptionInput?.value || '');
@@ -4360,7 +4358,7 @@ function initProductCreateAiWriter() {
 
   const setFullDescriptionContent = (htmlContent, fallbackText) => {
     if (fullDescriptionEditor) {
-      fullDescriptionEditor.clipboard.dangerouslyPasteHTML(htmlContent);
+      fullDescriptionEditor.summernote('code', htmlContent);
       syncFullDescriptionInput();
       fullDescriptionInput.dispatchEvent(new Event('input', {bubbles: true}));
       return;
