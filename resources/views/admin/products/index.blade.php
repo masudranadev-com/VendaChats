@@ -17,22 +17,22 @@
   </div>
 
   {{-- -- KPI STRIP -- --}}
-  <section class="products-kpi-grid">
+  <section class="products-kpi-grid" data-products-kpi-grid>
     <article class="products-kpi-card is-primary">
         <span>Total Products</span>
-        <strong>286</strong>
+        <strong>--</strong>
     </article>
     <article class="products-kpi-card is-success">
         <span>Live Products</span>
-        <strong>249</strong>
+        <strong>--</strong>
     </article>
     <article class="products-kpi-card is-warning">
         <span>Low Stock Alert</span>
-        <strong>18</strong>
+        <strong>--</strong>
     </article>
     <article class="products-kpi-card is-info">
         <span>Total Visitor</span>
-        <strong>249</strong>
+        <strong>--</strong>
     </article>
   </section>
 
@@ -72,11 +72,6 @@
         <label class="form-label">Category</label>
         <select class="form-select" data-products-category>
           <option value="">All Categories</option>
-          <option>Apparel</option>
-          <option>Electronics</option>
-          <option>Footwear</option>
-          <option>Accessories</option>
-          <option>Digital</option>
         </select>
       </div>
       <div class="form-group">
@@ -140,7 +135,7 @@
   </section>
 
   {{-- -- NEEDS ATTENTION TOGGLE -- --}}
-  <button
+  {{-- <button
     type="button"
     class="products-side-toggle"
     data-products-attention-toggle
@@ -151,7 +146,7 @@
     <span class="products-side-toggle-icon">&#9888;</span>
     <span class="products-side-toggle-text">Needs Attention</span>
     <span class="products-side-toggle-count">3</span>
-  </button>
+  </button> --}}
 
   <div class="products-side-backdrop" data-products-attention-backdrop aria-hidden="true"></div>
 

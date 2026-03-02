@@ -742,19 +742,19 @@
             <span>Save as Draft</span>
           </label>
           <label class="products-radio-item">
-            <input type="radio" name="publish_state" value="immediately" checked>
+            <input type="radio" name="publish_state" value="active" checked>
             <span>Publish Immediately</span>
           </label>
-          <label class="products-radio-item">
+          {{-- <label class="products-radio-item">
             <input type="radio" name="publish_state" value="scheduled">
             <span>Schedule Publish</span>
-          </label>
+          </label> --}}
         </div>
 
-        <div class="form-group mt-md">
+        {{-- <div class="form-group mt-md">
           <label class="form-label" for="productScheduleAt">Schedule Date & Time</label>
           <input id="productScheduleAt" class="form-input" type="datetime-local">
-        </div>
+        </div> --}}
       </section>
 
       {{-- Type-specific Checklist --}}

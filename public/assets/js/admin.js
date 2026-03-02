@@ -801,7 +801,7 @@ function initCampaignBuilder() {
       setStatus('Scheduled mode enabled. Set start date and time.', 'warning');
     } else {
       submitButton.textContent = 'Launch Instant';
-      setStatus('Instant mode enabled. Campaign will launch immediately.', '');
+      setStatus('Instant mode enabled. Campaign will launch active.', '');
     }
 
     updateDateConstraints();
@@ -2107,6 +2107,7 @@ function initProductsCatalogPage() {
   const section = document.getElementById('productsCatalogSection');
   if (!section) return;
 
+  const kpiGrid = document.querySelector('[data-products-kpi-grid]');
   const tbody = section.querySelector('[data-products-tbody]');
   const totalBadge = section.querySelector('[data-products-total-badge]');
   const resultNode = section.querySelector('[data-products-result]');
@@ -2154,6 +2155,8 @@ function initProductsCatalogPage() {
     to: 0,
     lastPage: 1,
     products: [],
+    categories: [],
+    info: [],
     loading: false,
     requestId: 0,
   };
@@ -2162,12 +2165,6 @@ function initProductsCatalogPage() {
     pendingName: '',
     inFlight: false,
   };
-
-  const categories = new Set(
-    Array.from(categorySelect.options)
-      .map((option) => String(option.value || '').trim())
-      .filter(Boolean)
-  );
 
   const toInt = (value, fallback = 0) => {
     const parsed = Number.parseInt(String(value ?? ''), 10);
@@ -2196,6 +2193,91 @@ function initProductsCatalogPage() {
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#39;');
+  const formatKpiValue = (value) => {
+    const number = Number(value);
+    if (Number.isFinite(number)) {
+      return number.toLocaleString('en-US');
+    }
+    const raw = text(value);
+    return raw || '0';
+  };
+  const categoryOf = (product) => (
+    text(product?.category)
+    || text(product?.category_name)
+    || text(product?.category_title)
+  );
+  const parseCategoryLabel = (item) => {
+    if (typeof item === 'string') return text(item);
+    if (item && typeof item === 'object') {
+      return text(item.name || item.title || item.category || item.label || item.slug || item.value);
+    }
+    return '';
+  };
+  const resolveKpiClass = (name, index) => {
+    const normalized = text(name).toLowerCase();
+    if (normalized.includes('live')) return 'is-success';
+    if (normalized.includes('stock')) return 'is-warning';
+    if (normalized.includes('visitor')) return 'is-info';
+    if (normalized.includes('product') && index === 0) return 'is-primary';
+    const fallback = ['is-primary', 'is-success', 'is-warning', 'is-info'];
+    return fallback[index % fallback.length];
+  };
+  const renderKpis = (items = []) => {
+    if (!kpiGrid) return;
+
+    const list = Array.isArray(items) ? items : [];
+    if (!list.length) {
+      kpiGrid.innerHTML = `
+        <article class="products-kpi-card is-primary">
+          <span>Total Products</span>
+          <strong>0</strong>
+        </article>
+        <article class="products-kpi-card is-success">
+          <span>Total Live Products</span>
+          <strong>0</strong>
+        </article>
+        <article class="products-kpi-card is-warning">
+          <span>Low Stock Products</span>
+          <strong>0</strong>
+        </article>
+        <article class="products-kpi-card is-info">
+          <span>Total Visitors</span>
+          <strong>0</strong>
+        </article>
+      `;
+      return;
+    }
+
+    kpiGrid.innerHTML = list.map((entry, index) => {
+      const name = text(entry?.name) || `Info ${index + 1}`;
+      const value = formatKpiValue(entry?.value);
+      const css = resolveKpiClass(name, index);
+      return `
+        <article class="products-kpi-card ${css}">
+          <span>${escapeHtml(name)}</span>
+          <strong>${escapeHtml(value)}</strong>
+        </article>
+      `;
+    }).join('');
+  };
+  const renderCategoryFilter = (categories = []) => {
+    const selectedCategory = text(categorySelect.value);
+    const list = Array.from(new Set(
+      (Array.isArray(categories) ? categories : [])
+        .map((item) => parseCategoryLabel(item))
+        .filter(Boolean)
+    )).sort((a, b) => a.localeCompare(b));
+
+    categorySelect.innerHTML = ['<option value="">All Categories</option>']
+      .concat(list.map((category) => `<option value="${escapeHtml(category)}">${escapeHtml(category)}</option>`))
+      .join('');
+
+    if (selectedCategory && list.includes(selectedCategory)) {
+      categorySelect.value = selectedCategory;
+      return;
+    }
+    categorySelect.value = '';
+  };
 
   const setMessage = (message, showAdd = false) => {
     tbody.innerHTML = `
@@ -2210,8 +2292,18 @@ function initProductsCatalogPage() {
     `;
   };
 
+  const priceOf = (product) => toNumber(product?.price ?? product?.product_price, NaN);
+  const bargainingOf = (product) => toNumber(product?.bargaining_price, NaN);
+  const stockOf = (product) => toInt(product?.total_stock ?? product?.available_qty, 0);
+  const statusOf = (product) => {
+    const rawStatus = text(product?.status || product?.visibility).toLowerCase();
+    if (rawStatus === 'visible') return 'active';
+    if (rawStatus === 'hidden') return 'draft';
+    return rawStatus;
+  };
+
   const stockMeta = (product) => {
-    const stock = toInt(product.total_stock, 0);
+    const stock = stockOf(product);
     const alert = toInt(product.stock_alert, 0);
     if (stock <= 0) return { label: 'Out of Stock', css: 'badge-danger' };
     if (alert > 0 && stock <= alert) return { label: 'Low Stock', css: 'badge-warning' };
@@ -2219,9 +2311,11 @@ function initProductsCatalogPage() {
   };
 
   const priceHtml = (product) => {
-    const price = formatAmount(product.price);
-    const bargaining = Number.isFinite(toNumber(product.bargaining_price, NaN))
-      ? formatAmount(product.bargaining_price)
+    const priceValue = priceOf(product);
+    const bargainingValue = bargainingOf(product);
+    const price = formatAmount(priceValue);
+    const bargaining = Number.isFinite(bargainingValue)
+      ? formatAmount(bargainingValue)
       : '';
     const offer = text(product.is_discount_offer).toLowerCase();
     const discountType = text(product.is_discount_type).toLowerCase();
@@ -2254,7 +2348,7 @@ function initProductsCatalogPage() {
     }
 
     const meta = stockMeta(product);
-    const stock = toInt(product.total_stock, 0);
+    const stock = stockOf(product);
     if (Boolean(product.is_variants)) {
       const variants = toInt(product.variant_count, 0);
       return `<div class="products-catalog-stock"><div class="products-catalog-stock-top"><span class="products-catalog-stock-num">${formatCount(stock)} units total</span><span class="badge badge-xs ${meta.css}">${meta.label}</span></div><div class="products-catalog-variants-info"><span class="products-catalog-variants-badge">${formatCount(variants)} Variant${variants === 1 ? '' : 's'}</span></div></div>`;
@@ -2270,10 +2364,10 @@ function initProductsCatalogPage() {
     const typeCssMap = { physical: 'products-type-tag--physical', downloadable: 'products-type-tag--downloadable', subscription: 'products-type-tag--subscription', package: 'products-type-tag--package' };
     const name = text(product.name) || 'Unnamed Product';
     const productId = text(product.id);
-    const image = text(product.cover);
+    const image = text(product.cover || product.cover_image);
     const initial = escapeHtml(name.charAt(0).toUpperCase() || 'P');
-    const category = text(product.category) || 'Uncategorized';
-    const status = text(product.status).toLowerCase();
+    const category = categoryOf(product) || 'Uncategorized';
+    const status = statusOf(product);
     const statusCss = status === 'active' ? 'badge-success' : (status === 'draft' || status === 'pending' ? 'badge-warning' : (status === 'inactive' ? 'badge-danger' : 'badge-info'));
 
     const deleteButton = productId
@@ -2313,8 +2407,8 @@ function initProductsCatalogPage() {
     const list = state.products.filter((product) => {
       const name = text(product.name).toLowerCase();
       const productType = text(product.type).toLowerCase();
-      const productCategory = text(product.category).toLowerCase();
-      const productStatus = text(product.status).toLowerCase();
+      const productCategory = categoryOf(product).toLowerCase();
+      const productStatus = statusOf(product);
       if (search && !name.includes(search)) return false;
       if (type && productType !== type) return false;
       if (category && productCategory !== category) return false;
@@ -2329,8 +2423,8 @@ function initProductsCatalogPage() {
         const bStock = text(b.type).toLowerCase() === 'physical' ? toInt(b.total_stock, Number.MAX_SAFE_INTEGER) : Number.MAX_SAFE_INTEGER;
         return aStock - bStock;
       }
-      if (sort === 'price_desc') return toNumber(b.price, -1) - toNumber(a.price, -1);
-      if (sort === 'price_asc') return toNumber(a.price, Number.MAX_SAFE_INTEGER) - toNumber(b.price, Number.MAX_SAFE_INTEGER);
+      if (sort === 'price_desc') return toNumber(priceOf(b), -1) - toNumber(priceOf(a), -1);
+      if (sort === 'price_asc') return toNumber(priceOf(a), Number.MAX_SAFE_INTEGER) - toNumber(priceOf(b), Number.MAX_SAFE_INTEGER);
       return (Date.parse(text(b.created_at)) || 0) - (Date.parse(text(a.created_at)) || 0);
     });
   };
@@ -2464,8 +2558,16 @@ function initProductsCatalogPage() {
       });
       if (requestId !== state.requestId) return;
 
-      const list = Array.isArray(payload.data) ? payload.data : [];
-      const pagination = payload.pagination && typeof payload.pagination === 'object' ? payload.pagination : {};
+      const info = Array.isArray(payload?.info) ? payload.info : [];
+      const payloadCategories = Array.isArray(payload?.categories) ? payload.categories : [];
+      const productsPayload = payload?.products && typeof payload.products === 'object' ? payload.products : {};
+      const list = Array.isArray(productsPayload?.data) ? productsPayload.data : [];
+      const pagination = productsPayload?.pagination && typeof productsPayload.pagination === 'object'
+        ? productsPayload.pagination
+        : {};
+
+      state.info = info;
+      state.categories = payloadCategories;
       state.products = list;
       state.page = Math.max(1, toInt(pagination.current_page, page));
       state.lastPage = Math.max(1, toInt(pagination.last_page, 1));
@@ -2473,14 +2575,14 @@ function initProductsCatalogPage() {
       state.from = Math.max(0, toInt(pagination.from, list.length ? ((state.page - 1) * state.perPage) + 1 : 0));
       state.to = Math.max(0, toInt(pagination.to, state.from ? state.from + list.length - 1 : 0));
 
-      list.forEach((product) => {
-        const category = text(product.category);
-        if (category) categories.add(category);
-      });
-      const selectedCategory = text(categorySelect.value);
-      categorySelect.innerHTML = ['<option value="">All Categories</option>']
-        .concat(Array.from(categories).sort((a, b) => a.localeCompare(b)).map((category) => `<option value="${escapeHtml(category)}"${category === selectedCategory ? ' selected' : ''}>${escapeHtml(category)}</option>`))
-        .join('');
+      const categoriesFromProducts = list
+        .map((product) => categoryOf(product))
+        .filter(Boolean);
+      const mergedCategories = payloadCategories.length
+        ? payloadCategories
+        : categoriesFromProducts;
+      renderCategoryFilter(mergedCategories);
+      renderKpis(info);
 
       totalBadge.textContent = `${formatCount(state.total)} Products`;
       renderTable();
@@ -2492,11 +2594,15 @@ function initProductsCatalogPage() {
         ? 'Request timed out. Please try again.'
         : (error?.message || 'Failed to load products.');
       state.products = [];
+      state.info = [];
+      state.categories = [];
       state.total = 0;
       state.from = 0;
       state.to = 0;
       state.lastPage = 1;
       totalBadge.textContent = 'Unavailable';
+      renderKpis([]);
+      renderCategoryFilter([]);
       resultNode.textContent = message;
       setMessage(message);
       pageWrap.hidden = true;
@@ -2586,6 +2692,7 @@ function initProductsCatalogPage() {
     }
   });
 
+  renderKpis([]);
   loadProducts(state.page);
 }
 
@@ -5596,7 +5703,7 @@ function initProductDemoAutoFill() {
   // ── Discount: none (default) ──
   set('[data-discount-offer-duration]', 'none');
 
-  // ── Publish: immediately (default) ──
+  // ── Publish: active (default) ──
   // already checked
 
   // ── Tags ──
@@ -5705,7 +5812,7 @@ function initProductEditPrefill() {
     setInput('#productMetaDescription', product?.meta_description || '');
     setInput('#productTags', parseList(product?.seo_tags).join(', '));
 
-    const publishType = String(product?.publish_type || 'immediately').toLowerCase();
+    const publishType = String(product?.publish_type || 'active').toLowerCase();
     if (publishType === 'scheduled') {
       setRadio('publish_state', 'scheduled');
       setInput('#productScheduleAt', toDatetimeLocal(product?.publish_at));
@@ -5713,7 +5820,7 @@ function initProductEditPrefill() {
       setRadio('publish_state', 'draft');
       setInput('#productScheduleAt', '');
     } else {
-      setRadio('publish_state', 'immediately');
+      setRadio('publish_state', 'active');
       setInput('#productScheduleAt', '');
     }
 
@@ -5899,8 +6006,8 @@ function initProductCreateSubmit() {
       ? toIsoOrNull(form.querySelector('#discountOfferEndAt')?.value)
       : null;
 
-    const publishValue = form.querySelector('[name="publish_state"]:checked')?.value || 'immediately';
-    const publish_type = publishValue === 'scheduled' ? 'scheduled' : 'immediately';
+    const publishValue = form.querySelector('[name="publish_state"]:checked')?.value || 'active';
+    const publish_type = publishValue === 'scheduled' ? 'scheduled' : 'active';
     const publish_at = publish_type === 'scheduled'
       ? toIsoOrNull(form.querySelector('#productScheduleAt')?.value)
       : null;
