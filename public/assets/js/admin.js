@@ -4510,14 +4510,8 @@ function initProductCreateAiWriter() {
     });
   });
 
-  let slugUserEdited = !!(slugInput && slugInput.value.trim());
-
-  slugInput?.addEventListener('input', () => {
-    slugUserEdited = slugInput.value.trim() !== '';
-  });
-
   productNameInput.addEventListener('input', () => {
-    if (!slugUserEdited && slugInput) {
+    if (slugInput) {
       slugInput.value = slugify(productNameInput.value);
     }
     updateAiButtonState();
