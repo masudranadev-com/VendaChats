@@ -131,6 +131,20 @@
           <option value="">None (Top level)</option>
         </select>
       </div>
+      <div class="form-group">
+        <label class="form-label" for="editCategoryImageInput">Category Image</label>
+        <input
+          id="editCategoryImageInput"
+          type="file"
+          class="form-input"
+          data-category-edit-image
+          accept="image/*"
+        >
+        <small class="categories-image-upload-hint">Upload an image under 2MB. Recommended: 1080 x 1080 px (1:1) in JPG/WEBP.</small>
+        <div class="categories-image-upload-preview" data-category-edit-image-preview>
+          <span class="categories-image-upload-placeholder">No image selected</span>
+        </div>
+      </div>
     </div>
 
     <div class="form-group mt-md">
@@ -141,7 +155,6 @@
     <div class="settings-inline-actions">
       <button type="button" class="btn btn-primary btn-sm" data-category-edit-save>Update Category</button>
       <button type="button" class="btn btn-secondary btn-sm" data-category-edit-cancel>Cancel Edit</button>
-      <span class="badge badge-info">API Sync</span>
     </div>
   </article>
 
@@ -182,38 +195,6 @@
       </table>
     </div>
   </article>
-
-  <button
-    type="button"
-    class="products-side-toggle"
-    data-products-attention-toggle
-    aria-controls="productsAttentionPanel"
-    aria-expanded="false"
-    aria-label="Open Suggestions panel"
-  >
-    <span class="products-side-toggle-icon">&#10024;</span>
-    <span class="products-side-toggle-text">AI Suggestions</span>
-    <span class="products-side-toggle-count" data-suggestions-count>0</span>
-  </button>
-
-  <div class="products-side-backdrop" data-products-attention-backdrop aria-hidden="true"></div>
-
-  <section class="card products-side-card products-side-panel" id="productsAttentionPanel" aria-hidden="true">
-    <div class="card-header products-side-panel-header">
-      <h3 class="card-title">Suggestions</h3>
-      <div class="products-side-panel-actions">
-        <span class="badge badge-info" data-suggestions-next-reset>Next reset -</span>
-        <button type="button" class="products-side-close" data-products-attention-close aria-label="Close Suggestions panel">&times;</button>
-      </div>
-    </div>
-
-    <ul class="products-attention-list" data-suggestions-list>
-      <li>
-        <strong>Loading suggestions...</strong>
-        <p>Please wait.</p>
-      </li>
-    </ul>
-  </section>
 
   <div class="modal-overlay" id="categoriesValidationModal" aria-hidden="true">
     <div class="modal categories-validation-modal" role="dialog" aria-modal="true" aria-labelledby="categoriesValidationModalTitle">

@@ -29,7 +29,10 @@
       return '';
     })();
 
-    const token = jqToken || readMetaToken() || toText(global.localStorage?.getItem?.('refresh_token'));
+    const token = jqToken
+      || readMetaToken()
+      || toText(global.localStorage?.getItem?.('access_token'))
+      || toText(global.localStorage?.getItem?.('refresh_token'));
     if (token) return token;
 
     try {
@@ -224,49 +227,54 @@
       Categories: {
         list({apiBaseUrl, refreshToken, page = 1, perPage = 200, timeoutMs = 15000} = {}) {
           const query = `?page=${encodeURIComponent(page)}&per_page=${encodeURIComponent(perPage)}`;
+          const token = toText(readMetaToken() || getToken());
           return request({
             baseUrl: normalizeBaseUrl(apiBaseUrl),
             path: `/api/admin/categories${query}`,
             method: 'GET',
-            token: refreshToken,
+            token,
             timeoutMs,
           });
         },
         getById({apiBaseUrl, refreshToken, categoryId, timeoutMs = 12000} = {}) {
+          const token = toText(readMetaToken() || getToken());
           return request({
             baseUrl: normalizeBaseUrl(apiBaseUrl),
             path: `/api/admin/categories/${encodeURIComponent(categoryId)}`,
             method: 'GET',
-            token: refreshToken,
+            token,
             timeoutMs,
           });
         },
         create({apiBaseUrl, refreshToken, payload, timeoutMs = 12000} = {}) {
+          const token = toText(readMetaToken() || getToken());
           return request({
             baseUrl: normalizeBaseUrl(apiBaseUrl),
             path: '/api/admin/categories',
             method: 'POST',
-            token: refreshToken,
+            token,
             body: payload,
             timeoutMs,
           });
         },
         update({apiBaseUrl, refreshToken, categoryId, payload, timeoutMs = 12000} = {}) {
+          const token = toText(readMetaToken() || getToken());
           return request({
             baseUrl: normalizeBaseUrl(apiBaseUrl),
             path: `/api/admin/categories/${encodeURIComponent(categoryId)}`,
             method: 'PUT',
-            token: refreshToken,
+            token,
             body: payload,
             timeoutMs,
           });
         },
         remove({apiBaseUrl, refreshToken, categoryId, timeoutMs = 12000} = {}) {
+          const token = toText(readMetaToken() || getToken());
           return request({
             baseUrl: normalizeBaseUrl(apiBaseUrl),
             path: `/api/admin/categories/${encodeURIComponent(categoryId)}`,
             method: 'DELETE',
-            token: refreshToken,
+            token,
             timeoutMs,
           });
         },

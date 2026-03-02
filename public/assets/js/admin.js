@@ -4551,7 +4551,7 @@ function initCategoryCreateForm() {
     storageRefreshToken = '';
   }
 
-  runtime.apiBase = normalizeApiBase(tableBody.dataset.apiBaseUrl || `${window.location.origin}`);
+  runtime.apiBase = normalizeApiBase(tableBody.dataset.apiBaseUrl || 'http://localhost:8082');
   runtime.refreshToken = sessionRefreshToken || storageRefreshToken;
   runtime.categories = [];
   runtime.pagination = {total: 0, current_page: 1, per_page: 0, last_page: 1};
@@ -4855,9 +4855,11 @@ function initCategoryCreateForm() {
       slug: categorySlug || slugify(categoryName),
       visibility: categoryVisibility,
       parent_category: categoryParent > 0 ? categoryParent : null,
-      cover: categoryImage || null,
       short_description: categoryDescription || null,
     };
+    if (categoryImage) {
+      payload.cover_image = categoryImage;
+    }
 
     const defaultButtonText = addButton.textContent;
     addButton.disabled = true;
@@ -4980,15 +4982,24 @@ function initCategoryEditor() {
   const slugInput = editPanel.querySelector('[data-category-edit-slug]');
   const statusInput = editPanel.querySelector('[data-category-edit-status]');
   const parentInput = editPanel.querySelector('[data-category-edit-parent]');
+  const editImageInput = editPanel.querySelector('[data-category-edit-image]');
+  const editImagePreview = editPanel.querySelector('[data-category-edit-image-preview]');
   const descriptionInput = editPanel.querySelector('[data-category-edit-description]');
   const productsNode = editPanel.querySelector('[data-category-edit-products]');
   const shareNode = editPanel.querySelector('[data-category-edit-share]');
   const updatedNode = editPanel.querySelector('[data-category-edit-updated]');
   const cancelButton = editPanel.querySelector('[data-category-edit-cancel]');
   const saveButton = editPanel.querySelector('[data-category-edit-save]');
+  const categoryValidationModal = document.getElementById('categoriesValidationModal');
+  const categoryValidationTitleNode = categoryValidationModal?.querySelector('[data-category-validation-title]');
+  const categoryValidationMessageNode = categoryValidationModal?.querySelector('[data-category-validation-message]');
+  const categoryValidationCloseButton = categoryValidationModal?.querySelector('[data-category-validation-close]');
 
   let activeRow = null;
   let activeCategoryId = 0;
+  let currentImageUrl = '';
+  let pendingEditImageUrl = '';
+  let pendingEditImageName = '';
 
   const text = (value) => String(value ?? '').trim();
   const toInt = (value, fallback = 0) => {
@@ -5009,6 +5020,34 @@ function initCategoryEditor() {
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#39;');
   const statusToApi = (statusLabel) => (text(statusLabel).toLowerCase() === 'active' ? 'visible' : 'hidden');
+  const maxCategoryImageBytes = 2 * 1024 * 1024;
+  const categoryImageMinWidth = 600;
+  const categoryImageMinHeight = 600;
+  const categoryImageExpectedRatio = 1; // 1:1 square
+  const categoryImageRatioTolerance = 0.03;
+
+  const showCategoryValidationModal = (message, title = 'Category Image Error') => {
+    const dialogMessage = text(message) || 'Please check your image and try again.';
+    const dialogTitle = text(title) || 'Category Image Error';
+
+    if (!categoryValidationModal) {
+      showError(dialogMessage);
+      return;
+    }
+
+    if (categoryValidationTitleNode) {
+      categoryValidationTitleNode.textContent = dialogTitle;
+    }
+
+    if (categoryValidationMessageNode) {
+      categoryValidationMessageNode.textContent = dialogMessage;
+    }
+
+    openModal('categoriesValidationModal');
+    window.setTimeout(() => {
+      categoryValidationCloseButton?.focus();
+    }, 20);
+  };
 
   const setEditMode = (enabled) => {
     createPanel.classList.toggle('is-hidden', enabled);
@@ -5051,6 +5090,39 @@ function initCategoryEditor() {
     parentInput.value = '';
   };
 
+  const renderEditImagePreview = (src, alt = 'Category image') => {
+    if (!editImagePreview) return;
+
+    const imageSrc = text(src);
+    if (!imageSrc) {
+      editImagePreview.innerHTML = '<span class="categories-image-upload-placeholder">No image selected</span>';
+      return;
+    }
+
+    editImagePreview.innerHTML = `<img src="${escapeHtml(imageSrc)}" alt="${escapeHtml(alt)}" loading="lazy">`;
+  };
+
+  const readImageDimensions = (file) => new Promise((resolve, reject) => {
+    const objectUrl = window.URL.createObjectURL(file);
+    const image = new Image();
+
+    image.onload = () => {
+      const result = {
+        width: image.naturalWidth,
+        height: image.naturalHeight,
+      };
+      window.URL.revokeObjectURL(objectUrl);
+      resolve(result);
+    };
+
+    image.onerror = () => {
+      window.URL.revokeObjectURL(objectUrl);
+      reject(new Error('Unable to read image dimensions.'));
+    };
+
+    image.src = objectUrl;
+  });
+
   const readRowData = (row) => ({
     id: toInt(row.dataset.categoryId, 0),
     name: row.dataset.categoryName || '',
@@ -5068,6 +5140,11 @@ function initCategoryEditor() {
   const populateEditor = (row) => {
     const category = readRowData(row);
     activeCategoryId = category.id;
+    currentImageUrl = text(category.image);
+    pendingEditImageUrl = '';
+    pendingEditImageName = '';
+    if (editImageInput) editImageInput.value = '';
+    renderEditImagePreview(currentImageUrl, `${category.name || 'Category'} image`);
 
     if (titleNode) {
       titleNode.textContent = `Edit Category: ${category.name}`;
@@ -5087,8 +5164,96 @@ function initCategoryEditor() {
   const closeEditor = () => {
     activeRow = null;
     activeCategoryId = 0;
+    currentImageUrl = '';
+    pendingEditImageUrl = '';
+    pendingEditImageName = '';
+    if (editImageInput) editImageInput.value = '';
+    renderEditImagePreview('');
     setEditMode(false);
   };
+
+  editImageInput?.addEventListener('change', async (event) => {
+    const file = event.target?.files?.[0];
+    if (!file) {
+      pendingEditImageUrl = '';
+      pendingEditImageName = '';
+      renderEditImagePreview(currentImageUrl, 'Current image');
+      return;
+    }
+
+    if (!file.type.startsWith('image/')) {
+      showCategoryValidationModal('Please select an image file for category image.', 'Invalid File Type');
+      editImageInput.value = '';
+      pendingEditImageUrl = '';
+      pendingEditImageName = '';
+      renderEditImagePreview(currentImageUrl, 'Current image');
+      return;
+    }
+
+    if (file.size >= maxCategoryImageBytes) {
+      const sizeInMb = (file.size / (1024 * 1024)).toFixed(2);
+      showCategoryValidationModal(
+        `Category image must be smaller than 2MB. Selected file size: ${sizeInMb}MB.`,
+        'File Too Large'
+      );
+      editImageInput.value = '';
+      pendingEditImageUrl = '';
+      pendingEditImageName = '';
+      renderEditImagePreview(currentImageUrl, 'Current image');
+      return;
+    }
+
+    try {
+      const {width, height} = await readImageDimensions(file);
+      const ratio = width / Math.max(1, height);
+      const ratioDiff = Math.abs(ratio - categoryImageExpectedRatio);
+
+      if (width < categoryImageMinWidth || height < categoryImageMinHeight) {
+        showCategoryValidationModal(
+          `Category image is too small. Minimum ${categoryImageMinWidth}x${categoryImageMinHeight}px required. ` +
+          `Selected: ${width}x${height}px.`,
+          'Image Dimensions Too Small'
+        );
+        editImageInput.value = '';
+        pendingEditImageUrl = '';
+        pendingEditImageName = '';
+        renderEditImagePreview(currentImageUrl, 'Current image');
+        return;
+      }
+
+      if (ratioDiff > categoryImageRatioTolerance) {
+        showCategoryValidationModal(
+          `Category image must be square (1:1 ratio). Selected: ${width}x${height}px. ` +
+          'Recommended: 1080x1080px.',
+          'Image Ratio Mismatch'
+        );
+        editImageInput.value = '';
+        pendingEditImageUrl = '';
+        pendingEditImageName = '';
+        renderEditImagePreview(currentImageUrl, 'Current image');
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = (loadEvent) => {
+        pendingEditImageUrl = text(loadEvent?.target?.result);
+        pendingEditImageName = file.name || 'Category image';
+        renderEditImagePreview(pendingEditImageUrl, pendingEditImageName);
+      };
+      reader.onerror = () => {
+        pendingEditImageUrl = '';
+        pendingEditImageName = '';
+        showCategoryValidationModal('Unable to read selected category image.', 'Image Read Failed');
+        renderEditImagePreview(currentImageUrl, 'Current image');
+      };
+      reader.readAsDataURL(file);
+    } catch {
+      pendingEditImageUrl = '';
+      pendingEditImageName = '';
+      showCategoryValidationModal('Unable to validate selected category image.', 'Image Validation Failed');
+      renderEditImagePreview(currentImageUrl, 'Current image');
+    }
+  });
 
   tableBody.addEventListener('click', (event) => {
     const button = event.target.closest('[data-category-edit]');
@@ -5116,7 +5281,6 @@ function initCategoryEditor() {
     const nextStatus = statusInput?.value || 'Draft';
     const nextParentId = toInt(parentInput?.value, 0);
     const nextDescription = text(descriptionInput?.value);
-    const currentCover = text(activeRow.dataset.categoryImage);
 
     if (!nextName) {
       showError('Category name is required.');
@@ -5134,9 +5298,11 @@ function initCategoryEditor() {
       slug: nextSlug,
       visibility: statusToApi(nextStatus),
       parent_category: nextParentId > 0 ? nextParentId : null,
-      cover: currentCover || null,
       short_description: nextDescription || null,
     };
+    if (pendingEditImageUrl) {
+      payload.cover_image = pendingEditImageUrl;
+    }
 
     const defaultSaveText = saveButton.textContent;
     saveButton.disabled = true;
