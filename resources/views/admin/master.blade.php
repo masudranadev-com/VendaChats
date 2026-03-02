@@ -44,6 +44,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&amp;family=DM+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
   <link rel="stylesheet" href="{{ asset('assets/css/admin.css') }}">
+  <meta name="x-refresh-token" content="{{ session()->get("auth.refresh_token", "") }}">
 </head>
 <body data-theme="light">
   <div class="admin-wrapper">

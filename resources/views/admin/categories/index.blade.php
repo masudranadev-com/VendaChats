@@ -11,7 +11,7 @@
 
     <div class="settings-header-actions">
       <a href="{{ route('admin.products') }}" class="btn btn-ghost">Back to Products</a>
-      <button type="button" class="btn btn-primary" data-category-save-setup>Save Category Setup</button>
+      <button type="button" class="btn btn-primary" data-category-save-setup>Refresh Categories</button>
     </div>
   </div>
 
@@ -27,9 +27,9 @@
     <div class="card-header">
       <div>
         <h3 class="card-title">Add New Category</h3>
-        <p class="settings-panel-subtitle">Demo design only. Inputs are static and not saved to database.</p>
+        <p class="settings-panel-subtitle">Create categories directly from live API.</p>
       </div>
-      <span class="badge badge-info">UI Demo</span>
+      <span class="badge badge-success">Live API</span>
     </div>
 
     <div class="settings-field-grid">
@@ -59,6 +59,20 @@
         <select id="categoryParentInput" class="form-select" data-category-parent-input>
           <option value="">None (Top level)</option>
         </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="categoryImageInput">Category Image</label>
+        <input
+          id="categoryImageInput"
+          type="file"
+          class="form-input"
+          data-category-image-input
+          accept="image/*"
+        >
+        <small class="categories-image-upload-hint">Upload an image for this category (demo only).</small>
+        <div class="categories-image-upload-preview" data-category-image-preview>
+          <span class="categories-image-upload-placeholder">No image selected</span>
+        </div>
       </div>
     </div>
 
@@ -93,9 +107,9 @@
     <div class="card-header">
       <div>
         <h3 class="card-title" data-category-edit-title>Edit Category</h3>
-        <p class="settings-panel-subtitle">Edit mode (demo only). Values are prefilled from selected row.</p>
+        <p class="settings-panel-subtitle">Edit mode. Values are loaded from selected category.</p>
       </div>
-      <span class="badge badge-warning">Editing Mode</span>
+      <span class="badge badge-warning">Editing</span>
     </div>
 
     <div class="categories-edit-meta">
@@ -136,7 +150,7 @@
     <div class="settings-inline-actions">
       <button type="button" class="btn btn-primary btn-sm" data-category-edit-save>Update Category</button>
       <button type="button" class="btn btn-secondary btn-sm" data-category-edit-cancel>Cancel Edit</button>
-      <span class="badge badge-info">Demo UI only</span>
+      <span class="badge badge-info">API Sync</span>
     </div>
   </article>
 
@@ -144,7 +158,7 @@
     <div class="card-header">
       <div>
         <h3 class="card-title">All Categories</h3>
-        <p class="settings-panel-subtitle">Complete category list from demo API data.</p>
+        <p class="settings-panel-subtitle">Complete category list from categories API.</p>
       </div>
       <span class="badge badge-info" data-categories-total>0 total</span>
     </div>
@@ -155,6 +169,7 @@
       <table class="table categories-table">
         <thead>
           <tr>
+            <th>Image</th>
             <th>Category</th>
             <th>Slug</th>
             <th>Products</th>
@@ -164,9 +179,13 @@
             <th>Action</th>
           </tr>
         </thead>
-        <tbody data-categories-table-body>
+        <tbody
+          data-categories-table-body
+          data-api-base-url="{{ $categoriesApiBaseUrl }}"
+          data-refresh-token="{{ $categoriesRefreshToken }}"
+        >
           <tr>
-            <td colspan="7">Loading categories...</td>
+            <td colspan="8">Loading categories...</td>
           </tr>
         </tbody>
       </table>

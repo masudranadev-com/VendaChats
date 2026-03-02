@@ -305,6 +305,10 @@ document.addEventListener('DOMContentLoaded', () => {
   initProductCreateSliderControl();
   initProductCreateDiscountOfferControl();
   initProductDemoAutoFill();
+  initCategoryCreateForm();
+  initCategoryAiWriter();
+  initCategoryEditor();
+  initCategoryDeleteGuards();
   initProductCreateAiWriter();
   initProductCreateSubmit();
   initProductEditPrefill();
@@ -4488,6 +4492,479 @@ function initProductCreateAiWriter() {
   updateAiButtonState();
 }
 
+function initCategoryCreateForm() {
+  const metricsNode = document.querySelector('[data-categories-metrics]');
+  const tableBody = document.querySelector('[data-categories-table-body]');
+  const totalNode = document.querySelector('[data-categories-total]');
+  const saveSetupButton = document.querySelector('[data-category-save-setup]');
+  const addButton = document.querySelector('[data-category-add-button]');
+  const nameInput = document.querySelector('[data-category-name-input]');
+  const slugInput = document.querySelector('[data-category-slug-input]');
+  const statusInput = document.querySelector('[data-category-status-input]');
+  const parentInput = document.querySelector('[data-category-parent-input]');
+  const descriptionInput = document.querySelector('[data-category-description-input]');
+  const imageInput = document.querySelector('[data-category-image-input]');
+  const imagePreview = document.querySelector('[data-category-image-preview]');
+
+  if (
+    !tableBody ||
+    !addButton ||
+    !nameInput ||
+    !slugInput ||
+    !statusInput ||
+    !parentInput ||
+    !descriptionInput
+  ) {
+    return;
+  }
+
+  const text = (value) => String(value ?? '').trim();
+  const toInt = (value, fallback = 0) => {
+    const parsed = Number.parseInt(String(value ?? ''), 10);
+    return Number.isFinite(parsed) ? parsed : fallback;
+  };
+  const slugify = (value) => String(value || '')
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9\s-]/g, '')
+    .replace(/\s+/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '');
+  const escapeHtml = (value) => text(value)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+  const statusToApi = (statusLabel) => (text(statusLabel).toLowerCase() === 'active' ? 'visible' : 'hidden');
+  const statusToLabel = (visibility) => (text(visibility).toLowerCase() === 'visible' ? 'Active' : 'Draft');
+  const normalizeApiBase = (value) => text(value).replace(/\/+$/, '');
+  const now = () => Date.now();
+
+  const formatDateTime = (value) => {
+    const rawValue = text(value);
+    if (!rawValue) return '-';
+    const parsed = Date.parse(rawValue);
+    if (!Number.isFinite(parsed)) return rawValue;
+    return new Date(parsed).toLocaleString();
+  };
+
+  const formatRelativeTime = (value) => {
+    const rawValue = text(value);
+    if (!rawValue) return '-';
+    const parsed = Date.parse(rawValue);
+    if (!Number.isFinite(parsed)) return rawValue;
+
+    const diffMs = now() - parsed;
+    if (!Number.isFinite(diffMs) || diffMs < 0) return formatDateTime(rawValue);
+    const minutes = Math.floor(diffMs / 60000);
+    if (minutes < 1) return 'Just now';
+    if (minutes < 60) return `${minutes}m ago`;
+    const hours = Math.floor(minutes / 60);
+    if (hours < 24) return `${hours}h ago`;
+    const days = Math.floor(hours / 24);
+    if (days < 7) return `${days}d ago`;
+    return new Date(parsed).toLocaleDateString();
+  };
+
+  const setTableMessage = (message) => {
+    tableBody.innerHTML = `
+      <tr>
+        <td colspan="8">${escapeHtml(message)}</td>
+      </tr>
+    `;
+  };
+
+  const renderImagePreview = (src, alt = 'Selected image') => {
+    if (!imagePreview) return;
+
+    const imageSrc = text(src);
+    if (!imageSrc) {
+      imagePreview.innerHTML = '<span class="categories-image-upload-placeholder">No image selected</span>';
+      return;
+    }
+
+    imagePreview.innerHTML = `<img src="${escapeHtml(imageSrc)}" alt="${escapeHtml(alt)}" loading="lazy">`;
+  };
+
+  const renderTableImage = (src, alt = 'Category image') => {
+    const imageSrc = text(src);
+    if (!imageSrc) {
+      return '<span class="categories-table-image categories-table-image--placeholder">No image</span>';
+    }
+
+    return `<span class="categories-table-image"><img src="${escapeHtml(imageSrc)}" alt="${escapeHtml(alt)}" loading="lazy"></span>`;
+  };
+
+  const runtime = window.__adminCategoriesRuntime || {};
+  window.__adminCategoriesRuntime = runtime;
+
+  const sessionRefreshToken = text(tableBody.dataset.refreshToken);
+  let storageRefreshToken = '';
+  try {
+    storageRefreshToken = text(window.localStorage.getItem('refresh_token') || '');
+  } catch {
+    storageRefreshToken = '';
+  }
+
+  runtime.apiBase = normalizeApiBase(tableBody.dataset.apiBaseUrl || `${window.location.origin}`);
+  runtime.refreshToken = sessionRefreshToken || storageRefreshToken;
+  runtime.categories = [];
+  runtime.pagination = {total: 0, current_page: 1, per_page: 0, last_page: 1};
+  runtime.requestId = 0;
+  runtime.loading = false;
+
+  runtime.refreshTotal = () => {
+    if (!totalNode) return;
+    const total = Math.max(0, toInt(runtime.pagination?.total, runtime.categories.length));
+    totalNode.textContent = `${total} total`;
+  };
+
+  runtime.renderMetrics = () => {
+    if (!metricsNode) return;
+    const categories = Array.isArray(runtime.categories) ? runtime.categories : [];
+    const total = categories.length;
+    const visible = categories.filter((item) => text(item?.visibility).toLowerCase() === 'visible').length;
+    const hidden = total - visible;
+    const topLevel = categories.filter((item) => toInt(item?.parent_category, 0) <= 0).length;
+
+    metricsNode.innerHTML = `
+      <article class="settings-stat-card is-info">
+        <span>Total Categories</span>
+        <strong>${total}</strong>
+        <small>${visible} visible, ${hidden} hidden</small>
+      </article>
+      <article class="settings-stat-card">
+        <span>Top Level</span>
+        <strong>${topLevel}</strong>
+        <small>${Math.max(0, total - topLevel)} sub-categories</small>
+      </article>
+      <article class="settings-stat-card">
+        <span>API Base</span>
+        <strong>Live</strong>
+        <small>${escapeHtml(runtime.apiBase || '/api/admin')}</small>
+      </article>
+      <article class="settings-stat-card is-warning">
+        <span>Auth Token</span>
+        <strong>${runtime.refreshToken ? 'Present' : 'Missing'}</strong>
+        <small>${runtime.refreshToken ? 'x-refresh-token header ready' : 'Set refresh token in session'}</small>
+      </article>
+    `;
+  };
+
+  runtime.setCreateParentOptions = (selectedValue = '') => {
+    const currentValue = text(selectedValue || parentInput.value);
+    const options = ['<option value="">None (Top level)</option>'];
+    const categories = Array.isArray(runtime.categories) ? runtime.categories : [];
+
+    categories
+      .filter((category) => toInt(category?.id, 0) > 0)
+      .sort((a, b) => text(a?.name).localeCompare(text(b?.name)))
+      .forEach((category) => {
+        const id = String(toInt(category.id, 0));
+        const label = text(category.name) || `Category #${id}`;
+        options.push(`<option value="${escapeHtml(id)}">${escapeHtml(label)}</option>`);
+      });
+
+    parentInput.innerHTML = options.join('');
+    if (currentValue && Array.from(parentInput.options).some((opt) => opt.value === currentValue)) {
+      parentInput.value = currentValue;
+      return;
+    }
+    parentInput.value = '';
+  };
+
+  runtime.renderRows = () => {
+    const categories = Array.isArray(runtime.categories) ? runtime.categories : [];
+    const idToName = new Map();
+    categories.forEach((category) => {
+      const id = toInt(category?.id, 0);
+      if (id > 0) {
+        idToName.set(id, text(category?.name));
+      }
+    });
+
+    tableBody.innerHTML = '';
+
+    if (!categories.length) {
+      setTableMessage('No categories found.');
+      runtime.refreshTotal();
+      runtime.renderMetrics();
+      runtime.setCreateParentOptions('');
+      return;
+    }
+
+    const fragment = document.createDocumentFragment();
+
+    categories.forEach((category) => {
+      const categoryId = toInt(category?.id, 0);
+      const categoryName = text(category?.name) || `Category #${categoryId || '-'}`;
+      const categorySlug = text(category?.slug);
+      const categoryVisibility = text(category?.visibility).toLowerCase() || 'visible';
+      const categoryStatus = statusToLabel(categoryVisibility);
+      const parentId = toInt(category?.parent_category, 0);
+      const parentName = parentId > 0 ? (idToName.get(parentId) || `Category #${parentId}`) : '';
+      const cover = text(category?.cover);
+      const shortDescription = text(category?.short_description);
+      const updatedAt = formatRelativeTime(category?.created_at);
+      const createdAtDisplay = formatDateTime(category?.created_at);
+
+      const row = document.createElement('tr');
+      row.setAttribute('data-category-row', '');
+      row.dataset.categoryId = String(categoryId);
+      row.dataset.categoryName = categoryName;
+      row.dataset.categorySlug = categorySlug;
+      row.dataset.categoryStatus = categoryStatus;
+      row.dataset.categoryVisibility = categoryVisibility;
+      row.dataset.categoryProducts = '0';
+      row.dataset.categoryShare = '0';
+      row.dataset.categoryParentId = parentId > 0 ? String(parentId) : '';
+      row.dataset.categoryParent = parentName;
+      row.dataset.categoryUpdated = updatedAt;
+      row.dataset.categoryDescription = shortDescription;
+      row.dataset.categoryImage = cover;
+      row.dataset.categoryCreatedAt = text(category?.created_at);
+
+      row.innerHTML = `
+        <td data-category-cell="image">
+          ${renderTableImage(cover, `${categoryName} image`)}
+        </td>
+        <td data-category-cell="category">
+          <strong>${escapeHtml(categoryName)}</strong>
+          ${parentName ? `<small class="categories-parent-note">Parent: ${escapeHtml(parentName)}</small>` : ''}
+        </td>
+        <td data-category-cell="slug">${escapeHtml(categorySlug || '-')}</td>
+        <td data-category-cell="products">-</td>
+        <td class="categories-share-cell" data-category-cell="share">
+          <span class="categories-share-value">-</span>
+        </td>
+        <td data-category-cell="status">
+          <span class="badge ${categoryStatus === 'Active' ? 'badge-success' : 'badge-warning'}">${escapeHtml(categoryStatus)}</span>
+        </td>
+        <td data-category-cell="updated" title="${escapeHtml(createdAtDisplay)}">${escapeHtml(updatedAt)}</td>
+        <td data-category-cell="action">
+          <div class="products-table-actions">
+            <button type="button" class="btn btn-secondary btn-sm" data-category-edit>Edit</button>
+            <button type="button" class="btn btn-danger btn-sm" data-category-delete>Delete</button>
+          </div>
+        </td>
+      `;
+
+      fragment.appendChild(row);
+    });
+
+    tableBody.appendChild(fragment);
+    runtime.refreshTotal();
+    runtime.renderMetrics();
+    runtime.setCreateParentOptions(parentInput.value);
+  };
+
+  runtime.apiRequest = async (path, options = {}) => {
+    const method = text(options.method || 'GET').toUpperCase() || 'GET';
+    const body = options.body ?? null;
+    const hasBody = body !== null && typeof body !== 'undefined';
+    const timeoutMs = Math.max(2000, toInt(options.timeoutMs, 12000));
+
+    if (!runtime.refreshToken) {
+      throw new Error('Missing refresh token. Please login again.');
+    }
+
+    if (!runtime.apiBase) {
+      throw new Error('Categories API base URL is missing.');
+    }
+
+    const controller = new AbortController();
+    const timeoutId = window.setTimeout(() => controller.abort(), timeoutMs);
+
+    try {
+      const headers = {
+        'Accept': 'application/json',
+        'x-refresh-token': runtime.refreshToken,
+      };
+
+      if (method !== 'GET' && hasBody) {
+        headers['Content-Type'] = 'application/json';
+      }
+
+      const response = await fetch(`${runtime.apiBase}${path}`, {
+        method,
+        headers,
+        signal: controller.signal,
+        body: hasBody ? JSON.stringify(body) : undefined,
+      });
+
+        const payload = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        if (response.status === 401) {
+          throw new Error('Unauthorized (401). Refresh token is missing or invalid.');
+        }
+
+        const errorMessage = text(payload?.error || payload?.message);
+        throw new Error(errorMessage || `Request failed (${response.status}).`);
+      }
+
+      return payload;
+    } catch (error) {
+      if (error?.name === 'AbortError') {
+        throw new Error('Request timeout. Please try again.');
+      }
+      throw error;
+    } finally {
+      window.clearTimeout(timeoutId);
+    }
+  };
+
+  runtime.loadCategories = async (opts = {}) => {
+    const showLoading = opts.showLoading !== false;
+    const requestId = ++runtime.requestId;
+    runtime.loading = true;
+
+    if (showLoading) {
+      setTableMessage('Loading categories...');
+    }
+
+    try {
+      const payload = await runtime.apiRequest('/api/admin/categories?page=1&per_page=200', {
+        method: 'GET',
+        timeoutMs: 15000,
+      });
+
+      if (requestId !== runtime.requestId) return;
+
+      runtime.categories = Array.isArray(payload?.data) ? payload.data : [];
+      runtime.pagination = payload?.pagination && typeof payload.pagination === 'object'
+        ? payload.pagination
+        : {total: runtime.categories.length, current_page: 1, per_page: runtime.categories.length, last_page: 1};
+
+      runtime.renderRows();
+    } catch (error) {
+      if (requestId !== runtime.requestId) return;
+      runtime.categories = [];
+      runtime.pagination = {total: 0, current_page: 1, per_page: 0, last_page: 1};
+      setTableMessage(error?.message || 'Failed to load categories.');
+      runtime.refreshTotal();
+      runtime.renderMetrics();
+      runtime.setCreateParentOptions('');
+      showError(error?.message || 'Failed to load categories.');
+    } finally {
+      if (requestId === runtime.requestId) {
+        runtime.loading = false;
+      }
+    }
+  };
+
+  let slugUserEdited = text(slugInput.value) !== '';
+  let selectedImageUrl = '';
+  let selectedImageName = '';
+
+  nameInput.addEventListener('input', () => {
+    if (!slugUserEdited) {
+      slugInput.value = slugify(nameInput.value);
+    }
+  });
+
+  slugInput.addEventListener('input', () => {
+    slugUserEdited = text(slugInput.value) !== '';
+  });
+
+  imageInput?.addEventListener('change', (event) => {
+    const file = event.target?.files?.[0];
+    if (!file) {
+      selectedImageUrl = '';
+      selectedImageName = '';
+      renderImagePreview('');
+      return;
+    }
+
+    if (!file.type.startsWith('image/')) {
+      showWarning('Please select an image file for category image.');
+      imageInput.value = '';
+      selectedImageUrl = '';
+      selectedImageName = '';
+      renderImagePreview('');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (loadEvent) => {
+      selectedImageUrl = text(loadEvent?.target?.result);
+      selectedImageName = file.name || 'Category image';
+      renderImagePreview(selectedImageUrl, selectedImageName);
+    };
+    reader.onerror = () => {
+      selectedImageUrl = '';
+      selectedImageName = '';
+      showError('Unable to read selected category image.');
+      renderImagePreview('');
+    };
+    reader.readAsDataURL(file);
+  });
+
+  addButton.addEventListener('click', async () => {
+    const categoryName = text(nameInput.value);
+    const categorySlug = text(slugInput.value) || slugify(categoryName);
+    const categoryVisibility = statusToApi(statusInput.value);
+    const categoryParent = toInt(parentInput.value, 0);
+    const categoryDescription = text(descriptionInput.value);
+    const categoryImage = text(selectedImageUrl);
+
+    if (!categoryName) {
+      showError('Category name is required.');
+      nameInput.focus();
+      return;
+    }
+
+    const payload = {
+      name: categoryName,
+      slug: categorySlug || slugify(categoryName),
+      visibility: categoryVisibility,
+      parent_category: categoryParent > 0 ? categoryParent : null,
+      cover: categoryImage || null,
+      short_description: categoryDescription || null,
+    };
+
+    const defaultButtonText = addButton.textContent;
+    addButton.disabled = true;
+    addButton.textContent = 'Adding...';
+
+    try {
+      const result = await runtime.apiRequest('/api/admin/categories', {
+        method: 'POST',
+        body: payload,
+      });
+
+      nameInput.value = '';
+      slugInput.value = '';
+      statusInput.value = 'Active';
+      parentInput.value = '';
+      descriptionInput.value = '';
+      if (imageInput) imageInput.value = '';
+      selectedImageUrl = '';
+      selectedImageName = '';
+      slugUserEdited = false;
+      renderImagePreview('');
+
+      showSuccess(text(result?.message) || 'Category created.');
+      await runtime.loadCategories({showLoading: false});
+    } catch (error) {
+      showError(error?.message || 'Failed to create category.');
+    } finally {
+      addButton.disabled = false;
+      addButton.textContent = defaultButtonText;
+    }
+  });
+
+  saveSetupButton?.addEventListener('click', async () => {
+    await runtime.loadCategories({showLoading: true});
+  });
+
+  renderImagePreview('');
+  runtime.renderMetrics();
+  runtime.refreshTotal();
+  runtime.setCreateParentOptions('');
+  runtime.loadCategories({showLoading: true});
+}
+
 function initCategoryAiWriter() {
   const trigger = document.querySelector('[data-category-ai-generate]');
   const categoryNameInput = document.querySelector('[data-category-name-input]');
@@ -4556,11 +5033,14 @@ function initCategoryAiWriter() {
 // CATEGORIES: EDIT PANEL (DEMO UI)
 // ══════════════════════════════════════════
 function initCategoryEditor() {
+  const runtime = window.__adminCategoriesRuntime;
   const createPanel = document.querySelector('[data-category-create-panel]');
   const editPanel = document.querySelector('[data-category-edit-panel]');
-  const editButtons = Array.from(document.querySelectorAll('[data-category-edit]'));
+  const tableBody = document.querySelector('[data-categories-table-body]');
 
-  if (!createPanel || !editPanel || !editButtons.length) return;
+  if (!runtime || !createPanel || !editPanel || !tableBody) return;
+  if (editPanel.dataset.categoryEditorReady === 'true') return;
+  editPanel.dataset.categoryEditorReady = 'true';
 
   const titleNode = editPanel.querySelector('[data-category-edit-title]');
   const nameInput = editPanel.querySelector('[data-category-edit-name]');
@@ -4575,6 +5055,27 @@ function initCategoryEditor() {
   const saveButton = editPanel.querySelector('[data-category-edit-save]');
 
   let activeRow = null;
+  let activeCategoryId = 0;
+
+  const text = (value) => String(value ?? '').trim();
+  const toInt = (value, fallback = 0) => {
+    const parsed = Number.parseInt(String(value ?? ''), 10);
+    return Number.isFinite(parsed) ? parsed : fallback;
+  };
+  const slugify = (value) => String(value || '')
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9\s-]/g, '')
+    .replace(/\s+/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '');
+  const escapeHtml = (value) => text(value)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+  const statusToApi = (statusLabel) => (text(statusLabel).toLowerCase() === 'active' ? 'visible' : 'hidden');
 
   const setEditMode = (enabled) => {
     createPanel.classList.toggle('is-hidden', enabled);
@@ -4589,19 +5090,51 @@ function initCategoryEditor() {
     selectNode.value = hasOption ? nextValue : fallback;
   };
 
+  const updateParentOptions = (selectedValue = '', excludeCategoryId = 0) => {
+    if (!parentInput) return;
+
+    const categories = Array.isArray(runtime.categories) ? runtime.categories : [];
+    const selected = text(selectedValue);
+    const currentId = toInt(excludeCategoryId, 0);
+
+    const options = ['<option value="">None (Top level)</option>'];
+    categories
+      .filter((category) => {
+        const id = toInt(category?.id, 0);
+        return id > 0 && id !== currentId;
+      })
+      .sort((a, b) => text(a?.name).localeCompare(text(b?.name)))
+      .forEach((category) => {
+        const id = String(toInt(category.id, 0));
+        const label = text(category.name) || `Category #${id}`;
+        options.push(`<option value="${escapeHtml(id)}">${escapeHtml(label)}</option>`);
+      });
+
+    parentInput.innerHTML = options.join('');
+    if (selected && Array.from(parentInput.options).some((opt) => opt.value === selected)) {
+      parentInput.value = selected;
+      return;
+    }
+    parentInput.value = '';
+  };
+
   const readRowData = (row) => ({
+    id: toInt(row.dataset.categoryId, 0),
     name: row.dataset.categoryName || '',
     slug: row.dataset.categorySlug || '',
     status: row.dataset.categoryStatus || 'Draft',
     products: Number.parseInt(row.dataset.categoryProducts || '0', 10) || 0,
     share: Number.parseInt(row.dataset.categoryShare || '0', 10) || 0,
+    parentId: row.dataset.categoryParentId || '',
     parent: row.dataset.categoryParent || '',
     updatedAt: row.dataset.categoryUpdated || '-',
     description: row.dataset.categoryDescription || '',
+    image: row.dataset.categoryImage || '',
   });
 
   const populateEditor = (row) => {
     const category = readRowData(row);
+    activeCategoryId = category.id;
 
     if (titleNode) {
       titleNode.textContent = `Edit Category: ${category.name}`;
@@ -4611,7 +5144,7 @@ function initCategoryEditor() {
     if (slugInput) slugInput.value = category.slug;
     if (descriptionInput) descriptionInput.value = category.description;
     setSelectValue(statusInput, category.status, 'Draft');
-    setSelectValue(parentInput, category.parent, '');
+    updateParentOptions(category.parentId, category.id);
 
     if (productsNode) productsNode.textContent = `Products: ${category.products}`;
     if (shareNode) shareNode.textContent = `Share: ${category.share}%`;
@@ -4620,18 +5153,21 @@ function initCategoryEditor() {
 
   const closeEditor = () => {
     activeRow = null;
+    activeCategoryId = 0;
     setEditMode(false);
   };
 
-  editButtons.forEach(button => {
-    button.addEventListener('click', () => {
-      const row = button.closest('[data-category-row]');
-      if (!row) return;
-      activeRow = row;
-      populateEditor(row);
-      setEditMode(true);
-      editPanel.scrollIntoView({behavior: 'smooth', block: 'start'});
-    });
+  tableBody.addEventListener('click', (event) => {
+    const button = event.target.closest('[data-category-edit]');
+    if (!button || !tableBody.contains(button)) return;
+
+    const row = button.closest('[data-category-row]');
+    if (!row) return;
+
+    activeRow = row;
+    populateEditor(row);
+    setEditMode(true);
+    editPanel.scrollIntoView({behavior: 'smooth', block: 'start'});
   });
 
   cancelButton?.addEventListener('click', () => {
@@ -4639,14 +5175,15 @@ function initCategoryEditor() {
     showInfo('Edit cancelled.');
   });
 
-  saveButton?.addEventListener('click', () => {
-    if (!activeRow) return;
+  saveButton?.addEventListener('click', async () => {
+    if (!activeRow || activeCategoryId <= 0) return;
 
-    const nextName = nameInput?.value.trim() || '';
-    const nextSlug = slugInput?.value.trim() || '';
+    const nextName = text(nameInput?.value);
+    const nextSlug = text(slugInput?.value) || slugify(nextName);
     const nextStatus = statusInput?.value || 'Draft';
-    const nextParent = parentInput?.value || '';
-    const nextDescription = descriptionInput?.value.trim() || '';
+    const nextParentId = toInt(parentInput?.value, 0);
+    const nextDescription = text(descriptionInput?.value);
+    const currentCover = text(activeRow.dataset.categoryImage);
 
     if (!nextName) {
       showError('Category name is required.');
@@ -4654,55 +5191,39 @@ function initCategoryEditor() {
       return;
     }
 
-    const categoryCell = activeRow.cells[0];
-    const slugCell = activeRow.cells[1];
-    const statusCell = activeRow.cells[4];
-    const updatedCell = activeRow.cells[5];
-
-    if (categoryCell) {
-      const titleNodeInRow = categoryCell.querySelector('strong');
-      if (titleNodeInRow) {
-        titleNodeInRow.textContent = nextName;
-      }
-
-      let parentNote = categoryCell.querySelector('.categories-parent-note');
-      if (nextParent) {
-        if (!parentNote) {
-          parentNote = document.createElement('small');
-          parentNote.className = 'categories-parent-note';
-          categoryCell.appendChild(parentNote);
-        }
-        parentNote.textContent = `Parent: ${nextParent}`;
-      } else if (parentNote) {
-        parentNote.remove();
-      }
+    if (nextParentId > 0 && nextParentId === activeCategoryId) {
+      showError('A category cannot be parent of itself.');
+      return;
     }
 
-    if (slugCell) {
-      slugCell.textContent = nextSlug;
+    const payload = {
+      name: nextName,
+      slug: nextSlug,
+      visibility: statusToApi(nextStatus),
+      parent_category: nextParentId > 0 ? nextParentId : null,
+      cover: currentCover || null,
+      short_description: nextDescription || null,
+    };
+
+    const defaultSaveText = saveButton.textContent;
+    saveButton.disabled = true;
+    saveButton.textContent = 'Updating...';
+
+    try {
+      const result = await runtime.apiRequest(`/api/admin/categories/${activeCategoryId}`, {
+        method: 'PUT',
+        body: payload,
+      });
+
+      closeEditor();
+      showSuccess(text(result?.message) || `"${nextName}" updated.`);
+      await runtime.loadCategories({showLoading: false});
+    } catch (error) {
+      showError(error?.message || 'Failed to update category.');
+    } finally {
+      saveButton.disabled = false;
+      saveButton.textContent = defaultSaveText;
     }
-
-    if (statusCell) {
-      statusCell.innerHTML = '';
-      const badge = document.createElement('span');
-      badge.className = `badge ${nextStatus === 'Active' ? 'badge-success' : 'badge-warning'}`;
-      badge.textContent = nextStatus;
-      statusCell.appendChild(badge);
-    }
-
-    if (updatedCell) {
-      updatedCell.textContent = 'Just now';
-    }
-
-    activeRow.dataset.categoryName = nextName;
-    activeRow.dataset.categorySlug = nextSlug;
-    activeRow.dataset.categoryStatus = nextStatus;
-    activeRow.dataset.categoryParent = nextParent;
-    activeRow.dataset.categoryDescription = nextDescription;
-    activeRow.dataset.categoryUpdated = 'Just now';
-
-    closeEditor();
-    showSuccess(`"${nextName}" updated (demo only).`);
   });
 }
 
@@ -4710,12 +5231,19 @@ function initCategoryEditor() {
 // CATEGORIES: DELETE GUARD (DEMO UI)
 // ══════════════════════════════════════════
 function initCategoryDeleteGuards() {
-  const getRows = () => Array.from(document.querySelectorAll('[data-category-row]'));
-  const deleteButtons = Array.from(document.querySelectorAll('[data-category-delete]'));
+  const runtime = window.__adminCategoriesRuntime;
+  const tableBody = document.querySelector('[data-categories-table-body]');
   const feedback = document.querySelector('[data-categories-delete-feedback]');
-  const totalNode = document.querySelector('[data-categories-total]');
 
-  if (!deleteButtons.length) return;
+  if (!runtime || !tableBody) return;
+  if (tableBody.dataset.categoryDeleteGuardReady === 'true') return;
+  tableBody.dataset.categoryDeleteGuardReady = 'true';
+
+  const text = (value) => String(value ?? '').trim();
+  const toInt = (value, fallback = 0) => {
+    const parsed = Number.parseInt(String(value ?? ''), 10);
+    return Number.isFinite(parsed) ? parsed : fallback;
+  };
 
   const showFeedback = (message, type = 'error') => {
     if (!feedback) {
@@ -4731,43 +5259,42 @@ function initCategoryDeleteGuards() {
     feedback.className = `categories-delete-feedback is-visible ${type === 'success' ? 'is-success' : 'is-error'}`;
   };
 
-  const refreshTotal = () => {
-    if (!totalNode) return;
-    totalNode.textContent = `${getRows().length} total`;
-  };
+  tableBody.addEventListener('click', async (event) => {
+    const button = event.target.closest('[data-category-delete]');
+    if (!button || !tableBody.contains(button)) return;
 
-  deleteButtons.forEach(button => {
-    button.addEventListener('click', () => {
-      const row = button.closest('[data-category-row]');
-      if (!row) return;
+    const row = button.closest('[data-category-row]');
+    if (!row) return;
 
-      const categoryName = row.dataset.categoryName || 'This category';
-      const productsCount = Number.parseInt(row.dataset.categoryProducts || '0', 10) || 0;
-      const childCount = getRows().filter(otherRow => {
-        if (otherRow === row) return false;
-        return (otherRow.dataset.categoryParent || '').trim() === categoryName;
-      }).length;
+    const categoryId = toInt(row.dataset.categoryId, 0);
+    const categoryName = text(row.dataset.categoryName) || 'This category';
 
-      if (childCount > 0) {
-        showFeedback(
-          `Cannot delete "${categoryName}". It has ${childCount} child categories. Reassign child categories first.`,
-          'error'
-        );
-        return;
-      }
+    if (categoryId <= 0) {
+      showFeedback('Invalid category id. Please refresh and try again.', 'error');
+      return;
+    }
 
-      if (productsCount > 0) {
-        showFeedback(
-          `Cannot delete "${categoryName}". It has ${productsCount} products. Move products to another category first.`,
-          'error'
-        );
-        return;
-      }
+    if (!window.confirm(`Delete "${categoryName}"? This action cannot be undone.`)) {
+      return;
+    }
 
-      row.remove();
-      refreshTotal();
-      showFeedback(`"${categoryName}" removed (demo only).`, 'success');
-    });
+    const defaultButtonText = button.textContent;
+    button.disabled = true;
+    button.textContent = 'Deleting...';
+
+    try {
+      const result = await runtime.apiRequest(`/api/admin/categories/${categoryId}`, {
+        method: 'DELETE',
+      });
+
+      showFeedback(text(result?.message) || `"${categoryName}" deleted.`, 'success');
+      await runtime.loadCategories({showLoading: false});
+    } catch (error) {
+      showFeedback(error?.message || `Failed to delete "${categoryName}".`, 'error');
+    } finally {
+      button.disabled = false;
+      button.textContent = defaultButtonText;
+    }
   });
 }
 
