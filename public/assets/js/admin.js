@@ -6012,8 +6012,7 @@ function initProductCreateSubmit() {
       ? toIsoOrNull(form.querySelector('#discountOfferEndAt')?.value)
       : null;
 
-    const publishValue = form.querySelector('[name="publish_state"]:checked')?.value || 'active';
-    const publish_type = publishValue === 'scheduled' ? 'scheduled' : 'active';
+    const publish_type = form.querySelector('[name="publish_state"]:checked')?.value || 'active';
     const publish_at = publish_type === 'scheduled'
       ? toIsoOrNull(form.querySelector('#productScheduleAt')?.value)
       : null;
