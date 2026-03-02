@@ -3614,6 +3614,13 @@ function initProductCreateSliderControl() {
     image.src = objectUrl;
   });
 
+  const readFileAsDataUrl = (file) => new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (event) => resolve(String(event?.target?.result || '').trim());
+    reader.onerror = () => reject(new Error('Unable to read media file.'));
+    reader.readAsDataURL(file);
+  });
+
   const confirmRatioIfMismatch = async (details) => {
     const {
       width,
@@ -3884,6 +3891,7 @@ function initProductCreateSliderControl() {
 
     try {
       const dimensions = await readImageDimensions(file);
+      const sourceDataUrl = await readFileAsDataUrl(file);
       const canProceed = await confirmRatioIfMismatch({
         width: dimensions.width,
         height: dimensions.height,
@@ -3904,6 +3912,7 @@ function initProductCreateSliderControl() {
         width: dimensions.width,
         height: dimensions.height,
         url: window.URL.createObjectURL(file),
+        sourceUrl: sourceDataUrl,
       };
       renderCoverList();
     } catch (error) {
@@ -3953,9 +3962,19 @@ function initProductCreateSliderControl() {
       name: file.name,
       size: file.size,
       url: window.URL.createObjectURL(file),
+      sourceUrl: '',
       width: null,
       height: null,
     };
+
+    try {
+      nextItem.sourceUrl = await readFileAsDataUrl(file);
+    } catch {
+      releaseMediaUrl(nextItem);
+      showError('Unable to process selected media file. Please try another file.');
+      sliderItemInput.value = '';
+      return;
+    }
 
     if (sliderType === 'image') {
       try {
@@ -3998,11 +4017,19 @@ function initProductCreateSliderControl() {
   updateSliderStatus();
 
   window._productCreateMedia = {
-    getCover: () => coverItem?.url ?? null,
-    getSliderItems: () => sliderItems.map((item) => ({
-      media_type: item.type === 'youtube' ? 'yt_video' : item.type === 'video' ? 'upload_video' : 'image',
-      source_url: item.url,
-    })),
+    getCoverImage: () => {
+      const source = String(coverItem?.sourceUrl || '').trim();
+      return source.startsWith('data:image/') ? source : null;
+    },
+    getSliderItems: () => sliderItems
+      .map((item) => {
+        const sourceUrl = String(item.sourceUrl || item.url || '').trim();
+        return {
+          media_type: item.type === 'youtube' ? 'yt_video' : item.type === 'video' ? 'upload_video' : 'image',
+          source_url: sourceUrl.startsWith('blob:') ? '' : sourceUrl,
+        };
+      })
+      .filter((item) => Boolean(item.source_url)),
     isSliderEnabled: () => sliderInputs.find((i) => i.checked)?.value !== 'disabled',
     setCoverFromUrl(url) {
       releaseMediaUrl(coverItem);
@@ -4020,6 +4047,7 @@ function initProductCreateSliderControl() {
         width: '-',
         height: '-',
         url: sourceUrl,
+        sourceUrl,
       };
       renderCoverList();
     },
@@ -4071,6 +4099,7 @@ function initProductCreateSliderControl() {
           width: null,
           height: null,
           url: sourceUrl,
+          sourceUrl,
           videoId,
           embedUrl,
         });
@@ -5703,7 +5732,7 @@ function initProductEditPrefill() {
 
     if (window._productCreateMedia) {
       if (typeof window._productCreateMedia.setCoverFromUrl === 'function') {
-        window._productCreateMedia.setCoverFromUrl(product?.cover || '');
+        window._productCreateMedia.setCoverFromUrl(product?.cover || product?.cover_image || '');
       }
       if (typeof window._productCreateMedia.setSliderEnabled === 'function') {
         window._productCreateMedia.setSliderEnabled(Boolean(product?.is_slider));
@@ -5877,7 +5906,7 @@ function initProductCreateSubmit() {
       : null;
 
     const media = window._productCreateMedia;
-    const cover = media?.getCover() ?? null;
+    const cover_image = media?.getCoverImage?.() ?? null;
     const is_slider = media?.isSliderEnabled() ?? false;
     const media_items = is_slider ? (media?.getSliderItems() ?? []) : [];
 
@@ -5950,7 +5979,7 @@ function initProductCreateSubmit() {
       discount_end_at,
       publish_type,
       publish_at,
-      cover,
+      cover_image,
       is_slider,
       media_items,
       variants,
@@ -5960,6 +5989,10 @@ function initProductCreateSubmit() {
       meta_description,
       seo_tags,
     };
+
+    if (!String(cover_image || '').startsWith('data:image/')) {
+      delete payload.cover_image;
+    }
 
     payload.downloadables = downloadables;
     payload.subscriptions = subscriptions;

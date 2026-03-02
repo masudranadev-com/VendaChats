@@ -21,22 +21,18 @@
     <article class="products-kpi-card is-primary">
         <span>Total Products</span>
         <strong>286</strong>
-        <small>+14 this month</small>
     </article>
     <article class="products-kpi-card is-success">
         <span>Live Products</span>
         <strong>249</strong>
-        <small>37 need review</small>
     </article>
     <article class="products-kpi-card is-warning">
         <span>Low Stock Alert</span>
         <strong>18</strong>
-        <small>Restock in 24h</small>
     </article>
     <article class="products-kpi-card is-info">
         <span>Total Visitor</span>
         <strong>249</strong>
-        <small>+10% this month</small>
     </article>
   </section>
 
