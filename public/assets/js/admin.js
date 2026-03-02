@@ -3902,8 +3902,13 @@ function initProductCreateSliderControl() {
     sliderConfig?.classList.toggle('hidden', !isEnabled);
   };
 
+  const SLIDER_STORAGE_KEY = 'product_slider_status';
+
   sliderInputs.forEach((input) => {
-    input.addEventListener('change', updateSliderStatus);
+    input.addEventListener('change', () => {
+      sessionStorage.setItem(SLIDER_STORAGE_KEY, input.value);
+      updateSliderStatus();
+    });
   });
 
   validationConfirmButton?.addEventListener('click', () => {
@@ -4121,6 +4126,13 @@ function initProductCreateSliderControl() {
   renderCoverList();
   renderSliderList();
   updateSliderTypeInput();
+
+  const savedSliderStatus = sessionStorage.getItem(SLIDER_STORAGE_KEY);
+  if (savedSliderStatus) {
+    const input = sliderInputs.find((i) => i.value === savedSliderStatus);
+    if (input) input.checked = true;
+  }
+
   updateSliderStatus();
 
   window._productCreateMedia = {
