@@ -1883,48 +1883,25 @@ function initBotSettings() {
       return;
     }
 
-    const endpoint = `${apiBaseUrl}/api/admin/facebook-auth`;
     const originalLabel = saveButton.textContent.trim();
     saveButton.disabled = true;
     saveButton.textContent = 'Saving...';
 
     facebookLoader.show({
       title: 'Saving bot settings',
-      message: 'Updating /api/admin/facebook-auth',
-    });
-
-    const abortController = new AbortController();
-    const timeoutId = window.setTimeout(() => abortController.abort(), 12000);
-    const requestUpdate = async (token) => fetch(endpoint, {
-      method: 'PUT',
-      headers: {
-        'Accept': 'application/json',
-        'Content-Type': 'application/json',
-        'x-refresh-token': token,
-        'ngrok-skip-browser-warning': 'true',
-      },
-      body: JSON.stringify(payload),
-      signal: abortController.signal,
+      message: 'Updating Facebook settings',
     });
 
     try {
-      let response = await requestUpdate(refreshToken);
-
-      const contentType = response.headers.get('content-type') || '';
-      const rawPayload = contentType.includes('application/json')
-        ? await response.json()
-        : {message: await response.text()};
+      const rawPayload = await window.API.Admin.FacebookAuth.updateSettings({
+        apiBaseUrl,
+        refreshToken,
+        payload,
+        timeoutMs: 12000,
+      });
 
       if (!isObjectPayload(rawPayload)) {
         throw new Error('Unexpected JSON shape returned from API.');
-      }
-
-      if (!response.ok) {
-        if (response.status === 401) {
-          throw new Error('Unauthorized (401). Server-provided refresh token is invalid or expired. Please re-login.');
-        }
-
-        throw new Error(rawPayload.message || rawPayload.error || 'Failed to update bot settings.');
       }
 
       if ((rawPayload.message || '').toLowerCase() !== 'updated') {
@@ -1935,14 +1912,18 @@ function initBotSettings() {
       showSuccess('Bot settings updated.');
       await fetchFacebookStatus();
     } catch (error) {
-      if (error?.name === 'AbortError') {
+      if (error?.isTimeout) {
         showError('Save request timed out. Please try again.');
+        return;
+      }
+
+      if (error?.status === 401) {
+        showError('Unauthorized (401). Server-provided refresh token is invalid or expired. Please re-login.');
         return;
       }
 
       showError(error.message || 'Unable to save bot settings right now.');
     } finally {
-      window.clearTimeout(timeoutId);
       facebookLoader.hide();
       saveButton.disabled = false;
       saveButton.textContent = originalLabel;
@@ -1968,7 +1949,6 @@ function initBotSettings() {
       return;
     }
 
-    const endpoint = `${apiBaseUrl}/api/admin/facebook-auth`;
     const originalLabel = disconnectButton.textContent.trim();
     disconnectButton.disabled = true;
     disconnectButton.textContent = 'Disconnecting...';
@@ -1978,35 +1958,15 @@ function initBotSettings() {
       message: 'Removing account link from backend',
     });
 
-    const abortController = new AbortController();
-    const timeoutId = window.setTimeout(() => abortController.abort(), 12000);
-
     try {
-      const response = await fetch(endpoint, {
-        method: 'DELETE',
-        headers: {
-          'Accept': 'application/json',
-          'x-refresh-token': refreshToken,
-          'ngrok-skip-browser-warning': 'true',
-        },
-        signal: abortController.signal,
+      const rawPayload = await window.API.Admin.FacebookAuth.disconnect({
+        apiBaseUrl,
+        refreshToken,
+        timeoutMs: 12000,
       });
-
-      const contentType = response.headers.get('content-type') || '';
-      const rawPayload = contentType.includes('application/json')
-        ? await response.json()
-        : {message: await response.text()};
 
       if (!isObjectPayload(rawPayload)) {
         throw new Error('Unexpected JSON shape returned from API.');
-      }
-
-      if (!response.ok) {
-        if (response.status === 401) {
-          throw new Error('Unauthorized (401). Server-provided refresh token is invalid or expired. Please re-login.');
-        }
-
-        throw new Error(rawPayload.message || rawPayload.error || 'Failed to disconnect Facebook.');
       }
 
       if ((rawPayload.message || '').toLowerCase() !== 'deleted') {
@@ -2016,14 +1976,18 @@ function initBotSettings() {
       applyDisconnectedState('Facebook disconnected successfully.');
       showSuccess('Facebook disconnected successfully.');
     } catch (error) {
-      if (error?.name === 'AbortError') {
+      if (error?.isTimeout) {
         showError('Disconnect request timed out. Please try again.');
+        return;
+      }
+
+      if (error?.status === 401) {
+        showError('Unauthorized (401). Server-provided refresh token is invalid or expired. Please re-login.');
         return;
       }
 
       showError(error.message || 'Unable to disconnect Facebook right now.');
     } finally {
-      window.clearTimeout(timeoutId);
       facebookLoader.hide();
       disconnectButton.disabled = false;
       disconnectButton.textContent = originalLabel;
@@ -2064,50 +2028,21 @@ function initBotSettings() {
       return;
     }
 
-    const endpoint = `${apiBaseUrl}/api/admin/facebook-auth`;
-
     facebookLoader.show({
       title: 'Checking Facebook connection',
-      message: `Calling ${endpoint.replace(apiBaseUrl, '')}`,
+      message: 'Calling Facebook status endpoint',
     });
     setBadgeState('Checking...', 'warning');
 
-    const abortController = new AbortController();
-    const timeoutId = window.setTimeout(() => abortController.abort(), 12000);
-
-    const requestStatus = async (token) => fetch(endpoint, {
-        method: 'GET',
-        headers: {
-          'Accept': 'application/json',
-          'x-refresh-token': token,
-          'ngrok-skip-browser-warning': 'true',
-        },
-        signal: abortController.signal,
-      });
-
     try {
-      let response = await requestStatus(refreshToken);
-
-      const contentType = response.headers.get('content-type') || '';
-      const rawPayload = contentType.includes('application/json')
-        ? await response.json()
-        : {message: await response.text()};
+      const rawPayload = await window.API.Admin.FacebookAuth.getStatus({
+        apiBaseUrl,
+        refreshToken,
+        timeoutMs: 12000,
+      });
 
       if (!isObjectPayload(rawPayload)) {
         throw new Error('Unexpected JSON shape returned from API.');
-      }
-
-      if (!response.ok) {
-        if (response.status === 401) {
-          throw new Error('Unauthorized (401). Server-provided refresh token is invalid or expired. Please re-login.');
-        }
-
-        if (rawPayload.status === 'disconnected' || rawPayload.error === 'not found') {
-          applyDisconnectedState(rawPayload.msg || 'please connect your facebook to enjoy this features');
-          return;
-        }
-
-        throw new Error(rawPayload.message || rawPayload.error || 'Failed to load Facebook status.');
       }
 
       if (rawPayload.status === 'disconnected' || rawPayload.error === 'not found') {
@@ -2138,14 +2073,23 @@ function initBotSettings() {
 
       applyConnectedState(rawPayload);
     } catch (error) {
-      if (error?.name === 'AbortError') {
+      if (error?.isTimeout) {
         applyRequestError('Request timeout. Please try again.');
+        return;
+      }
+
+      if (error?.status === 401) {
+        applyRequestError('Unauthorized (401). Server-provided refresh token is invalid or expired. Please re-login.');
+        return;
+      }
+
+      if ((error?.payload?.status === 'disconnected') || (error?.payload?.error === 'not found')) {
+        applyDisconnectedState(error?.payload?.msg || 'please connect your facebook to enjoy this features');
         return;
       }
 
       applyRequestError(error.message || 'Unable to load Facebook status.');
     } finally {
-      window.clearTimeout(timeoutId);
       facebookLoader.hide();
     }
   };
@@ -2510,24 +2454,14 @@ function initProductsCatalogPage() {
     setMessage('Loading products...');
     resultNode.textContent = 'Loading products...';
 
-    const controller = new AbortController();
-    const timeoutId = window.setTimeout(() => controller.abort(), 12000);
-
     try {
-      const response = await fetch(`${apiBase}/api/admin/products?page=${page}&per_page=${state.perPage}`, {
-        method: 'GET',
-        headers: {
-          'Accept': 'application/json',
-          'x-refresh-token': token,
-        },
-        signal: controller.signal,
+      const payload = await window.API.Admin.Products.list({
+        apiBaseUrl: apiBase,
+        refreshToken: token,
+        page,
+        perPage: state.perPage,
+        timeoutMs: 12000,
       });
-
-      const payload = await response.json().catch(() => ({}));
-      if (!response.ok) {
-        if (response.status === 401) throw new Error('Unauthorized (401). Refresh token expired or invalid.');
-        throw new Error(payload.error || payload.message || `Request failed (${response.status}).`);
-      }
       if (requestId !== state.requestId) return;
 
       const list = Array.isArray(payload.data) ? payload.data : [];
@@ -2554,7 +2488,7 @@ function initProductsCatalogPage() {
       updateUrlPage(state.page);
     } catch (error) {
       if (requestId !== state.requestId) return;
-      const message = error?.name === 'AbortError'
+      const message = error?.isTimeout
         ? 'Request timed out. Please try again.'
         : (error?.message || 'Failed to load products.');
       state.products = [];
@@ -2568,7 +2502,6 @@ function initProductsCatalogPage() {
       pageWrap.hidden = true;
       if (typeof window.showError === 'function') window.showError(message);
     } finally {
-      window.clearTimeout(timeoutId);
       if (requestId === state.requestId) setLoading(false);
     }
   }
@@ -2627,25 +2560,13 @@ function initProductsCatalogPage() {
     }
 
     setDeleteLoading(true);
-    const controller = new AbortController();
-    const timeoutId = window.setTimeout(() => controller.abort(), 12000);
-
     try {
-      const response = await fetch(`${apiBase}/api/admin/products/${encodeURIComponent(productId)}`, {
-        method: 'DELETE',
-        headers: {
-          'Accept': 'application/json',
-          'x-refresh-token': token,
-        },
-        signal: controller.signal,
+      const payload = await window.API.Admin.Products.remove({
+        apiBaseUrl: apiBase,
+        refreshToken: token,
+        productId,
+        timeoutMs: 12000,
       });
-
-      const payload = await response.json().catch(() => ({}));
-      if (!response.ok) {
-        if (response.status === 404) throw new Error(payload.error || 'product not found');
-        if (response.status === 401) throw new Error('Unauthorized (401). Refresh token expired or invalid.');
-        throw new Error(payload.error || payload.message || `Delete failed (${response.status}).`);
-      }
 
       closeAllModals();
       setDeletePending();
@@ -2656,12 +2577,11 @@ function initProductsCatalogPage() {
       const nextPage = state.page > 1 && state.products.length <= 1 ? state.page - 1 : state.page;
       await loadProducts(nextPage);
     } catch (error) {
-      const message = error?.name === 'AbortError'
+      const message = error?.isTimeout
         ? 'Delete request timed out. Please try again.'
         : (error?.message || 'Failed to delete product.');
       if (typeof window.showError === 'function') window.showError(message);
     } finally {
-      window.clearTimeout(timeoutId);
       setDeleteLoading(false);
     }
   });
@@ -4642,7 +4562,7 @@ function initCategoryCreateForm() {
       <article class="settings-stat-card">
         <span>API Base</span>
         <strong>Live</strong>
-        <small>${escapeHtml(runtime.apiBase || '/api/admin')}</small>
+        <small>${escapeHtml(runtime.apiBase || 'Not configured')}</small>
       </article>
       <article class="settings-stat-card is-warning">
         <span>Auth Token</span>
@@ -4759,61 +4679,6 @@ function initCategoryCreateForm() {
     runtime.setCreateParentOptions(parentInput.value);
   };
 
-  runtime.apiRequest = async (path, options = {}) => {
-    const method = text(options.method || 'GET').toUpperCase() || 'GET';
-    const body = options.body ?? null;
-    const hasBody = body !== null && typeof body !== 'undefined';
-    const timeoutMs = Math.max(2000, toInt(options.timeoutMs, 12000));
-
-    if (!runtime.refreshToken) {
-      throw new Error('Missing refresh token. Please login again.');
-    }
-
-    if (!runtime.apiBase) {
-      throw new Error('Categories API base URL is missing.');
-    }
-
-    const controller = new AbortController();
-    const timeoutId = window.setTimeout(() => controller.abort(), timeoutMs);
-
-    try {
-      const headers = {
-        'Accept': 'application/json',
-        'x-refresh-token': runtime.refreshToken,
-      };
-
-      if (method !== 'GET' && hasBody) {
-        headers['Content-Type'] = 'application/json';
-      }
-
-      const response = await fetch(`${runtime.apiBase}${path}`, {
-        method,
-        headers,
-        signal: controller.signal,
-        body: hasBody ? JSON.stringify(body) : undefined,
-      });
-
-        const payload = await response.json().catch(() => ({}));
-      if (!response.ok) {
-        if (response.status === 401) {
-          throw new Error('Unauthorized (401). Refresh token is missing or invalid.');
-        }
-
-        const errorMessage = text(payload?.error || payload?.message);
-        throw new Error(errorMessage || `Request failed (${response.status}).`);
-      }
-
-      return payload;
-    } catch (error) {
-      if (error?.name === 'AbortError') {
-        throw new Error('Request timeout. Please try again.');
-      }
-      throw error;
-    } finally {
-      window.clearTimeout(timeoutId);
-    }
-  };
-
   runtime.loadCategories = async (opts = {}) => {
     const showLoading = opts.showLoading !== false;
     const requestId = ++runtime.requestId;
@@ -4824,8 +4689,11 @@ function initCategoryCreateForm() {
     }
 
     try {
-      const payload = await runtime.apiRequest('/api/admin/categories?page=1&per_page=200', {
-        method: 'GET',
+      const payload = await window.API.Admin.Categories.list({
+        apiBaseUrl: runtime.apiBase,
+        refreshToken: runtime.refreshToken,
+        page: 1,
+        perPage: 200,
         timeoutMs: 15000,
       });
 
@@ -4928,9 +4796,11 @@ function initCategoryCreateForm() {
     addButton.textContent = 'Adding...';
 
     try {
-      const result = await runtime.apiRequest('/api/admin/categories', {
-        method: 'POST',
-        body: payload,
+      const result = await window.API.Admin.Categories.create({
+        apiBaseUrl: runtime.apiBase,
+        refreshToken: runtime.refreshToken,
+        payload,
+        timeoutMs: 12000,
       });
 
       nameInput.value = '';
@@ -5210,9 +5080,12 @@ function initCategoryEditor() {
     saveButton.textContent = 'Updating...';
 
     try {
-      const result = await runtime.apiRequest(`/api/admin/categories/${activeCategoryId}`, {
-        method: 'PUT',
-        body: payload,
+      const result = await window.API.Admin.Categories.update({
+        apiBaseUrl: runtime.apiBase,
+        refreshToken: runtime.refreshToken,
+        categoryId: activeCategoryId,
+        payload,
+        timeoutMs: 12000,
       });
 
       closeEditor();
@@ -5283,8 +5156,11 @@ function initCategoryDeleteGuards() {
     button.textContent = 'Deleting...';
 
     try {
-      const result = await runtime.apiRequest(`/api/admin/categories/${categoryId}`, {
-        method: 'DELETE',
+      const result = await window.API.Admin.Categories.remove({
+        apiBaseUrl: runtime.apiBase,
+        refreshToken: runtime.refreshToken,
+        categoryId,
+        timeoutMs: 12000,
       });
 
       showFeedback(text(result?.message) || `"${categoryName}" deleted.`, 'success');
@@ -5666,43 +5542,27 @@ function initProductEditPrefill() {
       saveBtn.textContent = 'Loading...';
     }
 
-    const abortController = new AbortController();
-    const timeoutId = window.setTimeout(() => abortController.abort(), 12000);
-
     try {
-      const response = await fetch(`${apiBase}/api/admin/products/${productId}`, {
-        method: 'GET',
-        headers: {
-          'Accept': 'application/json',
-          'x-refresh-token': token,
-        },
-        signal: abortController.signal,
+      const payload = await window.API.Admin.Products.getById({
+        apiBaseUrl: apiBase,
+        refreshToken: token,
+        productId,
+        timeoutMs: 12000,
       });
-
-      const payload = await response.json().catch(() => ({}));
-      if (!response.ok) {
-        if (response.status === 404) {
-          showError(payload?.error || 'Product not found.');
-          return;
-        }
-        if (response.status === 401) {
-          showError('Unauthorized (401). Please log in again.');
-          return;
-        }
-        showError(payload?.error || payload?.message || `Server error (${response.status})`);
-        return;
-      }
 
       applyProductToForm(payload || {});
       showSuccess('Product loaded for editing.');
     } catch (error) {
-      if (error?.name === 'AbortError') {
+      if (error?.isTimeout) {
         showError('Request timed out while loading product.');
+      } else if (error?.status === 404) {
+        showError(error?.message || 'Product not found.');
+      } else if (error?.status === 401) {
+        showError('Unauthorized (401). Please log in again.');
       } else {
-        showError('Network error. Could not load product data.');
+        showError(error?.message || 'Network error. Could not load product data.');
       }
     } finally {
-      window.clearTimeout(timeoutId);
       if (saveBtn) {
         saveBtn.disabled = false;
         saveBtn.textContent = originalSaveBtnText;
@@ -5720,6 +5580,7 @@ function initProductCreateSubmit() {
   const getToken = () =>
     form.dataset.refreshToken ||
     localStorage.getItem('refresh_token') ||
+    (window.API && typeof window.API.getToken === 'function' ? window.API.getToken() : '') ||
     '';
 
   const parseTagInput = (value) =>
@@ -5890,10 +5751,9 @@ function initProductCreateSubmit() {
     const isEditMode = form.dataset.formMode === 'edit';
     const editProductId = Number.parseInt(String(form.dataset.productId || ''), 10);
     const apiBaseUrl = String(form.dataset.apiBaseUrl || 'http://localhost:8082').replace(/\/+$/, '');
-    const submitUrl = (isEditMode && Number.isFinite(editProductId) && editProductId > 0)
-      ? `${apiBaseUrl}/api/admin/products/${editProductId}`
-      : `${apiBaseUrl}/api/admin/products`;
-    const submitMethod = (isEditMode && Number.isFinite(editProductId) && editProductId > 0) ? 'PUT' : 'POST';
+    const submitProductId = (isEditMode && Number.isFinite(editProductId) && editProductId > 0)
+      ? editProductId
+      : null;
 
     const originalText = saveBtn?.textContent || (isEditMode ? 'Update Product' : 'Save Product');
     if (saveBtn) {
@@ -5903,27 +5763,19 @@ function initProductCreateSubmit() {
 
     try {
       const payload = collectPayload();
-      const response = await fetch(submitUrl, {
-        method: submitMethod,
-        headers: {
-          'Content-Type': 'application/json',
-          'x-refresh-token': token,
-        },
-        body: JSON.stringify(payload),
+      const data = await window.API.Admin.Products.save({
+        apiBaseUrl,
+        refreshToken: token,
+        payload,
+        productId: submitProductId,
+        timeoutMs: 12000,
       });
-
-      const data = await response.json().catch(() => ({}));
-
-      if (response.ok) {
-        showSuccess(data.message || (isEditMode ? 'Product updated successfully.' : 'Product created successfully.'));
-        sessionStorage.removeItem('product_create_type');
-        sessionStorage.removeItem('product_drive_link_type');
-        setTimeout(() => { window.location.href = '/admin/products'; }, 1500);
-      } else {
-        showError(data.error || data.message || `Server error (${response.status})`);
-      }
-    } catch {
-      showError('Network error. Could not reach the server.');
+      showSuccess(data.message || (isEditMode ? 'Product updated successfully.' : 'Product created successfully.'));
+      sessionStorage.removeItem('product_create_type');
+      sessionStorage.removeItem('product_drive_link_type');
+      setTimeout(() => { window.location.href = '/admin/products'; }, 1500);
+    } catch (error) {
+      showError(error?.message || 'Network error. Could not reach the server.');
     } finally {
       if (saveBtn) {
         saveBtn.disabled = false;
