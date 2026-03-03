@@ -2134,7 +2134,7 @@ function initProductsCatalogPage() {
   }
 
   const apiBase = String(section.dataset.apiBaseUrl || '').replace(/\/+$/, '');
-  const perPage = Math.max(1, Number.parseInt(section.dataset.perPage || '5', 10) || 5);
+  const perPage = Math.max(1, Number.parseInt(section.dataset.perPage || '10', 10) || 10);
   const sessionToken = String(section.dataset.refreshToken || '').trim();
   let storageToken = '';
   try {

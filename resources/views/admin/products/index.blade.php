@@ -43,7 +43,7 @@
     id="productsCatalogSection"
     data-api-base-url="{{ $productsApiBaseUrl }}"
     data-refresh-token="{{ $productsRefreshToken }}"
-    data-per-page="5"
+    data-per-page="10"
   >
     <div class="card-header">
       <h3 class="card-title">Product Catalog</h3>
