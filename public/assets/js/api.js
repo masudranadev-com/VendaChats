@@ -187,8 +187,35 @@
         },
       },
       Products: {
-        list({apiBaseUrl, refreshToken, page = 1, perPage = 10, timeoutMs = 12000} = {}) {
-          const query = `?page=${encodeURIComponent(page)}&per_page=${encodeURIComponent(perPage)}`;
+        list({
+          apiBaseUrl,
+          refreshToken,
+          page = 1,
+          perPage = 10,
+          search = '',
+          productType = '',
+          category = '',
+          status = '',
+          sortBy = '',
+          timeoutMs = 12000
+        } = {}) {
+          const params = new URLSearchParams();
+          params.set('page', String(page));
+          params.set('per_page', String(perPage));
+
+          const searchText = toText(search);
+          const productTypeText = toText(productType);
+          const categoryText = toText(category);
+          const statusText = toText(status);
+          const sortByText = toText(sortBy);
+
+          if (searchText) params.set('search', searchText);
+          if (productTypeText) params.set('product_type', productTypeText);
+          if (categoryText) params.set('category', categoryText);
+          if (statusText) params.set('status', statusText);
+          if (sortByText) params.set('sort_by', sortByText);
+
+          const query = `?${params.toString()}`;
           return request({
             baseUrl: normalizeBaseUrl(apiBaseUrl),
             path: `/api/admin/products${query}`,

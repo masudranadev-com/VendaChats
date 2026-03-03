@@ -2156,6 +2156,7 @@ function initProductsCatalogPage() {
     lastPage: 1,
     products: [],
     categories: [],
+    categoryById: {},
     info: [],
     loading: false,
     requestId: 0,
@@ -2201,17 +2202,42 @@ function initProductsCatalogPage() {
     const raw = text(value);
     return raw || '0';
   };
-  const categoryOf = (product) => (
-    text(product?.category)
-    || text(product?.category_name)
-    || text(product?.category_title)
-  );
-  const parseCategoryLabel = (item) => {
-    if (typeof item === 'string') return text(item);
-    if (item && typeof item === 'object') {
-      return text(item.name || item.title || item.category || item.label || item.slug || item.value);
+  const categoryIdOf = (product) => {
+    const candidates = [product?.category_id, product?.categoryId, product?.category];
+    for (let i = 0; i < candidates.length; i += 1) {
+      const id = toInt(candidates[i], 0);
+      if (id > 0) return id;
+    }
+    return 0;
+  };
+  const categoryOf = (product) => {
+    const direct = text(product?.category_name) || text(product?.category_title);
+    if (direct) return direct;
+
+    if (typeof product?.category === 'string') {
+      const categoryText = text(product.category);
+      if (categoryText && !/^\d+$/.test(categoryText)) return categoryText;
+    }
+
+    const categoryId = categoryIdOf(product);
+    if (categoryId > 0) {
+      return text(state.categoryById?.[categoryId]) || `Category #${categoryId}`;
     }
     return '';
+  };
+  const parseCategoryOption = (item) => {
+    if (typeof item === 'string') {
+      const label = text(item);
+      if (!label) return null;
+      return {value: label, label};
+    }
+    if (item && typeof item === 'object') {
+      const label = text(item.name || item.title || item.category || item.label || item.slug || item.value);
+      if (!label) return null;
+      const id = toInt(item.id ?? item.category_id ?? item.categoryId, 0);
+      return id > 0 ? {value: String(id), label} : {value: label, label};
+    }
+    return null;
   };
   const resolveKpiClass = (name, index) => {
     const normalized = text(name).toLowerCase();
@@ -2262,17 +2288,32 @@ function initProductsCatalogPage() {
   };
   const renderCategoryFilter = (categories = []) => {
     const selectedCategory = text(categorySelect.value);
-    const list = Array.from(new Set(
-      (Array.isArray(categories) ? categories : [])
-        .map((item) => parseCategoryLabel(item))
-        .filter(Boolean)
-    )).sort((a, b) => a.localeCompare(b));
+    const optionsMap = new Map();
+
+    (Array.isArray(categories) ? categories : []).forEach((item) => {
+      const option = parseCategoryOption(item);
+      if (!option) return;
+      if (!optionsMap.has(option.value)) {
+        optionsMap.set(option.value, option.label);
+      }
+    });
+
+    if (selectedCategory && !optionsMap.has(selectedCategory)) {
+      const selectedId = toInt(selectedCategory, 0);
+      const selectedLabel = selectedId > 0
+        ? (text(state.categoryById?.[selectedId]) || `Category #${selectedId}`)
+        : selectedCategory;
+      optionsMap.set(selectedCategory, selectedLabel);
+    }
+
+    const options = Array.from(optionsMap.entries())
+      .sort((a, b) => a[1].localeCompare(b[1]));
 
     categorySelect.innerHTML = ['<option value="">All Categories</option>']
-      .concat(list.map((category) => `<option value="${escapeHtml(category)}">${escapeHtml(category)}</option>`))
+      .concat(options.map(([value, label]) => `<option value="${escapeHtml(value)}">${escapeHtml(label)}</option>`))
       .join('');
 
-    if (selectedCategory && list.includes(selectedCategory)) {
+    if (selectedCategory && optionsMap.has(selectedCategory)) {
       categorySelect.value = selectedCategory;
       return;
     }
@@ -2397,45 +2438,67 @@ function initProductsCatalogPage() {
     return tr;
   };
 
-  const filteredProducts = () => {
-    const search = text(searchInput.value).toLowerCase();
-    const type = text(typeSelect.value).toLowerCase();
-    const category = text(categorySelect.value).toLowerCase();
-    const status = text(statusSelect.value).toLowerCase();
-    const sort = text(sortSelect.value).toLowerCase();
+  const normalizeStatusFilter = (value) => {
+    const normalized = text(value).toLowerCase();
+    if (!normalized) return '';
 
-    const list = state.products.filter((product) => {
-      const name = text(product.name).toLowerCase();
-      const productType = text(product.type).toLowerCase();
-      const productCategory = categoryOf(product).toLowerCase();
-      const productStatus = statusOf(product);
-      if (search && !name.includes(search)) return false;
-      if (type && productType !== type) return false;
-      if (category && productCategory !== category) return false;
-      if (status && productStatus !== status) return false;
-      return true;
-    });
+    if (normalized === 'out of stock') return 'out_of_stock';
+    if (normalized === 'active' || normalized === 'draft' || normalized === 'inactive' || normalized === 'pending' || normalized === 'out_of_stock') {
+      return normalized;
+    }
+    return normalized.replace(/\s+/g, '_');
+  };
 
-    return list.sort((a, b) => {
-      if (sort === 'sales_desc') return toInt(b.sales_7d, 0) - toInt(a.sales_7d, 0);
-      if (sort === 'stock_asc') {
-        const aStock = text(a.type).toLowerCase() === 'physical' ? toInt(a.total_stock, Number.MAX_SAFE_INTEGER) : Number.MAX_SAFE_INTEGER;
-        const bStock = text(b.type).toLowerCase() === 'physical' ? toInt(b.total_stock, Number.MAX_SAFE_INTEGER) : Number.MAX_SAFE_INTEGER;
-        return aStock - bStock;
+  const readFilters = () => ({
+    search: text(searchInput.value),
+    productType: text(typeSelect.value).toLowerCase(),
+    category: text(categorySelect.value),
+    status: normalizeStatusFilter(statusSelect.value),
+    sortBy: text(sortSelect.value).toLowerCase() || 'latest',
+  });
+
+  const buildCategoryOptionsFromProducts = (products = []) => (
+    (Array.isArray(products) ? products : []).map((product) => {
+      const categoryId = categoryIdOf(product);
+      const label = categoryOf(product);
+      if (!label) return null;
+      return categoryId > 0
+        ? {id: categoryId, name: label}
+        : {name: label};
+    }).filter(Boolean)
+  );
+
+  const syncCategoryLookup = (categories = [], products = []) => {
+    const lookup = {};
+
+    (Array.isArray(categories) ? categories : []).forEach((item) => {
+      const option = parseCategoryOption(item);
+      if (!option) return;
+      const id = toInt(option.value, 0);
+      if (id > 0 && option.label) {
+        lookup[id] = option.label;
       }
-      if (sort === 'price_desc') return toNumber(priceOf(b), -1) - toNumber(priceOf(a), -1);
-      if (sort === 'price_asc') return toNumber(priceOf(a), Number.MAX_SAFE_INTEGER) - toNumber(priceOf(b), Number.MAX_SAFE_INTEGER);
-      return (Date.parse(text(b.created_at)) || 0) - (Date.parse(text(a.created_at)) || 0);
     });
+
+    (Array.isArray(products) ? products : []).forEach((product) => {
+      const id = categoryIdOf(product);
+      if (id <= 0 || lookup[id]) return;
+      const label = text(product?.category_name) || text(product?.category_title);
+      if (label) {
+        lookup[id] = label;
+      }
+    });
+
+    state.categoryById = lookup;
   };
 
   const renderTable = () => {
-    const list = filteredProducts();
+    const list = Array.isArray(state.products) ? state.products : [];
     tbody.innerHTML = '';
 
     if (!list.length) {
-      setMessage('No products matched current filters.', state.products.length === 0);
-      resultNode.textContent = state.products.length === 0 ? 'No products found' : 'No products matched current filters';
+      setMessage('No products found for current filters.', state.total === 0 && state.page <= 1);
+      resultNode.textContent = 'No products found';
       return;
     }
 
@@ -2443,9 +2506,7 @@ function initProductsCatalogPage() {
     list.forEach((product) => fragment.appendChild(rowNode(product)));
     tbody.appendChild(fragment);
 
-    if (list.length !== state.products.length) {
-      resultNode.textContent = `Showing ${list.length} filtered product(s) on this page`;
-    } else if (state.total > 0 && state.from > 0 && state.to > 0) {
+    if (state.total > 0 && state.from > 0 && state.to > 0) {
       resultNode.textContent = `Showing ${state.from}-${state.to} of ${state.total} products`;
     } else {
       resultNode.textContent = `Showing ${list.length} products`;
@@ -2544,6 +2605,7 @@ function initProductsCatalogPage() {
     }
 
     const requestId = ++state.requestId;
+    const filters = readFilters();
     setLoading(true);
     setMessage('Loading products...');
     resultNode.textContent = 'Loading products...';
@@ -2554,6 +2616,11 @@ function initProductsCatalogPage() {
         refreshToken: token,
         page,
         perPage: state.perPage,
+        search: filters.search,
+        productType: filters.productType,
+        category: filters.category,
+        status: filters.status,
+        sortBy: filters.sortBy,
         timeoutMs: 12000,
       });
       if (requestId !== state.requestId) return;
@@ -2575,12 +2642,10 @@ function initProductsCatalogPage() {
       state.from = Math.max(0, toInt(pagination.from, list.length ? ((state.page - 1) * state.perPage) + 1 : 0));
       state.to = Math.max(0, toInt(pagination.to, state.from ? state.from + list.length - 1 : 0));
 
-      const categoriesFromProducts = list
-        .map((product) => categoryOf(product))
-        .filter(Boolean);
+      syncCategoryLookup(payloadCategories, list);
       const mergedCategories = payloadCategories.length
         ? payloadCategories
-        : categoriesFromProducts;
+        : buildCategoryOptionsFromProducts(list);
       renderCategoryFilter(mergedCategories);
       renderKpis(info);
 
@@ -2612,20 +2677,28 @@ function initProductsCatalogPage() {
     }
   }
 
-  applyBtn.addEventListener('click', () => renderTable());
+  applyBtn.addEventListener('click', () => {
+    if (state.loading) return;
+    loadProducts(1);
+  });
   resetBtn.addEventListener('click', () => {
     searchInput.value = '';
     typeSelect.value = '';
     categorySelect.value = '';
     statusSelect.value = '';
     sortSelect.value = 'latest';
-    renderTable();
+    if (state.loading) return;
+    loadProducts(1);
   });
-  sortSelect.addEventListener('change', () => renderTable());
+  sortSelect.addEventListener('change', () => {
+    if (state.loading) return;
+    loadProducts(1);
+  });
   searchInput.addEventListener('keydown', (event) => {
     if (event.key === 'Enter') {
       event.preventDefault();
-      renderTable();
+      if (state.loading) return;
+      loadProducts(1);
     }
   });
 

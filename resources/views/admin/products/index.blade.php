@@ -56,7 +56,7 @@
     <div class="products-filter-grid products-filter-grid--5">
       <div class="form-group">
         <label class="form-label">Search</label>
-        <input type="text" class="form-input" placeholder="Product name..." data-products-search>
+        <input type="text" class="form-input" placeholder="Product name or code..." data-products-search>
       </div>
       <div class="form-group">
         <label class="form-label">Type</label>
@@ -78,19 +78,18 @@
         <label class="form-label">Status</label>
         <select class="form-select" data-products-status>
           <option value="">All Status</option>
-          <option>Active</option>
-          <option>Draft</option>
-          <option>Out of Stock</option>
+          <option value="active">Active</option>
+          <option value="draft">Draft</option>
+          <option value="out_of_stock">Out of Stock</option>
         </select>
       </div>
       <div class="form-group">
         <label class="form-label">Sort By</label>
         <select class="form-select" data-products-sort>
           <option value="latest">Latest Added</option>
-          <option value="sales_desc">Highest Sales (7d)</option>
-          <option value="stock_asc">Lowest Stock</option>
-          <option value="price_desc">Price: High to Low</option>
-          <option value="price_asc">Price: Low to High</option>
+          <option value="low_stock">Lowest Stock</option>
+          <option value="price_high_to_low">Price: High to Low</option>
+          <option value="price_low_to_high">Price: Low to High</option>
         </select>
       </div>
     </div>
