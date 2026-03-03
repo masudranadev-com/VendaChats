@@ -2518,6 +2518,8 @@ function initProductsCatalogPage() {
     const current = Math.max(1, toInt(state.page, 1));
     const last = Math.max(1, toInt(state.lastPage, 1));
     if (last <= 1) {
+      pageSummary.textContent = 'Page 1 of 1';
+      pageControls.innerHTML = '';
       pageWrap.hidden = true;
       return;
     }
@@ -2608,6 +2610,9 @@ function initProductsCatalogPage() {
     const requestId = ++state.requestId;
     const filters = readFilters();
     setLoading(true);
+    pageWrap.hidden = true;
+    pageControls.innerHTML = '';
+    pageSummary.textContent = 'Page 1 of 1';
     setMessage('Loading products...');
     resultNode.textContent = 'Loading products...';
 
@@ -2637,9 +2642,17 @@ function initProductsCatalogPage() {
       state.info = info;
       state.categories = payloadCategories;
       state.products = list;
-      state.page = Math.max(1, toInt(pagination.current_page, page));
-      state.lastPage = Math.max(1, toInt(pagination.last_page, 1));
-      state.total = Math.max(0, toInt(pagination.total, list.length));
+      const total = Math.max(0, toInt(pagination.total, list.length));
+      const perPageFromApi = Math.max(1, toInt(pagination.per_page, state.perPage));
+      const derivedLastPage = Math.max(1, Math.ceil(total / perPageFromApi));
+
+      state.perPage = perPageFromApi;
+      state.total = total;
+      state.lastPage = derivedLastPage;
+      state.page = Math.min(
+        Math.max(1, toInt(pagination.current_page, page)),
+        state.lastPage
+      );
       state.from = Math.max(0, toInt(pagination.from, list.length ? ((state.page - 1) * state.perPage) + 1 : 0));
       state.to = Math.max(0, toInt(pagination.to, state.from ? state.from + list.length - 1 : 0));
 
@@ -2671,6 +2684,8 @@ function initProductsCatalogPage() {
       renderCategoryFilter([]);
       resultNode.textContent = message;
       setMessage(message);
+      pageControls.innerHTML = '';
+      pageSummary.textContent = 'Page 1 of 1';
       pageWrap.hidden = true;
       if (typeof window.showError === 'function') window.showError(message);
     } finally {
