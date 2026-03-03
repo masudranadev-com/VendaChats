@@ -69,13 +69,38 @@
           </div>
 
           <div class="form-group products-field-span-2">
-            <label class="form-label" for="productCategory">Category</label>
-            <select id="productCategory" name="category" class="form-select" required>
-              <option value="" selected disabled>Select category</option>
-              @foreach ($categories as $category)
-                <option value="{{ $category }}">{{ $category }}</option>
-              @endforeach
-            </select>
+            <label class="form-label" for="productCategorySearch">Category</label>
+            <input id="productCategory" name="category" type="hidden" data-product-category-value>
+            <div class="products-category-picker" data-product-category-picker>
+              <button
+                type="button"
+                class="products-category-picker-toggle"
+                data-product-category-toggle
+                aria-haspopup="listbox"
+                aria-expanded="false"
+                aria-label="Select product category"
+              >
+                <span class="products-category-picker-label" data-product-category-label>Select category</span>
+                <span class="products-category-picker-caret" aria-hidden="true">&#9662;</span>
+              </button>
+
+              <div class="products-category-picker-panel hidden" data-product-category-panel>
+                <div class="products-category-picker-search-wrap">
+                  <input
+                    id="productCategorySearch"
+                    type="text"
+                    class="form-input products-category-picker-search"
+                    placeholder="Search category or sub-category..."
+                    autocomplete="off"
+                    data-product-category-search
+                  >
+                </div>
+                <div class="products-category-picker-options" role="listbox" data-product-category-options>
+                  <div class="products-category-picker-empty">Loading categories...</div>
+                </div>
+              </div>
+            </div>
+            <small class="form-help">Select one parent category or one sub-category.</small>
           </div>
 
           <div class="form-group products-field-span-2">

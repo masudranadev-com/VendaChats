@@ -304,6 +304,7 @@ document.addEventListener('DOMContentLoaded', () => {
   initProductVariants();
   initProductCreateSliderControl();
   initProductCreateDiscountOfferControl();
+  initProductCreateCategoryPicker();
   initProductDemoAutoFill();
   initCategoryCreateForm();
   initCategoryAiWriter();
@@ -2809,6 +2810,348 @@ function initProductsAttentionPanel() {
 // ══════════════════════════════════════════
 // PRODUCTS: TYPE SELECTOR
 // ══════════════════════════════════════════
+function initProductCreateCategoryPicker() {
+  const form = document.getElementById('createProductForm');
+  if (!form) return;
+
+  const picker = form.querySelector('[data-product-category-picker]');
+  const valueInput = form.querySelector('#productCategory[data-product-category-value]');
+  const toggleButton = form.querySelector('[data-product-category-toggle]');
+  const labelNode = form.querySelector('[data-product-category-label]');
+  const panel = form.querySelector('[data-product-category-panel]');
+  const searchInput = form.querySelector('[data-product-category-search]');
+  const optionsWrap = form.querySelector('[data-product-category-options]');
+
+  if (!picker || !valueInput || !toggleButton || !labelNode || !panel || !searchInput || !optionsWrap) {
+    return;
+  }
+
+  const text = (value) => String(value ?? '').trim();
+  const toInt = (value, fallback = 0) => {
+    const parsed = Number.parseInt(String(value ?? ''), 10);
+    return Number.isFinite(parsed) ? parsed : fallback;
+  };
+  const escapeHtml = (value) => text(value)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+
+  const apiBase = String(form.dataset.apiBaseUrl || 'http://localhost:8082').replace(/\/+$/, '');
+  const getToken = () =>
+    String(form.dataset.refreshToken || '').trim()
+    || localStorage.getItem('refresh_token')
+    || (window.API && typeof window.API.getToken === 'function' ? window.API.getToken() : '')
+    || '';
+
+  const optionByValue = new Map();
+  const optionByName = new Map();
+
+  const state = {
+    loading: false,
+    options: [],
+    isOpen: false,
+    selectedValue: text(valueInput.value),
+    selectedLabel: text(valueInput.dataset.categoryLabel),
+  };
+
+  const registerOptionAlias = (alias, option) => {
+    const normalized = text(alias).toLowerCase();
+    if (!normalized || optionByName.has(normalized)) return;
+    optionByName.set(normalized, option);
+  };
+
+  const registerOptionMaps = (options = []) => {
+    optionByValue.clear();
+    optionByName.clear();
+
+    options.forEach((option) => {
+      const value = text(option?.value);
+      if (!value) return;
+      optionByValue.set(value, option);
+      registerOptionAlias(value, option);
+      registerOptionAlias(option.name, option);
+      registerOptionAlias(option.displayLabel, option);
+      registerOptionAlias(`${option.parentName} ${option.name}`, option);
+      registerOptionAlias(`${option.parentName}/${option.name}`, option);
+    });
+  };
+
+  const buildCategoryOptions = (tree = []) => {
+    const options = [];
+
+    (Array.isArray(tree) ? tree : []).forEach((parentRaw) => {
+      const parentName = text(parentRaw?.name);
+      if (!parentName) return;
+
+      const parentId = toInt(parentRaw?.id, 0);
+      const parentValue = parentId > 0 ? String(parentId) : parentName;
+      options.push({
+        value: parentValue,
+        name: parentName,
+        parentName,
+        level: 0,
+        note: 'All sub-categories',
+        displayLabel: parentName,
+        searchText: `${parentName} all sub-categories parent`,
+      });
+
+      const childs = Array.isArray(parentRaw?.childs) ? parentRaw.childs : [];
+      childs.forEach((childRaw) => {
+        const childName = text(childRaw?.name);
+        if (!childName) return;
+
+        const childId = toInt(childRaw?.id, 0);
+        const childValue = childId > 0 ? String(childId) : childName;
+        options.push({
+          value: childValue,
+          name: childName,
+          parentName,
+          level: 1,
+          note: `Sub-category of ${parentName}`,
+          displayLabel: `${parentName} / ${childName}`,
+          searchText: `${parentName} ${childName} sub-category child`,
+        });
+      });
+    });
+
+    return options;
+  };
+
+  const setPanelOpen = (nextOpen) => {
+    state.isOpen = Boolean(nextOpen);
+    panel.classList.toggle('hidden', !state.isOpen);
+    toggleButton.classList.toggle('is-open', state.isOpen);
+    toggleButton.setAttribute('aria-expanded', state.isOpen ? 'true' : 'false');
+
+    if (state.isOpen) {
+      window.setTimeout(() => {
+        searchInput.focus();
+      }, 0);
+    }
+  };
+
+  const clearInvalid = () => {
+    toggleButton.classList.remove('is-invalid');
+  };
+
+  const markInvalid = () => {
+    toggleButton.classList.add('is-invalid');
+  };
+
+  const updateLabel = () => {
+    const value = text(state.selectedLabel);
+    if (value) {
+      labelNode.textContent = value;
+      labelNode.classList.remove('is-placeholder');
+      clearInvalid();
+      return;
+    }
+
+    labelNode.textContent = 'Select category';
+    labelNode.classList.add('is-placeholder');
+  };
+
+  const resolveOption = (rawValue) => {
+    const normalized = text(rawValue);
+    if (!normalized) return null;
+    if (optionByValue.has(normalized)) return optionByValue.get(normalized) || null;
+    return optionByName.get(normalized.toLowerCase()) || null;
+  };
+
+  const renderOptions = () => {
+    const keyword = text(searchInput.value).toLowerCase();
+    const visibleOptions = keyword
+      ? state.options.filter((option) => option.searchText.includes(keyword))
+      : state.options;
+
+    if (!visibleOptions.length) {
+      const message = state.loading
+        ? 'Loading categories...'
+        : (keyword ? 'No category matched your search.' : 'No categories available.');
+      optionsWrap.innerHTML = `<div class="products-category-picker-empty">${escapeHtml(message)}</div>`;
+      return;
+    }
+
+    optionsWrap.innerHTML = visibleOptions.map((option) => {
+      const isSelected = text(state.selectedValue) === option.value;
+      const rowClass = [
+        'products-category-option',
+        option.level > 0 ? 'is-child' : 'is-parent',
+        isSelected ? 'is-selected' : '',
+      ].filter(Boolean).join(' ');
+
+      return `
+        <button
+          type="button"
+          class="${rowClass}"
+          data-product-category-option
+          data-category-value="${escapeHtml(option.value)}"
+          role="option"
+          aria-selected="${isSelected ? 'true' : 'false'}"
+        >
+          <span class="products-category-option-check">${isSelected ? '&#10003;' : ''}</span>
+          <span class="products-category-option-meta">
+            <span class="products-category-option-name">${escapeHtml(option.name)}</span>
+            <span class="products-category-option-note">${escapeHtml(option.note)}</span>
+          </span>
+        </button>
+      `;
+    }).join('');
+  };
+
+  const selectCategoryValue = (rawValue, {emit = true, closePanel = true, fallbackLabel = ''} = {}) => {
+    const previousValue = text(valueInput.value);
+    const option = resolveOption(rawValue);
+
+    if (option) {
+      state.selectedValue = option.value;
+      state.selectedLabel = option.displayLabel;
+      valueInput.value = option.value;
+      valueInput.dataset.categoryLabel = option.displayLabel;
+    } else {
+      const fallbackValue = text(rawValue);
+      state.selectedValue = fallbackValue;
+      state.selectedLabel = text(fallbackLabel) || fallbackValue;
+      valueInput.value = fallbackValue;
+      if (state.selectedLabel) {
+        valueInput.dataset.categoryLabel = state.selectedLabel;
+      } else {
+        delete valueInput.dataset.categoryLabel;
+      }
+    }
+
+    updateLabel();
+    renderOptions();
+
+    if (closePanel) {
+      setPanelOpen(false);
+    }
+
+    const currentValue = text(valueInput.value);
+    if (emit && previousValue !== currentValue) {
+      valueInput.dispatchEvent(new Event('input', {bubbles: true}));
+      valueInput.dispatchEvent(new Event('change', {bubbles: true}));
+    }
+  };
+
+  const syncSelectionFromInput = () => {
+    const rawValue = text(valueInput.value);
+    const rawLabel = text(valueInput.dataset.categoryLabel);
+    selectCategoryValue(rawValue, {
+      emit: false,
+      closePanel: false,
+      fallbackLabel: rawLabel,
+    });
+  };
+
+  const loadCategories = async () => {
+    if (!window.API?.Admin?.Products?.categoriesTree || !apiBase) {
+      optionsWrap.innerHTML = '<div class="products-category-picker-empty">Category API is unavailable.</div>';
+      return;
+    }
+
+    const token = getToken();
+    if (!token) {
+      optionsWrap.innerHTML = '<div class="products-category-picker-empty">Missing refresh token. Please login again.</div>';
+      return;
+    }
+
+    state.loading = true;
+    renderOptions();
+
+    try {
+      const payload = await window.API.Admin.Products.categoriesTree({
+        apiBaseUrl: apiBase,
+        refreshToken: token,
+        timeoutMs: 12000,
+      });
+
+      state.options = buildCategoryOptions(payload);
+      registerOptionMaps(state.options);
+      syncSelectionFromInput();
+      renderOptions();
+    } catch (error) {
+      state.options = [];
+      registerOptionMaps([]);
+      optionsWrap.innerHTML = `<div class="products-category-picker-empty">${escapeHtml(error?.message || 'Unable to load categories.')}</div>`;
+    } finally {
+      state.loading = false;
+    }
+  };
+
+  toggleButton.addEventListener('click', () => {
+    setPanelOpen(!state.isOpen);
+    if (state.isOpen) {
+      searchInput.value = '';
+      renderOptions();
+    }
+  });
+
+  picker.addEventListener('click', (event) => {
+    const optionButton = event.target.closest('[data-product-category-option]');
+    if (!optionButton || !picker.contains(optionButton)) return;
+
+    const value = text(optionButton.getAttribute('data-category-value'));
+    selectCategoryValue(value, {emit: true, closePanel: true});
+  });
+
+  searchInput.addEventListener('input', () => {
+    renderOptions();
+  });
+
+  searchInput.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      setPanelOpen(false);
+      toggleButton.focus();
+      return;
+    }
+
+    if (event.key === 'Enter') {
+      const firstOption = optionsWrap.querySelector('[data-product-category-option]');
+      if (!firstOption) return;
+      event.preventDefault();
+      const value = text(firstOption.getAttribute('data-category-value'));
+      selectCategoryValue(value, {emit: true, closePanel: true});
+    }
+  });
+
+  document.addEventListener('click', (event) => {
+    if (!state.isOpen) return;
+    if (picker.contains(event.target)) return;
+    setPanelOpen(false);
+  });
+
+  document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape' && state.isOpen) {
+      setPanelOpen(false);
+      toggleButton.focus();
+    }
+  });
+
+  valueInput.addEventListener('change', syncSelectionFromInput);
+
+  window._productCategoryPicker = {
+    setValue(value, label = '') {
+      clearInvalid();
+      selectCategoryValue(value, {emit: true, closePanel: false, fallbackLabel: label});
+    },
+    getValue() {
+      return text(valueInput.value);
+    },
+    focus() {
+      toggleButton.focus();
+    },
+    markInvalid,
+    clearInvalid,
+  };
+
+  syncSelectionFromInput();
+  loadCategories();
+}
+
 function initProductTypeSelector() {
   const cards = Array.from(document.querySelectorAll('[data-product-type-card]'));
   if (!cards.length) return;
@@ -5819,7 +6162,6 @@ function initProductDemoAutoFill() {
 
   // ── Basic info ──
   set('#productName', 'Classic T-Shirt');
-  set('#productCategory', 'Apparel');
   set('#productShortDescription', '100% cotton tee — premium quality, available in multiple sizes.');
   // Set the hidden textarea so Quill reads it on init
   set('#productDescription', '<p>Premium quality cotton t-shirt available in multiple sizes and colors. Made from 100% natural cotton for all-day comfort and breathability.</p>');
@@ -5881,34 +6223,46 @@ function initProductEditPrefill() {
   };
 
   const setSelectSmart = (selector, rawValue) => {
-    const select = form.querySelector(selector);
-    if (!select) return;
+    const field = form.querySelector(selector);
+    if (!field) return;
 
-    const value = String(rawValue ?? '').trim();
-    if (!value) {
-      select.value = '';
-      select.dispatchEvent(new Event('change', { bubbles: true }));
+    if (!(field instanceof HTMLSelectElement)) {
+      const raw = String(rawValue ?? '').trim();
+      if (selector === '#productCategory' && window._productCategoryPicker) {
+        window._productCategoryPicker.setValue(raw);
+      } else {
+        field.value = raw;
+        field.dispatchEvent(new Event('input', { bubbles: true }));
+        field.dispatchEvent(new Event('change', { bubbles: true }));
+      }
       return;
     }
 
-    const optionByValue = Array.from(select.options).find(
+    const value = String(rawValue ?? '').trim();
+    if (!value) {
+      field.value = '';
+      field.dispatchEvent(new Event('change', { bubbles: true }));
+      return;
+    }
+
+    const optionByValue = Array.from(field.options).find(
       (opt) => String(opt.value || '').trim().toLowerCase() === value.toLowerCase()
     );
-    const optionByLabel = optionByValue || Array.from(select.options).find(
+    const optionByLabel = optionByValue || Array.from(field.options).find(
       (opt) => String(opt.textContent || '').trim().toLowerCase() === value.toLowerCase()
     );
 
     if (optionByLabel) {
-      select.value = optionByLabel.value;
+      field.value = optionByLabel.value;
     } else {
       const option = document.createElement('option');
       option.value = value;
       option.textContent = value;
-      select.appendChild(option);
-      select.value = value;
+      field.appendChild(option);
+      field.value = value;
     }
 
-    select.dispatchEvent(new Event('change', { bubbles: true }));
+    field.dispatchEvent(new Event('change', { bubbles: true }));
   };
 
   const setRadio = (name, value) => {
@@ -5934,7 +6288,7 @@ function initProductEditPrefill() {
     setRadio('product_type', type);
 
     setInput('#productName', product?.name || '');
-    setSelectSmart('#productCategory', product?.category || '');
+    setSelectSmart('#productCategory', product?.category_id ?? product?.category ?? '');
     setInput('#productShortDescription', product?.short_description || '');
 
     if (window._productCreateEditor && typeof window._productCreateEditor.setFullDescription === 'function') {
@@ -6099,7 +6453,10 @@ function initProductCreateSubmit() {
     const hasVariants = form.querySelector('[name="has_variants"]:checked')?.value === 'yes';
 
     const name = form.querySelector('#productName')?.value?.trim() || '';
-    const category = form.querySelector('#productCategory')?.value || '';
+    const categoryRaw = form.querySelector('#productCategory')?.value || '';
+    const category = /^\d+$/.test(String(categoryRaw).trim())
+      ? Number.parseInt(String(categoryRaw).trim(), 10)
+      : String(categoryRaw).trim();
     const short_description = form.querySelector('#productShortDescription')?.value?.trim() || '';
     const description = form.querySelector('#productDescription')?.value?.trim() || '';
 
@@ -6268,6 +6625,13 @@ function initProductCreateSubmit() {
 
     try {
       const payload = collectPayload();
+      if (!String(payload.category || '').trim()) {
+        window._productCategoryPicker?.markInvalid?.();
+        window._productCategoryPicker?.focus?.();
+        showWarning('Please select a category before saving the product.');
+        return;
+      }
+
       const data = await window.API.Admin.Products.save({
         apiBaseUrl,
         refreshToken: token,

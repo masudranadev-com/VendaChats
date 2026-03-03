@@ -265,6 +265,15 @@
             timeoutMs,
           });
         },
+        categoriesTree({apiBaseUrl, refreshToken, timeoutMs = 12000} = {}) {
+          return request({
+            baseUrl: normalizeBaseUrl(apiBaseUrl),
+            path: '/api/admin/products/categories',
+            method: 'GET',
+            token: refreshToken,
+            timeoutMs,
+          });
+        },
       },
       Categories: {
         list({apiBaseUrl, refreshToken, page = 1, perPage = 200, timeoutMs = 15000} = {}) {
