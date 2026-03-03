@@ -65,7 +65,8 @@
     const method = toText(options.method || 'GET').toUpperCase() || 'GET';
     const baseUrl = normalizeBaseUrl(options.baseUrl);
     const path = toText(options.path || '');
-    const timeoutMs = Number.isFinite(Number(options.timeoutMs)) ? Math.max(1000, Number(options.timeoutMs)) : 12000;
+    const timeoutValue = Number(options.timeoutMs);
+    const timeoutMs = Number.isFinite(timeoutValue) ? timeoutValue : 12000;
     const token = toText(options.token || getToken());
     const includeRefreshToken = options.includeRefreshToken !== false;
     const includeNgrokHeader = Boolean(options.includeNgrokHeader);
@@ -103,7 +104,9 @@
     }
 
     const controller = new AbortController();
-    const timeoutId = global.setTimeout(() => controller.abort(), timeoutMs);
+    const timeoutId = timeoutMs > 0
+      ? global.setTimeout(() => controller.abort(), timeoutMs)
+      : null;
     const url = `${baseUrl}${path}`;
 
     try {
@@ -140,7 +143,9 @@
       }
       throw new ApiError(error?.message || 'Network error. Could not reach the server.', {method, url});
     } finally {
-      global.clearTimeout(timeoutId);
+      if (timeoutId !== null) {
+        global.clearTimeout(timeoutId);
+      }
     }
   }
 
@@ -218,6 +223,16 @@
               ? `/api/admin/products/${encodeURIComponent(productId)}`
               : '/api/admin/products',
             method: hasId ? 'PUT' : 'POST',
+            token: refreshToken,
+            body: payload,
+            timeoutMs,
+          });
+        },
+        aiContent({apiBaseUrl, refreshToken, payload, timeoutMs = 0} = {}) {
+          return request({
+            baseUrl: normalizeBaseUrl(apiBaseUrl),
+            path: '/api/admin/products/ai-content',
+            method: 'POST',
             token: refreshToken,
             body: payload,
             timeoutMs,

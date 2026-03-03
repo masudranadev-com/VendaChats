@@ -2392,7 +2392,7 @@ function initProductsCatalogPage() {
       <td>${stockHtml(product, type)}</td>
       <td><div class="products-catalog-perf"><strong>${formatCount(product.sales_7d)} sales</strong><small>${formatCount(product.visitors_7d)} visitors</small></div></td>
       <td><span class="badge ${statusCss}">${escapeHtml(titleCase(status || 'unknown'))}</span></td>
-      <td><div class="products-table-actions"><button type="button" class="btn btn-ghost btn-sm">View</button><a href="/admin/products/${encodeURIComponent(productId)}/edit" class="btn btn-secondary btn-sm">Edit</a>${deleteButton}</div></td>
+      <td><div class="products-table-actions"><a href="/admin/products/${encodeURIComponent(productId)}/edit" class="btn btn-secondary btn-sm">Edit</a>${deleteButton}</div></td>
     `;
     return tr;
   };
@@ -4280,10 +4280,19 @@ function initProductCreateAiWriter() {
   const fullAiButton = document.querySelector('[data-product-ai-full]');
   const seoAiButton = document.querySelector('[data-product-ai-seo]');
   const shortDescriptionMaxLength = 250;
+  const form = document.getElementById('createProductForm');
+  const apiBase = String(form?.dataset.apiBaseUrl || 'http://localhost:8082').replace(/\/+$/, '');
+  const getToken = () =>
+    String(form?.dataset.refreshToken || '').trim() ||
+    localStorage.getItem('refresh_token') ||
+    (window.API && typeof window.API.getToken === 'function' ? window.API.getToken() : '') ||
+    '';
 
   if (!productNameInput || !shortAiButton || !fullAiButton || !seoAiButton) return;
 
   let fullDescriptionEditor = null;
+  const aiButtons = [shortAiButton, fullAiButton, seoAiButton].filter(Boolean);
+  let aiRequestInFlight = false;
 
   const htmlToPlainText = (value) => String(value || '')
     .replace(/<style[\s\S]*?<\/style>/gi, ' ')
@@ -4406,6 +4415,46 @@ function initProductCreateAiWriter() {
     button.setAttribute('aria-label', message);
   };
 
+  const setAiButtonText = (button, nextText) => {
+    if (!button) return;
+    const textNode = button.querySelector('.products-ai-btn-text');
+    if (!textNode) return;
+    textNode.textContent = String(nextText || '').trim() || 'AI Write';
+  };
+
+  const setAiButtonProcessing = (button, isProcessing, processingLabel = 'Generating...') => {
+    if (!button) return;
+
+    if (isProcessing) {
+      const textNode = button.querySelector('.products-ai-btn-text');
+      const currentLabel = String(textNode?.textContent || 'AI Write').trim() || 'AI Write';
+      button.dataset.aiLabelBeforeProcessing = currentLabel;
+      button.classList.add('is-processing');
+      button.setAttribute('aria-busy', 'true');
+      setAiButtonText(button, processingLabel);
+      return;
+    }
+
+    button.classList.remove('is-processing');
+    button.removeAttribute('aria-busy');
+    const previousLabel = String(button.dataset.aiLabelBeforeProcessing || 'AI Write').trim() || 'AI Write';
+    setAiButtonText(button, previousLabel);
+    delete button.dataset.aiLabelBeforeProcessing;
+  };
+
+  const flashAiButtonState = (button, state) => {
+    if (!button) return;
+    const safeState = state === 'success' ? 'success' : 'error';
+    const className = safeState === 'success' ? 'is-success' : 'is-error';
+    const timeoutMs = safeState === 'success' ? 1200 : 1600;
+
+    button.classList.remove('is-success', 'is-error');
+    button.classList.add(className);
+    window.setTimeout(() => {
+      button.classList.remove(className);
+    }, timeoutMs);
+  };
+
   const updateAiButtonState = () => {
     const hasProductName = productNameInput.value.trim() !== '';
     const hasShortDescription = (shortDescriptionInput?.value || '').trim() !== '';
@@ -4431,93 +4480,104 @@ function initProductCreateAiWriter() {
     );
   };
 
-  const runAiAction = (button, writer) => {
-    if (!button || button.disabled) return;
+  const runAiAction = async (button, writer, processingLabel) => {
+    if (!button || button.disabled || aiRequestInFlight) return;
+
+    aiRequestInFlight = true;
+    aiButtons.forEach((node) => {
+      node.classList.remove('is-success', 'is-error');
+      if (node !== button) {
+        node.disabled = true;
+      }
+    });
 
     button.disabled = true;
-    button.classList.add('is-processing');
+    setAiButtonProcessing(button, true, processingLabel);
 
-    window.setTimeout(() => {
-      try {
-        writer();
-      } finally {
-        button.classList.remove('is-processing');
-        updateAiButtonState();
-      }
-    }, 700);
+    try {
+      await writer();
+      flashAiButtonState(button, 'success');
+    } catch (error) {
+      flashAiButtonState(button, 'error');
+      showError(error?.message || 'AI request failed. Please try again.');
+    } finally {
+      setAiButtonProcessing(button, false);
+      aiRequestInFlight = false;
+      updateAiButtonState();
+    }
   };
 
   shortAiButton.addEventListener('click', () => {
-    runAiAction(shortAiButton, () => {
+    runAiAction(shortAiButton, async () => {
       const productName = productNameInput.value.trim();
-      const category = (categoryInput?.value || '').trim();
-      const categoryText = category ? category.toLowerCase() : 'product';
+      const description = (shortDescriptionInput?.value || '').trim();
 
-      setShortDescriptionValue(
-        `${productName} is a premium ${categoryText} built for daily performance, long-lasting quality, and strong customer value.`,
-        true
-      );
+      const result = await window.API.Admin.Products.aiContent({
+        apiBaseUrl: apiBase,
+        refreshToken: getToken(),
+        payload: {
+          prompt_type: 'short_description',
+          name: productName,
+          description,
+        },
+      });
 
-      showSuccess('Short description written with AI preview.');
-    });
+      setShortDescriptionValue(result.short_description || '', true);
+      showSuccess('Short description written with AI.');
+    }, 'Writing...');
   });
 
   fullAiButton.addEventListener('click', () => {
-    runAiAction(fullAiButton, () => {
+    runAiAction(fullAiButton, async () => {
       const productName = productNameInput.value.trim();
-      const category = (categoryInput?.value || '').trim() || 'Product';
-      const htmlContent =
-        `<p><strong>${productName}</strong> is a carefully prepared ${category.toLowerCase()} for customers who want consistent quality and comfort.</p>` +
-        '<p>This item is designed to balance quality, usability, and customer satisfaction. It is suitable for daily use and built to keep performance stable over time.</p>' +
-        '<p><strong>Key highlights:</strong></p>' +
-        '<ul><li>Reliable build quality</li><li>Comfortable everyday experience</li><li>Easy to maintain and use</li></ul>';
-      const textContent =
-        `${productName} is a carefully prepared ${category.toLowerCase()} for customers who want consistent quality and comfort.\n\n` +
-        'This item is designed to balance quality, usability, and customer satisfaction. It is suitable for daily use and built to keep performance stable over time.\n\n' +
-        `Key highlights:\n` +
-        `- Reliable build quality\n` +
-        `- Comfortable everyday experience\n` +
-        `- Easy to maintain and use`;
+      const description = (shortDescriptionInput?.value || '').trim();
 
-      setFullDescriptionContent(htmlContent, textContent);
+      const result = await window.API.Admin.Products.aiContent({
+        apiBaseUrl: apiBase,
+        refreshToken: getToken(),
+        payload: {
+          prompt_type: 'description',
+          name: productName,
+          description,
+        },
+      });
 
-      showSuccess('Full description written with AI preview.');
-    });
+      const htmlContent = result.description || '';
+      setFullDescriptionContent(htmlContent, htmlToPlainText(htmlContent));
+      showSuccess('Full description written with AI.');
+    }, 'Generating...');
   });
 
   seoAiButton.addEventListener('click', () => {
-    runAiAction(seoAiButton, () => {
+    runAiAction(seoAiButton, async () => {
       const productName = productNameInput.value.trim();
-      const shortDescription = (shortDescriptionInput?.value || '').trim();
-      const fullDescription = getFullDescriptionText();
-      const category = (categoryInput?.value || '').trim();
-      const baseSlug = slugify(productName);
-      const metaDescriptionBase = shortDescription || fullDescription;
-      const keywordPool = [productName, category]
-        .join(' ')
-        .toLowerCase()
-        .split(/[^a-z0-9]+/)
-        .filter((part) => part.length > 2);
-      const uniqueKeywords = [...new Set(keywordPool)].slice(0, 8);
+      const description = getFullDescriptionText();
+
+      const result = await window.API.Admin.Products.aiContent({
+        apiBaseUrl: apiBase,
+        refreshToken: getToken(),
+        payload: {
+          prompt_type: 'search_discover',
+          name: productName,
+          description,
+        },
+      });
 
       if (slugInput) {
-        slugInput.value = baseSlug;
+        slugInput.value = slugify(productName);
       }
-
       if (metaTitleInput) {
-        metaTitleInput.value = `${productName} | Buy Online at A Metafy`;
+        metaTitleInput.value = result.meta_title || '';
       }
-
       if (metaDescriptionInput) {
-        metaDescriptionInput.value = metaDescriptionBase.slice(0, 155);
+        metaDescriptionInput.value = result.meta_description || '';
+      }
+      if (tagsInput && Array.isArray(result.seo_tags)) {
+        tagsInput.value = result.seo_tags.join(', ');
       }
 
-      if (tagsInput) {
-        tagsInput.value = uniqueKeywords.join(', ');
-      }
-
-      showSuccess('Search & discoverability fields written with AI preview.');
-    });
+      showSuccess('Search & discoverability fields written with AI.');
+    }, 'Optimizing...');
   });
 
   productNameInput.addEventListener('input', () => {
