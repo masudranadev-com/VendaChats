@@ -2032,30 +2032,197 @@ ul, ol { list-style: none; }
   color: var(--text-tertiary);
 }
 
-.important-message-list {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
+/* ── Trusted Dashboard ── */
+.user-trust-dashboard .card-header {
+  margin-bottom: var(--spacing-lg);
 }
 
-.important-message-list li {
+.user-order-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--spacing-md);
+}
+
+.user-order-stat-item {
   display: flex;
-  align-items: flex-start;
-  gap: 10px;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: var(--spacing-md) var(--spacing-sm);
   background: var(--bg-secondary);
   border: 1px solid var(--border);
+  border-radius: var(--radius);
+  text-align: center;
+}
+
+.user-order-stat-icon {
+  font-size: 24px;
+  line-height: 1;
+}
+
+.user-order-stat-value {
+  font-family: 'Syne', sans-serif;
+  font-size: 28px;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--text-primary);
+}
+
+.user-order-stat-value--success { color: var(--brand-success); }
+.user-order-stat-value--cancel  { color: var(--brand-danger); }
+
+.user-order-stat-label {
+  font-size: 12px;
+  color: var(--text-secondary);
+  line-height: 1.3;
+}
+
+/* ── User Comments Section ── */
+.user-comments-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.user-comment-row {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-lg);
+  padding: var(--spacing-md) 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.user-comment-row:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.user-comment-row:first-child {
+  padding-top: 0;
+}
+
+.user-comment-product {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--spacing-md);
+  flex: 1;
+  min-width: 0;
+}
+
+.user-comment-thumb {
+  width: 72px;
+  height: 72px;
+  object-fit: cover;
   border-radius: var(--radius-sm);
-  padding: 12px;
+  border: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.user-comment-product-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.user-comment-product-title {
+  font-family: 'Syne', sans-serif;
+  font-size: 15px;
+  font-weight: 600;
+  margin-bottom: 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.user-comment-product-desc {
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin-bottom: 8px;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.user-comment-meta {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.user-comment-count {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: var(--brand-primary);
+  color: #fff;
+  border-radius: var(--radius-sm);
+  padding: 6px 14px;
+  min-width: 64px;
+  text-align: center;
+}
+
+.user-comment-count-num {
+  font-family: 'Syne', sans-serif;
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.user-comment-count-label {
+  font-size: 11px;
+  opacity: 0.85;
+  margin-top: 2px;
+}
+
+.user-comment-dates {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.user-comment-date-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+}
+
+.user-comment-date-label {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  opacity: 0.6;
+}
+
+.user-comment-date-value {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-primary);
+  white-space: nowrap;
+}
+
+.user-comment-date-sep {
+  opacity: 0.4;
+  margin-top: 10px;
+}
+
+.user-comments-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-xl) 0;
+  color: var(--text-secondary);
   font-size: 14px;
 }
 
-.important-message-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: var(--brand-danger);
-  margin-top: 7px;
-  flex-shrink: 0;
+.user-comments-empty-icon {
+  font-size: 32px;
+  line-height: 1;
 }
 
 .product-discussion {
@@ -7628,6 +7795,22 @@ body.products-attention-open {
 
   .user-hero-top {
     flex-direction: column;
+  }
+
+  .user-order-stats {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  .user-comment-row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: var(--spacing-md);
+  }
+
+  .user-comment-meta {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
   }
 
   .products-header-actions {

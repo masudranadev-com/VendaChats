@@ -111,16 +111,36 @@ class AdminUsersController extends Controller
                 'whatsapp_number' => '8801711001001',
                 'emotions' => ['Curious', 'Sad'],
                 'user_type' => 'Price-sensitive',
-                'important_messages' => [
-                    'Hi',
-                    'Can you give me best price?',
-                    'I need fast delivery to Dhaka.',
+                'orders' => [
+                    'total' => 7,
+                    'successful' => 4,
+                    'cancelled' => 3,
                 ],
                 'product' => [
                     'image' => 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?auto=format&fit=crop&w=600&q=80',
                     'title' => 'Premium Cotton T-Shirt',
                     'description' => 'Soft breathable cotton tee with regular fit and durable print quality.',
                     'url' => 'https://example.com/products/premium-cotton-tshirt',
+                ],
+                'commented_products' => [
+                    [
+                        'image' => 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?auto=format&fit=crop&w=200&q=80',
+                        'title' => 'Premium Cotton T-Shirt',
+                        'short_description' => 'Soft breathable cotton tee with regular fit and durable print quality.',
+                        'url' => 'https://example.com/products/premium-cotton-tshirt',
+                        'comment_count' => 12,
+                        'first_comment_at' => date('Y-m-d H:i:s', strtotime('-152 days')),
+                        'last_comment_at' => date('Y-m-d H:i:s', strtotime('-5 hours')),
+                    ],
+                    [
+                        'image' => 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=200&q=80',
+                        'title' => 'AirFlex Running Shoes',
+                        'short_description' => 'Lightweight cushioned running shoe designed for daily comfort and long walks.',
+                        'url' => 'https://example.com/products/airflex-running-shoes',
+                        'comment_count' => 3,
+                        'first_comment_at' => date('Y-m-d H:i:s', strtotime('-30 days')),
+                        'last_comment_at' => date('Y-m-d H:i:s', strtotime('-45 minutes')),
+                    ],
                 ],
             ],
             [
@@ -134,16 +154,27 @@ class AdminUsersController extends Controller
                 'whatsapp_number' => '8801811001002',
                 'emotions' => ['Happy', 'Excited'],
                 'user_type' => 'Quality-focused',
-                'important_messages' => [
-                    'I want original quality only.',
-                    'Do you have premium packaging?',
-                    'Can you share more close-up photos?',
+                'orders' => [
+                    'total' => 14,
+                    'successful' => 13,
+                    'cancelled' => 1,
                 ],
                 'product' => [
                     'image' => 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=600&q=80',
                     'title' => 'AirFlex Running Shoes',
                     'description' => 'Lightweight cushioned running shoe designed for daily comfort and long walks.',
                     'url' => 'https://example.com/products/airflex-running-shoes',
+                ],
+                'commented_products' => [
+                    [
+                        'image' => 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=200&q=80',
+                        'title' => 'AirFlex Running Shoes',
+                        'short_description' => 'Lightweight cushioned running shoe designed for daily comfort and long walks.',
+                        'url' => 'https://example.com/products/airflex-running-shoes',
+                        'comment_count' => 27,
+                        'first_comment_at' => date('Y-m-d H:i:s', strtotime('-200 days')),
+                        'last_comment_at' => date('Y-m-d H:i:s', strtotime('-2 hours')),
+                    ],
                 ],
             ],
             [
@@ -157,10 +188,10 @@ class AdminUsersController extends Controller
                 'whatsapp_number' => null,
                 'emotions' => ['Angry', 'Impatient'],
                 'user_type' => 'Price-sensitive',
-                'important_messages' => [
-                    'Why is this more expensive than last week?',
-                    'Need discount or I will skip.',
-                    'Waiting for your final offer.',
+                'orders' => [
+                    'total' => 3,
+                    'successful' => 1,
+                    'cancelled' => 2,
                 ],
                 'product' => [
                     'image' => 'https://images.unsplash.com/photo-1581235720704-06d3acfcb36f?auto=format&fit=crop&w=600&q=80',
@@ -168,6 +199,7 @@ class AdminUsersController extends Controller
                     'description' => 'Noise-reduced earbuds with long battery backup and compact charging case.',
                     'url' => 'https://example.com/products/wireless-earbuds-pro',
                 ],
+                'commented_products' => [],
             ],
             [
                 'user_id' => 'USR-1004',
@@ -180,16 +212,36 @@ class AdminUsersController extends Controller
                 'whatsapp_number' => '8801911001004',
                 'emotions' => ['Neutral'],
                 'user_type' => 'Quality-focused',
-                'important_messages' => [
-                    'Need gift option.',
-                    'Is this available in black?',
-                    'Please confirm return policy.',
+                'orders' => [
+                    'total' => 9,
+                    'successful' => 8,
+                    'cancelled' => 1,
                 ],
                 'product' => [
                     'image' => 'https://images.unsplash.com/photo-1523381210434-271e8be1f52b?auto=format&fit=crop&w=600&q=80',
                     'title' => 'Smart Casual Hoodie',
                     'description' => 'Minimal design hoodie with soft inner lining and wrinkle-resistant fabric.',
                     'url' => 'https://example.com/products/smart-casual-hoodie',
+                ],
+                'commented_products' => [
+                    [
+                        'image' => 'https://images.unsplash.com/photo-1523381210434-271e8be1f52b?auto=format&fit=crop&w=200&q=80',
+                        'title' => 'Smart Casual Hoodie',
+                        'short_description' => 'Minimal design hoodie with soft inner lining and wrinkle-resistant fabric.',
+                        'url' => 'https://example.com/products/smart-casual-hoodie',
+                        'comment_count' => 5,
+                        'first_comment_at' => date('Y-m-d H:i:s', strtotime('-60 days')),
+                        'last_comment_at' => date('Y-m-d H:i:s', strtotime('-20 minutes')),
+                    ],
+                    [
+                        'image' => 'https://images.unsplash.com/photo-1581235720704-06d3acfcb36f?auto=format&fit=crop&w=200&q=80',
+                        'title' => 'Wireless Earbuds Pro',
+                        'short_description' => 'Noise-reduced earbuds with long battery backup and compact charging case.',
+                        'url' => 'https://example.com/products/wireless-earbuds-pro',
+                        'comment_count' => 1,
+                        'first_comment_at' => date('Y-m-d H:i:s', strtotime('-8 days')),
+                        'last_comment_at' => date('Y-m-d H:i:s', strtotime('-8 days')),
+                    ],
                 ],
             ],
         ];
