@@ -22,74 +22,56 @@
     </div>
   </div>
 
-  <div class="users-view-grid">
-    <section class="card user-hero-card">
-      <div class="user-hero-top">
-        <img id="profileImage" src="{{ $user['profile_pic'] }}" alt="{{ $user['name'] }}" class="user-hero-avatar">
+  <section class="card user-hero-card">
+    <div class="user-hero-top">
+      <img id="profileImage" src="{{ $user['profile_pic'] }}" alt="{{ $user['name'] }}" class="user-hero-avatar">
 
-        <div class="user-hero-copy">
-          <h3 id="profileName" class="card-title">{{ $user['name'] }}</h3>
-          <div class="users-sub-id">{{ $user['user_id'] }}</div>
+      <div class="user-hero-copy">
+        <h3 id="profileName" class="card-title">{{ $user['name'] }}</h3>
+        <div class="users-sub-id">{{ $user['user_id'] }}</div>
 
-          <div class="user-id-lines">
-            <span>Sender ID: <strong>{{ $user['sender_id'] }}</strong></span>
-            <span>Page ID: <strong>{{ $user['page_id'] }}</strong></span>
-          </div>
+        <div class="user-id-lines">
+          <span>Sender ID: <strong>{{ $user['sender_id'] }}</strong></span>
+          <span>Page ID: <strong>{{ $user['page_id'] }}</strong></span>
         </div>
       </div>
+    </div>
 
-      <div class="user-badge-row">
-        <span class="badge {{ ($user['whatsapp'] ?? false) ? 'badge-success' : 'badge-warning' }}">
-          WhatsApp: {{ ($user['whatsapp'] ?? false) ? 'Yes' : 'No' }}
-        </span>
-        <span class="badge {{ ($user['user_type'] ?? '') === 'Price-sensitive' ? 'badge-warning' : 'badge-primary' }}">
-          {{ $user['user_type'] }}
-        </span>
-        @foreach ($user['emotions'] as $emotion)
-          <span class="badge emotion-badge emotion-{{ \Illuminate\Support\Str::slug($emotion) }}">{{ $emotion }}</span>
-        @endforeach
-      </div>
+    <div class="user-badge-row">
+      <span class="badge {{ ($user['whatsapp'] ?? false) ? 'badge-success' : 'badge-warning' }}">
+        WhatsApp: {{ ($user['whatsapp'] ?? false) ? 'Yes' : 'No' }}
+      </span>
+      <span class="badge {{ ($user['user_type'] ?? '') === 'Price-sensitive' ? 'badge-warning' : 'badge-primary' }}">
+        {{ $user['user_type'] }}
+      </span>
+      @foreach ($user['emotions'] as $emotion)
+        <span class="badge emotion-badge emotion-{{ \Illuminate\Support\Str::slug($emotion) }}">{{ $emotion }}</span>
+      @endforeach
+    </div>
 
-      <div class="page-actions mt-lg">
-        @if (($user['whatsapp'] ?? false) && $waNumber !== '')
-          <a
-            href="https://wa.me/{{ $waNumber }}?text={{ rawurlencode('Hello '.$user['name']) }}"
-            target="_blank"
-            rel="noopener noreferrer"
-            class="btn btn-primary"
-          >
-            Message Now
-          </a>
-        @else
-          <button type="button" class="btn btn-secondary" disabled>Message Now</button>
-        @endif
+    <div class="page-actions mt-lg">
+      @if (($user['whatsapp'] ?? false) && $waNumber !== '')
+        <a
+          href="https://wa.me/{{ $waNumber }}?text={{ rawurlencode('Hello '.$user['name']) }}"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="btn btn-primary"
+        >
+          Message Now
+        </a>
+      @else
+        <button type="button" class="btn btn-secondary" disabled>Message Now</button>
+      @endif
 
-        <button type="button" id="syncProfileBtn" class="btn btn-secondary" data-endpoint="{{ $syncEndpoint }}">
-          Sync Profile
-        </button>
-      </div>
+      <button type="button" id="syncProfileBtn" class="btn btn-secondary" data-endpoint="{{ $syncEndpoint }}">
+        Sync Profile
+      </button>
+    </div>
 
-      <p class="users-sync-hint">
-        Sync updates name and profile picture from Facebook using sender id.
-      </p>
-    </section>
-
-    <section class="card">
-      <div class="card-header">
-        <h3 class="card-title">Important Messages</h3>
-        <span class="badge badge-danger">Priority List</span>
-      </div>
-
-      <ul class="important-message-list">
-        @foreach ($user['important_messages'] as $message)
-          <li>
-            <span class="important-message-dot"></span>
-            <span>{{ $message }}</span>
-          </li>
-        @endforeach
-      </ul>
-    </section>
-  </div>
+    <p class="users-sync-hint">
+      Sync updates name and profile picture from Facebook using sender id.
+    </p>
+  </section>
 
   <section class="card mt-xl">
     <div class="card-header">

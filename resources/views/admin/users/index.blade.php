@@ -97,7 +97,6 @@
             <th>Profile</th>
             <th>Name</th>
             <th>Channel</th>
-            <th>WhatsApp</th>
             <th>Emotions</th>
             <th>User Type</th>
             <th>Action</th>
@@ -105,9 +104,6 @@
         </thead>
         <tbody>
           @forelse ($users as $user)
-            @php
-              $waNumber = preg_replace('/\D+/', '', (string) ($user['whatsapp_number'] ?? ''));
-            @endphp
             <tr>
               <td>
                 <div class="users-table-profile">
@@ -140,12 +136,6 @@
               </td>
 
               <td>
-                <span class="badge {{ ($user['whatsapp'] ?? false) ? 'badge-success' : 'badge-warning' }}">
-                  {{ ($user['whatsapp'] ?? false) ? 'Yes' : 'No' }}
-                </span>
-              </td>
-
-              <td>
                 <div class="users-emotions">
                   @foreach ($user['emotions'] as $emotion)
                     <span class="badge emotion-badge emotion-{{ \Illuminate\Support\Str::slug($emotion) }}">
@@ -163,18 +153,14 @@
 
               <td>
                 <div class="users-actions">
-                  @if (($user['whatsapp'] ?? false) && $waNumber !== '')
-                    <a
-                      href="https://wa.me/{{ $waNumber }}?text={{ rawurlencode('Hello '.$user['name']) }}"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      class="btn btn-primary btn-sm"
-                    >
-                      Message
-                    </a>
-                  @else
-                    <button type="button" class="btn btn-secondary btn-sm" disabled>Message</button>
-                  @endif
+                  <a
+                    href="https://wa.me/017?text=hi"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="btn btn-primary btn-sm"
+                  >
+                    Message
+                  </a>
 
                   <a href="{{ route('admin.users.views', ['user_id' => $user['user_id']]) }}" class="btn btn-info btn-sm">
                     View
