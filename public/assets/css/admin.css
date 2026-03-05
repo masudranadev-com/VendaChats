@@ -6471,6 +6471,26 @@ body.products-attention-open {
   animation: categories-ai-pulse 1s ease-in-out infinite;
 }
 
+.categories-ai-btn.is-success {
+  border-color: rgba(22, 163, 74, 0.4);
+  background: rgba(22, 163, 74, 0.12);
+  color: var(--brand-success);
+}
+
+.categories-ai-btn.is-success .categories-ai-icon {
+  color: var(--brand-success);
+}
+
+.categories-ai-btn.is-error {
+  border-color: rgba(220, 38, 38, 0.4);
+  background: rgba(220, 38, 38, 0.12);
+  color: var(--brand-danger);
+}
+
+.categories-ai-btn.is-error .categories-ai-icon {
+  color: var(--brand-danger);
+}
+
 @keyframes categories-ai-pulse {
   0%, 100% { transform: scale(1); opacity: 1; }
   50% { transform: scale(1.24); opacity: 0.45; }

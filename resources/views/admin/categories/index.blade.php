@@ -86,7 +86,7 @@
         data-category-description-input
         placeholder="Short category note for admin reference..."
       ></textarea>
-      <small class="categories-ai-status" data-category-ai-status>Click AI Write to auto-generate a demo short description.</small>
+      <small class="categories-ai-status" data-category-ai-status>Click AI Write to auto-generate a category description.</small>
     </div>
 
     <div class="settings-inline-actions">

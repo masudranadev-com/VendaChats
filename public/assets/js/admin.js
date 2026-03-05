@@ -5537,62 +5537,164 @@ function initCategoryAiWriter() {
   const descriptionInput = document.querySelector('[data-category-description-input]');
   const addCategoryButton = document.querySelector('[data-category-add-button]');
   const statusNode = document.querySelector('[data-category-ai-status]');
+  const tableBody = document.querySelector('[data-categories-table-body]');
+  const runtime = window.__adminCategoriesRuntime;
 
-  if (!trigger || !categoryNameInput || !descriptionInput) return;
+  if (!trigger || !categoryNameInput || !descriptionInput || !tableBody) return;
 
-  let processingTimer = null;
+  const text = (value) => String(value ?? '').trim();
+  const normalizeApiBase = (value) => text(value).replace(/\/+$/, '');
   const defaultAddButtonText = addCategoryButton?.textContent?.trim() || '+ Add Category';
+  let aiRequestInFlight = false;
+
+  const getApiBase = () => {
+    const runtimeBase = text(runtime?.apiBase);
+    if (runtimeBase) return normalizeApiBase(runtimeBase);
+
+    const datasetBase = text(tableBody.dataset.apiBaseUrl);
+    if (datasetBase) return normalizeApiBase(datasetBase);
+
+    return 'http://localhost:8082';
+  };
+
+  const getRefreshToken = () => {
+    const runtimeToken = text(runtime?.refreshToken);
+    if (runtimeToken) return runtimeToken;
+
+    const datasetToken = text(tableBody.dataset.refreshToken);
+    if (datasetToken) return datasetToken;
+
+    return text(window.API?.getToken?.() || '');
+  };
 
   const setStatus = (message, tone = '') => {
     if (!statusNode) return;
-    statusNode.textContent = message;
+    statusNode.textContent = text(message);
     statusNode.className = `categories-ai-status${tone ? ` is-${tone}` : ''}`;
   };
 
-  const buildDemoDescription = (categoryName) => {
-    const safeName = categoryName.trim();
-    return `${safeName} brings curated, high-demand items with clear quality standards, consistent pricing, and fast delivery support for everyday buyers.`;
+  const setAiButtonText = (button, nextText) => {
+    if (!button) return;
+    const textNode = button.querySelector('.categories-ai-btn-text');
+    if (!textNode) return;
+    textNode.textContent = text(nextText) || 'AI Write';
   };
 
-  trigger.addEventListener('click', () => {
-    const categoryName = categoryNameInput.value.trim();
+  const setAiButtonProcessing = (button, isProcessing, processingLabel = 'Writing...') => {
+    if (!button) return;
 
-    if (!categoryName) {
-      setStatus('Please add category name to write this.', 'error');
-      showWarning('Please add category name to write this.');
+    if (isProcessing) {
+      const textNode = button.querySelector('.categories-ai-btn-text');
+      const currentLabel = text(textNode?.textContent) || 'AI Write';
+      button.dataset.aiLabelBeforeProcessing = currentLabel;
+      button.classList.add('is-processing');
+      button.setAttribute('aria-busy', 'true');
+      setAiButtonText(button, processingLabel);
       return;
     }
 
-    if (processingTimer) {
-      clearTimeout(processingTimer);
-      processingTimer = null;
+    button.classList.remove('is-processing');
+    button.removeAttribute('aria-busy');
+    const previousLabel = text(button.dataset.aiLabelBeforeProcessing) || 'AI Write';
+    setAiButtonText(button, previousLabel);
+    delete button.dataset.aiLabelBeforeProcessing;
+  };
+
+  const flashAiButtonState = (button, state) => {
+    if (!button) return;
+    const safeState = state === 'success' ? 'success' : 'error';
+    const className = safeState === 'success' ? 'is-success' : 'is-error';
+    const timeoutMs = safeState === 'success' ? 1200 : 1600;
+
+    button.classList.remove('is-success', 'is-error');
+    button.classList.add(className);
+    window.setTimeout(() => {
+      button.classList.remove(className);
+    }, timeoutMs);
+  };
+
+  const updateButtonState = () => {
+    const hasCategoryName = text(categoryNameInput.value) !== '';
+    trigger.disabled = !hasCategoryName || aiRequestInFlight;
+    const hint = hasCategoryName ? 'Write description with AI' : 'Add Category Name first';
+    trigger.title = hint;
+    trigger.setAttribute('aria-label', hint);
+  };
+
+  categoryNameInput.addEventListener('input', updateButtonState);
+
+  trigger.addEventListener('click', async () => {
+    if (trigger.disabled || aiRequestInFlight) return;
+
+    const categoryName = text(categoryNameInput.value);
+    if (!categoryName) {
+      setStatus('Please add category name to write this.', 'error');
+      showWarning('Please add category name to write this.');
+      updateButtonState();
+      return;
     }
 
-    trigger.disabled = true;
-    trigger.classList.add('is-processing');
+    if (!window.API?.Admin?.Products?.aiContent) {
+      const errorMessage = 'AI service is not available right now.';
+      setStatus(errorMessage, 'error');
+      showError(errorMessage);
+      return;
+    }
+
+    aiRequestInFlight = true;
+    trigger.classList.remove('is-success', 'is-error');
+    updateButtonState();
+    setAiButtonProcessing(trigger, true, 'Writing...');
 
     if (addCategoryButton) {
       addCategoryButton.disabled = true;
       addCategoryButton.textContent = 'Processing...';
     }
 
-    setStatus(`AI is generating a short description for "${categoryName}"...`, 'processing');
+    setStatus(`AI is generating description for "${categoryName}"...`, 'processing');
 
-    processingTimer = window.setTimeout(() => {
-      descriptionInput.value = buildDemoDescription(categoryName);
-      trigger.disabled = false;
-      trigger.classList.remove('is-processing');
+    try {
+      const result = await window.API.Admin.Products.aiContent({
+        apiBaseUrl: getApiBase(),
+        refreshToken: getRefreshToken(),
+        payload: {
+          prompt_type: 'category_description',
+          name: categoryName,
+          description: text(descriptionInput.value),
+        },
+        timeoutMs: 0,
+      });
+
+      const generatedDescription = text(result?.category_description);
+      if (!generatedDescription) {
+        throw new Error('AI did not return a category description.');
+      }
+
+      descriptionInput.value = generatedDescription;
+      descriptionInput.dispatchEvent(new Event('input', {bubbles: true}));
+
+      setStatus(`Description generated for "${categoryName}".`, 'success');
+      flashAiButtonState(trigger, 'success');
+      showSuccess('Category description written with AI.');
+    } catch (error) {
+      const message = text(error?.message) || 'AI request failed. Please try again.';
+      setStatus(message, 'error');
+      flashAiButtonState(trigger, 'error');
+      showError(message);
+    } finally {
+      aiRequestInFlight = false;
+      setAiButtonProcessing(trigger, false);
 
       if (addCategoryButton) {
         addCategoryButton.disabled = false;
         addCategoryButton.textContent = defaultAddButtonText;
       }
 
-      setStatus(`Description generated for "${categoryName}".`, 'success');
-      showSuccess('AI description generated (demo).');
-      processingTimer = null;
-    }, 1400);
+      updateButtonState();
+    }
   });
+
+  updateButtonState();
 }
 
 // ══════════════════════════════════════════
