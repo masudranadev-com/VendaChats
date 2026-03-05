@@ -3654,7 +3654,7 @@ function initProductVariants() {
 
   // Handle toggle between simple and variant mode
   const handleToggle = (value) => {
-    // Update active card state
+    // Update active card state — ensure only the selected card is active
     toggleCards.forEach(card => {
       const input = card.querySelector('input[type="radio"]');
       card.classList.toggle('is-active', input?.value === value);
@@ -3664,6 +3664,18 @@ function initProductVariants() {
     if (value === 'no') {
       simpleInventory.classList.remove('hidden');
       variantManagement.classList.add('hidden');
+      // Remove all variant cards when switching back to "No Variants"
+      variants = [];
+      variantCounter = 0;
+      if (variantList) {
+        variantList.innerHTML = `
+          <div class="products-variant-empty-state">
+            <span class="products-variant-empty-icon">📦</span>
+            <p>No variants added yet</p>
+            <small>Click the button below to add your first variant</small>
+          </div>
+        `;
+      }
     } else {
       simpleInventory.classList.add('hidden');
       variantManagement.classList.remove('hidden');
@@ -3938,8 +3950,10 @@ function initProductVariants() {
   };
 
   // Toggle card click handlers
+  // Guard against the radio's bubbled click re-triggering the label's click listener
   toggleCards.forEach(card => {
-    card.addEventListener('click', () => {
+    card.addEventListener('click', (e) => {
+      if (e.target.type === 'radio') return; // radio change handler will take care of it
       const input = card.querySelector('input[type="radio"]');
       if (!input) return;
       input.checked = true;
