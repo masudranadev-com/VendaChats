@@ -168,22 +168,6 @@
     </div>
   </div>
 
-  <section class="card posts-countdown-card">
-    <div class="posts-countdown-copy">
-      <h3>Next auto reply will execute:</h3>
-      <p>(count down)</p>
-    </div>
-
-    <div
-      class="posts-countdown-time"
-      data-auto-reply-countdown
-      data-seconds="200"
-      aria-live="polite"
-    >
-      10m 10s later
-    </div>
-  </section>
-
   <section class="card mt-xl">
     <div class="card-header">
       <h3 class="card-title">Filtering Options</h3>
@@ -301,37 +285,6 @@
 
   <script>
     document.addEventListener('DOMContentLoaded', () => {
-      const countdown = document.querySelector('[data-auto-reply-countdown]');
-      if (countdown) {
-        let remaining = Number.parseInt(countdown.dataset.seconds || '610', 10);
-        if (!Number.isFinite(remaining) || remaining < 0) {
-          remaining = 610;
-        }
-
-        const render = () => {
-          if (remaining <= 0) {
-            countdown.textContent = 'Executing now';
-            return;
-          }
-
-          const minutes = Math.floor(remaining / 60);
-          const seconds = remaining % 60;
-          countdown.textContent = `${minutes}m ${String(seconds).padStart(2, '0')}s later`;
-        };
-
-        render();
-
-        const timer = window.setInterval(() => {
-          if (remaining <= 0) {
-            window.clearInterval(timer);
-            return;
-          }
-
-          remaining -= 1;
-          render();
-        }, 1000);
-      }
-
       const pms = document.getElementById('postsMultiselect');
       const trigger = document.getElementById('pmsTrigger');
       const dropdown = document.getElementById('pmsDropdown');
@@ -880,17 +833,6 @@
       }
 
       // ── Product Select ──
-      const productDemoData = [
-        { id: 1,  name: 'Nike Air Max 90',       badge: '$120' },
-        { id: 2,  name: 'Adidas Ultraboost 22',  badge: '$180' },
-        { id: 3,  name: 'Apple iPhone 15',        badge: '$999' },
-        { id: 4,  name: 'Samsung Galaxy S24',     badge: '$799' },
-        { id: 5,  name: 'Sony WH-1000XM5',        badge: '$350' },
-        { id: 6,  name: 'MacBook Pro 14"',         badge: '$1,999' },
-        { id: 7,  name: 'Canon EOS R50',           badge: '$680' },
-        { id: 8,  name: 'Logitech MX Master 3',   badge: '$100' },
-      ];
-
       (() => {
         const ps         = document.getElementById('productSelect');
         const pTrigger   = document.getElementById('productTrigger');
@@ -913,45 +855,182 @@
             item.hidden = !match;
             if (match) visible++;
           });
+          if (visible === 0) {
+            pEmptyEl.textContent = 'No products found';
+          }
           pEmptyEl.hidden = visible > 0;
         };
 
-        // Render demo items
-        productDemoData.forEach(product => {
-          const item = document.createElement('li');
-          item.className = 'pms__item';
-          item.dataset.title = product.name.toLowerCase();
+        const setProductMessage = (message) => {
+          clearElement(pListEl);
+          pEmptyEl.textContent = message;
+          pEmptyEl.hidden = false;
+        };
 
-          const label = document.createElement('label');
-          label.className = 'pms__item-label';
+        const formatProductPrice = (value) => {
+          const parsed = Number(value);
+          if (!Number.isFinite(parsed)) {
+            return '';
+          }
+          return `$${parsed.toLocaleString('en-US')}`;
+        };
 
-          const radio = document.createElement('input');
-          radio.type  = 'radio';
-          radio.name  = 'product_id';
-          radio.value = String(product.id);
-          radio.className = 'pms__checkbox';
+        const renderProducts = (products) => {
+          clearElement(pListEl);
 
-          radio.addEventListener('change', () => {
-            pLabelEl.textContent = product.name;
-            closeP();
+          if (!products.length) {
+            setProductMessage('No products found');
+            return;
+          }
+
+          products.forEach(product => {
+            const productId = Number.parseInt(String(product?.id ?? ''), 10);
+            const productName = String(product?.name || '').trim();
+            if (!Number.isFinite(productId) || !productName) {
+              return;
+            }
+
+            const badgeText = formatProductPrice(product?.price);
+
+            const item = document.createElement('li');
+            item.className = 'pms__item';
+            item.dataset.title = productName.toLowerCase();
+
+            const label = document.createElement('label');
+            label.className = 'pms__item-label';
+
+            const radio = document.createElement('input');
+            radio.type  = 'radio';
+            radio.name  = 'product_id';
+            radio.value = String(productId);
+            radio.className = 'pms__checkbox';
+
+            radio.addEventListener('change', () => {
+              pLabelEl.textContent = productName;
+              closeP();
+            });
+
+            const titleSpan = document.createElement('span');
+            titleSpan.className   = 'pms__item-title';
+            titleSpan.textContent = productName;
+
+            label.appendChild(radio);
+            label.appendChild(titleSpan);
+
+            if (badgeText) {
+              const badge = document.createElement('span');
+              badge.className   = 'pms__badge';
+              badge.style.background = '#dbeafe';
+              badge.style.color      = '#1d4ed8';
+              badge.textContent = badgeText;
+              label.appendChild(badge);
+            }
+
+            item.appendChild(label);
+            pListEl.appendChild(item);
           });
 
-          const titleSpan = document.createElement('span');
-          titleSpan.className   = 'pms__item-title';
-          titleSpan.textContent = product.name;
+          filterP(pSearchEl.value);
+        };
 
-          const badge = document.createElement('span');
-          badge.className   = 'pms__badge';
-          badge.style.background = '#dbeafe';
-          badge.style.color      = '#1d4ed8';
-          badge.textContent = product.badge;
+        const getProductsFromPayload = (payload) => {
+          if (Array.isArray(payload?.products?.data)) {
+            return payload.products.data;
+          }
+          if (Array.isArray(payload?.data)) {
+            return payload.data;
+          }
+          if (Array.isArray(payload)) {
+            return payload;
+          }
+          return [];
+        };
 
-          label.appendChild(radio);
-          label.appendChild(titleSpan);
-          label.appendChild(badge);
-          item.appendChild(label);
-          pListEl.appendChild(item);
-        });
+        const getProductsLastPage = (payload) => {
+          const value = payload?.products?.pagination?.last_page ?? payload?.pagination?.last_page ?? 1;
+          const parsed = Number.parseInt(String(value), 10);
+          return Number.isFinite(parsed) && parsed > 0 ? parsed : 1;
+        };
+
+        const fetchProductsPage = async (page) => {
+          if (!apiBaseUrl) {
+            throw new Error('Missing backend API URL.');
+          }
+
+          const endpoint = new URL(`${apiBaseUrl}/api/admin/products`);
+          endpoint.searchParams.set('page', String(page));
+          endpoint.searchParams.set('per_page', '50');
+          endpoint.searchParams.set('sort_by', 'latest');
+
+          const abortController = new AbortController();
+          const timeoutId = window.setTimeout(() => abortController.abort(), 12000);
+
+          try {
+            const response = await fetch(endpoint.toString(), {
+              method: 'GET',
+              headers: {
+                'Accept': 'application/json',
+                'x-refresh-token': refreshToken,
+              },
+              signal: abortController.signal,
+            });
+
+            const contentType = response.headers.get('content-type') || '';
+            const payload = contentType.includes('application/json')
+              ? await response.json()
+              : await response.text();
+
+            if (!response.ok) {
+              if (response.status === 401) {
+                throw new Error('Unauthorized (401). Session token is invalid or expired.');
+              }
+              throw new Error(readErrorMessage(payload, `Request failed (${response.status}).`));
+            }
+
+            if (!payload || typeof payload !== 'object') {
+              throw new Error('Unexpected response format from products API.');
+            }
+
+            return payload;
+          } catch (error) {
+            if (error?.name === 'AbortError') {
+              throw new Error('Request timed out. Please try again.');
+            }
+            throw error;
+          } finally {
+            window.clearTimeout(timeoutId);
+          }
+        };
+
+        const loadProducts = async () => {
+          if (!refreshToken) {
+            setProductMessage('Missing refresh token. Please login again.');
+            return;
+          }
+
+          setProductMessage('Loading products...');
+
+          const allProducts = [];
+          let page = 1;
+          let lastPage = 1;
+
+          do {
+            const payload = await fetchProductsPage(page);
+            allProducts.push(...getProductsFromPayload(payload));
+            lastPage = getProductsLastPage(payload);
+            page += 1;
+          } while (page <= lastPage);
+
+          const uniqueProducts = Array.from(
+            new Map(
+              allProducts
+                .filter(product => product && typeof product === 'object')
+                .map(product => [String(product.id), product])
+            ).values()
+          );
+
+          renderProducts(uniqueProducts);
+        };
 
         pTrigger.addEventListener('click', () => pDropdown.hidden ? openP() : closeP());
         pTrigger.addEventListener('keydown', e => {
@@ -960,6 +1039,14 @@
         pSearchEl.addEventListener('input', () => filterP(pSearchEl.value));
         document.addEventListener('click', e => { if (!ps.contains(e.target)) closeP(); });
         document.addEventListener('keydown', e => { if (e.key === 'Escape' && !pDropdown.hidden) closeP(); });
+
+        loadProducts().catch((error) => {
+          const message = error?.message || 'Failed to load products.';
+          setProductMessage(message);
+          if (typeof window.showError === 'function') {
+            window.showError(message);
+          }
+        });
       })();
     });
   </script>
