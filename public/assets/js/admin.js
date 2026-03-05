@@ -296,6 +296,7 @@ document.addEventListener('DOMContentLoaded', () => {
   initOrdersManualOrder();
   initBotSettings();
   initProductsCatalogPage();
+  initUsersCatalogPage();
   initProductsAttentionPanel();
   initProductTypeSelector();
   initDownloadableLinkType();
@@ -2783,6 +2784,511 @@ function initProductsCatalogPage() {
 
   renderKpis([]);
   loadProducts(state.page);
+}
+
+function initUsersCatalogPage() {
+  const section = document.getElementById('usersCatalogSection');
+  if (!section) return;
+
+  const totalUsersNode = document.querySelector('[data-users-total-users]');
+  const totalWhatsAppNode = document.querySelector('[data-users-total-whatsapp]');
+  const totalPriceSensitiveNode = document.querySelector('[data-users-total-price-sensitive]');
+
+  const filteredBadge = section.querySelector('[data-users-filtered-badge]');
+  const searchInput = section.querySelector('[data-users-search]');
+  const channelSelect = section.querySelector('[data-users-channel]');
+  const emotionSelect = section.querySelector('[data-users-emotion]');
+  const userTypeSelect = section.querySelector('[data-users-user-type]');
+  const statusSelect = section.querySelector('[data-users-status]');
+  const applyBtn = section.querySelector('[data-users-apply]');
+  const resetBtn = section.querySelector('[data-users-reset]');
+  const resultNode = section.querySelector('[data-users-result]');
+  const tbody = section.querySelector('[data-users-tbody]');
+  const pageWrap = section.querySelector('[data-users-pagination-wrap]');
+  const pageSummary = section.querySelector('[data-users-pagination-summary]');
+  const pageControls = section.querySelector('[data-users-pagination-controls]');
+
+  if (
+    !filteredBadge || !searchInput || !channelSelect || !emotionSelect || !userTypeSelect || !statusSelect ||
+    !applyBtn || !resetBtn || !resultNode || !tbody || !pageWrap || !pageSummary || !pageControls
+  ) {
+    return;
+  }
+
+  if (!window.API?.Admin?.Users || typeof window.API.Admin.Users.list !== 'function') {
+    return;
+  }
+
+  const apiBase = String(section.dataset.apiBaseUrl || '').replace(/\/+$/, '');
+  const viewUrl = String(section.dataset.viewUrl || '').trim();
+  const perPage = Math.max(1, Number.parseInt(section.dataset.perPage || '10', 10) || 10);
+  const sessionToken = String(section.dataset.refreshToken || '').trim();
+  let storageToken = '';
+  try {
+    storageToken = String(window.localStorage.getItem('refresh_token') || '').trim();
+  } catch {
+    storageToken = '';
+  }
+  const token = sessionToken || storageToken;
+
+  const toInt = (value, fallback = 0) => {
+    const parsed = Number.parseInt(String(value ?? ''), 10);
+    return Number.isFinite(parsed) ? parsed : fallback;
+  };
+  const text = (value) => String(value ?? '').trim();
+  const escapeHtml = (value) => text(value)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+  const formatCount = (value) => toInt(value, 0).toLocaleString('en-US');
+  const slugify = (value) => text(value)
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '') || 'default';
+  const normalizePhone = (value) => {
+    const digits = text(value).replace(/\D+/g, '');
+    return digits.length >= 8 ? digits : '';
+  };
+
+  const state = {
+    page: (() => {
+      const params = new URLSearchParams(window.location.search);
+      const parsed = toInt(params.get('page'), 1);
+      return parsed > 0 ? parsed : 1;
+    })(),
+    perPage,
+    total: 0,
+    from: 0,
+    to: 0,
+    lastPage: 1,
+    users: [],
+    loading: false,
+    requestId: 0,
+  };
+
+  const setSelectValue = (select, value, fallback = 'all') => {
+    const target = text(value);
+    if (!target) {
+      select.value = fallback;
+      return;
+    }
+
+    const options = Array.from(select.options);
+    const match = options.find((option) => text(option.value).toLowerCase() === target.toLowerCase());
+    if (match) {
+      select.value = match.value;
+      return;
+    }
+
+    if (target.toLowerCase() === 'all') {
+      select.value = fallback;
+      return;
+    }
+
+    const dynamic = document.createElement('option');
+    dynamic.value = target;
+    dynamic.textContent = target;
+    select.appendChild(dynamic);
+    select.value = target;
+  };
+
+  const urlParams = new URLSearchParams(window.location.search);
+  const initialSearch = text(urlParams.get('search') || urlParams.get('q'));
+  if (initialSearch) {
+    searchInput.value = initialSearch;
+  }
+  setSelectValue(channelSelect, urlParams.get('channel'), 'all');
+  setSelectValue(emotionSelect, urlParams.get('emotion'), 'all');
+  setSelectValue(userTypeSelect, urlParams.get('user_type'), 'all');
+  setSelectValue(statusSelect, urlParams.get('status'), 'all');
+
+  const normalizeFilter = (value) => {
+    const normalized = text(value);
+    if (!normalized || normalized.toLowerCase() === 'all') return '';
+    return normalized;
+  };
+
+  const readFilters = () => ({
+    search: text(searchInput.value),
+    channel: normalizeFilter(channelSelect.value),
+    emotion: normalizeFilter(emotionSelect.value),
+    userType: normalizeFilter(userTypeSelect.value),
+    status: normalizeFilter(statusSelect.value),
+  });
+
+  const setMessage = (message) => {
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="7" class="users-empty">${escapeHtml(message)}</td>
+      </tr>
+    `;
+  };
+
+  const channelsOf = (user) => {
+    const raw = user?.connected_channel ?? user?.channels;
+    if (Array.isArray(raw)) {
+      return raw.map((entry) => text(entry)).filter(Boolean);
+    }
+    if (typeof raw === 'string') {
+      return raw.split(/[,\|\/]+/).map((entry) => text(entry)).filter(Boolean);
+    }
+    return [];
+  };
+
+  const emotionsOf = (user) => {
+    const raw = user?.emotions;
+    if (Array.isArray(raw)) {
+      return raw.map((entry) => text(entry)).filter(Boolean);
+    }
+    const emotionText = text(raw);
+    if (!emotionText) return [];
+    return emotionText.split(/[,\|\/]+/).map((entry) => text(entry)).filter(Boolean);
+  };
+
+  const statusMetaOf = (user) => {
+    if (typeof user?.is_active === 'boolean') {
+      return user.is_active
+        ? {label: 'Active', css: 'badge-success'}
+        : {label: 'Inactive', css: 'badge-warning'};
+    }
+
+    const rawStatus = text(user?.status).toLowerCase();
+    if (rawStatus === 'active' || rawStatus === '1' || rawStatus === 'true') {
+      return {label: 'Active', css: 'badge-success'};
+    }
+    if (rawStatus === 'inactive' || rawStatus === '0' || rawStatus === 'false') {
+      return {label: 'Inactive', css: 'badge-warning'};
+    }
+
+    return {
+      label: text(user?.status) || 'Unknown',
+      css: 'badge-info',
+    };
+  };
+
+  const renderChannels = (channels) => {
+    if (!channels.length) {
+      return '<span class="badge">N/A</span>';
+    }
+
+    return channels.map((channel) => `
+      <span class="badge users-channel-badge users-channel-${escapeHtml(slugify(channel))}">
+        ${escapeHtml(channel)}
+      </span>
+    `).join('');
+  };
+
+  const renderEmotions = (emotions) => {
+    if (!emotions.length) {
+      return '<span class="badge emotion-badge emotion-neutral">N/A</span>';
+    }
+
+    return emotions.map((emotion) => `
+      <span class="badge emotion-badge emotion-${escapeHtml(slugify(emotion))}">
+        ${escapeHtml(emotion)}
+      </span>
+    `).join('');
+  };
+
+  const rowNode = (user) => {
+    const name = text(user?.full_name || user?.name) || 'Unknown User';
+    const clientId = text(user?.client_id || user?.user_id || user?.id);
+    const profile = text(user?.profile || user?.profile_pic);
+    const channels = channelsOf(user);
+    const emotions = emotionsOf(user);
+    const userType = text(user?.user_type) || 'N/A';
+    const userTypeCss = userType.toLowerCase() === 'price-sensitive' ? 'badge-warning' : 'badge-primary';
+    const status = statusMetaOf(user);
+    const waNumber = normalizePhone(user?.whatsapp_number || user?.phone || user?.mobile || user?.contact_number);
+
+    const viewHref = viewUrl
+      ? `${viewUrl}${viewUrl.includes('?') ? '&' : '?'}user_id=${encodeURIComponent(clientId || name)}`
+      : '';
+
+    const messageButton = waNumber
+      ? `<a href="https://wa.me/${encodeURIComponent(waNumber)}?text=${encodeURIComponent(`Hello ${name}`)}" target="_blank" rel="noopener noreferrer" class="btn btn-primary btn-sm">Message</a>`
+      : '<button type="button" class="btn btn-secondary btn-sm" disabled>Message</button>';
+
+    const profileHtml = profile
+      ? `<img src="${escapeHtml(profile)}" class="users-avatar" alt="${escapeHtml(name)}" loading="lazy">`
+      : `<span class="users-avatar users-avatar-fallback" aria-hidden="true">${escapeHtml(name.charAt(0).toUpperCase() || 'U')}</span>`;
+
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>
+        <div class="users-table-profile">${profileHtml}</div>
+      </td>
+      <td>
+        <div class="users-name-block">
+          <div class="users-name">${escapeHtml(name)}</div>
+          <div class="users-sub-id">${escapeHtml(clientId || 'N/A')}</div>
+        </div>
+      </td>
+      <td>
+        <div class="users-channels">${renderChannels(channels)}</div>
+      </td>
+      <td>
+        <div class="users-emotions">${renderEmotions(emotions)}</div>
+      </td>
+      <td>
+        <span class="badge ${userTypeCss}">${escapeHtml(userType)}</span>
+      </td>
+      <td>
+        <span class="badge ${status.css}">${escapeHtml(status.label)}</span>
+      </td>
+      <td>
+        <div class="users-actions">
+          ${messageButton}
+          ${viewHref ? `<a href="${escapeHtml(viewHref)}" class="btn btn-info btn-sm">View</a>` : ''}
+        </div>
+      </td>
+    `;
+
+    return tr;
+  };
+
+  const renderTable = () => {
+    const list = Array.isArray(state.users) ? state.users : [];
+    tbody.innerHTML = '';
+
+    if (!list.length) {
+      setMessage('No users found for the selected filters.');
+      resultNode.textContent = 'No users found';
+      return;
+    }
+
+    const fragment = document.createDocumentFragment();
+    list.forEach((user) => fragment.appendChild(rowNode(user)));
+    tbody.appendChild(fragment);
+
+    if (state.total > 0 && state.from > 0 && state.to > 0) {
+      resultNode.textContent = `Showing ${state.from}-${state.to} of ${state.total} users`;
+    } else {
+      resultNode.textContent = `Showing ${list.length} users`;
+    }
+  };
+
+  const renderPagination = () => {
+    const current = Math.max(1, toInt(state.page, 1));
+    const last = Math.max(1, toInt(state.lastPage, 1));
+
+    if (last <= 1) {
+      pageSummary.textContent = 'Page 1 of 1';
+      pageControls.innerHTML = '';
+      pageWrap.hidden = true;
+      return;
+    }
+
+    pageWrap.hidden = false;
+    pageSummary.textContent = `Page ${current} of ${last}`;
+    pageControls.innerHTML = '';
+
+    const btn = (label, page, disabled = false, active = false) => {
+      const node = document.createElement('button');
+      node.type = 'button';
+      node.className = `users-page-btn${disabled ? ' is-disabled' : ''}${active ? ' is-active' : ''}`;
+      node.textContent = label;
+
+      if (disabled || active) {
+        node.disabled = true;
+        if (disabled) node.setAttribute('aria-disabled', 'true');
+        if (active) node.setAttribute('aria-current', 'page');
+      } else {
+        node.addEventListener('click', () => {
+          if (!state.loading) loadUsers(page);
+        });
+      }
+
+      return node;
+    };
+
+    const pages = [];
+    if (last <= 7) {
+      for (let page = 1; page <= last; page += 1) pages.push(page);
+    } else {
+      pages.push(1);
+      if (current > 3) pages.push('...');
+      for (let page = Math.max(2, current - 1); page <= Math.min(last - 1, current + 1); page += 1) pages.push(page);
+      if (current < last - 2) pages.push('...');
+      pages.push(last);
+    }
+
+    pageControls.appendChild(btn('Prev', current - 1, current <= 1, false));
+    pages.forEach((page) => pageControls.appendChild(page === '...' ? btn('...', 0, true, false) : btn(String(page), page, false, page === current)));
+    pageControls.appendChild(btn('Next', current + 1, current >= last, false));
+  };
+
+  const updateTotals = (others = {}) => {
+    const totalUsers = toInt(others?.total_users, state.total);
+    const totalWhatsAppUsers = toInt(others?.total_whatsapp_users, 0);
+    const totalPriceSensitiveUsers = toInt(others?.total_price_sensitive_users, 0);
+
+    if (totalUsersNode) {
+      totalUsersNode.textContent = formatCount(totalUsers);
+    }
+    if (totalWhatsAppNode) {
+      totalWhatsAppNode.textContent = formatCount(totalWhatsAppUsers);
+    }
+    if (totalPriceSensitiveNode) {
+      totalPriceSensitiveNode.textContent = formatCount(totalPriceSensitiveUsers);
+    }
+  };
+
+  const setLoading = (loading) => {
+    state.loading = loading;
+    applyBtn.disabled = loading;
+    resetBtn.disabled = loading;
+  };
+
+  const updateUrlState = (page) => {
+    const filters = readFilters();
+    const url = new URL(window.location.href);
+
+    if (filters.search) url.searchParams.set('search', filters.search);
+    else {
+      url.searchParams.delete('search');
+      url.searchParams.delete('q');
+    }
+
+    if (filters.channel) url.searchParams.set('channel', filters.channel);
+    else url.searchParams.delete('channel');
+
+    if (filters.emotion) url.searchParams.set('emotion', filters.emotion);
+    else url.searchParams.delete('emotion');
+
+    if (filters.userType) url.searchParams.set('user_type', filters.userType);
+    else url.searchParams.delete('user_type');
+
+    if (filters.status) url.searchParams.set('status', filters.status);
+    else url.searchParams.delete('status');
+
+    if (page > 1) url.searchParams.set('page', String(page));
+    else url.searchParams.delete('page');
+
+    window.history.replaceState({}, '', url.toString());
+  };
+
+  async function loadUsers(page) {
+    if (!token) {
+      const message = 'Missing refresh token. Please login again.';
+      filteredBadge.textContent = 'Unavailable';
+      resultNode.textContent = message;
+      setMessage(message);
+      pageWrap.hidden = true;
+      if (typeof window.showError === 'function') window.showError(message);
+      return;
+    }
+
+    if (!apiBase) {
+      const message = 'Backend API URL is missing.';
+      filteredBadge.textContent = 'Unavailable';
+      resultNode.textContent = message;
+      setMessage(message);
+      pageWrap.hidden = true;
+      if (typeof window.showError === 'function') window.showError(message);
+      return;
+    }
+
+    const requestId = ++state.requestId;
+    const filters = readFilters();
+    setLoading(true);
+    pageWrap.hidden = true;
+    pageControls.innerHTML = '';
+    pageSummary.textContent = 'Page 1 of 1';
+    setMessage('Loading users...');
+    resultNode.textContent = 'Loading users...';
+
+    try {
+      const payload = await window.API.Admin.Users.list({
+        apiBaseUrl: apiBase,
+        refreshToken: token,
+        page,
+        perPage: state.perPage,
+        search: filters.search,
+        channel: filters.channel,
+        emotion: filters.emotion,
+        userType: filters.userType,
+        status: filters.status,
+        timeoutMs: 12000,
+      });
+      if (requestId !== state.requestId) return;
+
+      const usersPayload = payload?.users && typeof payload.users === 'object' ? payload.users : {};
+      const list = Array.isArray(usersPayload?.data) ? usersPayload.data : [];
+      const pagination = usersPayload?.pagination_info && typeof usersPayload.pagination_info === 'object'
+        ? usersPayload.pagination_info
+        : (usersPayload?.pagination && typeof usersPayload.pagination === 'object' ? usersPayload.pagination : {});
+      const others = payload?.others_data && typeof payload.others_data === 'object' ? payload.others_data : {};
+
+      const total = Math.max(0, toInt(pagination.total, list.length));
+      const perPageFromApi = Math.max(1, toInt(pagination.per_page, state.perPage));
+      const derivedLastPage = Math.max(1, toInt(pagination.last_page, Math.ceil(total / perPageFromApi)));
+
+      state.users = list;
+      state.total = total;
+      state.perPage = perPageFromApi;
+      state.lastPage = derivedLastPage;
+      state.page = Math.min(Math.max(1, toInt(pagination.current_page, page)), state.lastPage);
+      state.from = Math.max(0, toInt(pagination.from, list.length ? ((state.page - 1) * state.perPage) + 1 : 0));
+      state.to = Math.max(0, toInt(pagination.to, state.from ? state.from + list.length - 1 : 0));
+
+      filteredBadge.textContent = `${formatCount(state.total)} shown`;
+      updateTotals(others);
+      renderTable();
+      renderPagination();
+      updateUrlState(state.page);
+    } catch (error) {
+      if (requestId !== state.requestId) return;
+
+      const message = error?.isTimeout
+        ? 'Request timed out. Please try again.'
+        : (error?.message || 'Failed to load users.');
+
+      state.users = [];
+      state.total = 0;
+      state.from = 0;
+      state.to = 0;
+      state.lastPage = 1;
+      filteredBadge.textContent = 'Unavailable';
+      updateTotals({});
+      resultNode.textContent = message;
+      setMessage(message);
+      pageControls.innerHTML = '';
+      pageSummary.textContent = 'Page 1 of 1';
+      pageWrap.hidden = true;
+      if (typeof window.showError === 'function') window.showError(message);
+    } finally {
+      if (requestId === state.requestId) {
+        setLoading(false);
+      }
+    }
+  }
+
+  applyBtn.addEventListener('click', () => {
+    if (state.loading) return;
+    loadUsers(1);
+  });
+
+  resetBtn.addEventListener('click', () => {
+    searchInput.value = '';
+    channelSelect.value = 'all';
+    emotionSelect.value = 'all';
+    userTypeSelect.value = 'all';
+    statusSelect.value = 'all';
+    if (state.loading) return;
+    loadUsers(1);
+  });
+
+  searchInput.addEventListener('keydown', (event) => {
+    if (event.key !== 'Enter') return;
+    event.preventDefault();
+    if (state.loading) return;
+    loadUsers(1);
+  });
+
+  loadUsers(state.page);
 }
 
 function initProductsAttentionPanel() {

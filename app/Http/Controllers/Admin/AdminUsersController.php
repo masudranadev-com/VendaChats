@@ -10,74 +10,17 @@ class AdminUsersController extends Controller
 {
     public function users(Request $request): View
     {
-        $filters = [
-            'q' => trim((string) $request->query('q', '')),
-            'whatsapp' => (string) $request->query('whatsapp', 'all'),
-            'emotion' => (string) $request->query('emotion', 'all'),
-            'user_type' => (string) $request->query('user_type', 'all'),
-        ];
-
-        $allUsers = collect($this->usersDataset());
-
-        $users = $allUsers
-            ->filter(function (array $user) use ($filters): bool {
-                if ($filters['q'] !== '') {
-                    $needle = strtolower($filters['q']);
-                    $haystack = strtolower(implode(' ', [
-                        $user['name'] ?? '',
-                        $user['user_id'] ?? '',
-                        $user['sender_id'] ?? '',
-                    ]));
-
-                    if (! str_contains($haystack, $needle)) {
-                        return false;
-                    }
-                }
-
-                if ($filters['whatsapp'] === 'yes' && ! ($user['whatsapp'] ?? false)) {
-                    return false;
-                }
-
-                if ($filters['whatsapp'] === 'no' && ($user['whatsapp'] ?? false)) {
-                    return false;
-                }
-
-                if ($filters['emotion'] !== 'all') {
-                    $hasEmotion = collect($user['emotions'] ?? [])
-                        ->contains(fn (string $emotion): bool => strtolower($emotion) === strtolower($filters['emotion']));
-
-                    if (! $hasEmotion) {
-                        return false;
-                    }
-                }
-
-                if ($filters['user_type'] !== 'all' && ($user['user_type'] ?? '') !== $filters['user_type']) {
-                    return false;
-                }
-
-                return true;
-            })
-            ->values();
-
-        $availableEmotions = $allUsers
-            ->pluck('emotions')
-            ->flatten()
-            ->filter()
-            ->unique()
-            ->sort()
-            ->values()
-            ->all();
+        $refreshToken = (string) (
+            $request->session()->get('auth.refresh_token')
+            ?? $request->session()->get('refresh_token')
+            ?? ''
+        );
 
         return view('admin.users.index', [
             'title' => 'Users',
             'subtitle' => 'Track buyer emotion, WhatsApp status, and user type in one place.',
-            'users' => $users->all(),
-            'totalUsers' => $allUsers->count(),
-            'filteredUsers' => $users->count(),
-            'whatsAppUsers' => $allUsers->where('whatsapp', true)->count(),
-            'priceSensitiveUsers' => $allUsers->where('user_type', 'Price-sensitive')->count(),
-            'availableEmotions' => $availableEmotions,
-            'filters' => $filters,
+            'usersApiBaseUrl' => rtrim((string) config('services.backend.url', 'http://localhost:8082'), '/'),
+            'usersRefreshToken' => $refreshToken,
         ]);
     }
 

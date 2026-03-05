@@ -275,6 +275,45 @@
           });
         },
       },
+      Users: {
+        list({
+          apiBaseUrl,
+          refreshToken,
+          page = 1,
+          perPage = 10,
+          search = '',
+          channel = '',
+          emotion = '',
+          userType = '',
+          status = '',
+          timeoutMs = 12000
+        } = {}) {
+          const params = new URLSearchParams();
+          params.set('page', String(page));
+          params.set('per_page', String(perPage));
+
+          const searchText = toText(search);
+          const channelText = toText(channel);
+          const emotionText = toText(emotion);
+          const userTypeText = toText(userType);
+          const statusText = toText(status);
+
+          if (searchText) params.set('search', searchText);
+          if (channelText && channelText.toLowerCase() !== 'all') params.set('channel', channelText);
+          if (emotionText && emotionText.toLowerCase() !== 'all') params.set('emotion', emotionText);
+          if (userTypeText && userTypeText.toLowerCase() !== 'all') params.set('user_type', userTypeText);
+          if (statusText && statusText.toLowerCase() !== 'all') params.set('status', statusText);
+
+          const query = `?${params.toString()}`;
+          return request({
+            baseUrl: normalizeBaseUrl(apiBaseUrl),
+            path: `/api/admin/users_info${query}`,
+            method: 'GET',
+            token: refreshToken,
+            timeoutMs,
+          });
+        },
+      },
       Categories: {
         list({apiBaseUrl, refreshToken, page = 1, perPage = 200, timeoutMs = 15000} = {}) {
           const query = `?page=${encodeURIComponent(page)}&per_page=${encodeURIComponent(perPage)}`;
