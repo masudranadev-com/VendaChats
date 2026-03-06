@@ -2807,6 +2807,11 @@ function initUsersCatalogPage() {
   const pageWrap = section.querySelector('[data-users-pagination-wrap]');
   const pageSummary = section.querySelector('[data-users-pagination-summary]');
   const pageControls = section.querySelector('[data-users-pagination-controls]');
+  const banModal = document.getElementById('usersBanConfirmModal');
+  const banModalTitle = banModal?.querySelector('[data-users-ban-modal-title]');
+  const banModalDescription = banModal?.querySelector('[data-users-ban-modal-description]');
+  const banConfirmBtn = banModal?.querySelector('[data-users-ban-confirm]');
+  const banCloseButtons = banModal ? Array.from(banModal.querySelectorAll('[data-users-ban-close], [data-users-ban-cancel]')) : [];
 
   if (
     !filteredBadge || !searchInput || !channelSelect || !emotionSelect || !userTypeSelect || !statusSelect ||
@@ -2815,7 +2820,12 @@ function initUsersCatalogPage() {
     return;
   }
 
-  if (!window.API?.Admin?.Users || typeof window.API.Admin.Users.list !== 'function') {
+  if (
+    !window.API?.Admin?.Users ||
+    typeof window.API.Admin.Users.list !== 'function' ||
+    typeof window.API.Admin.Users.ban !== 'function' ||
+    typeof window.API.Admin.Users.unban !== 'function'
+  ) {
     return;
   }
 
@@ -2847,9 +2857,34 @@ function initUsersCatalogPage() {
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-+|-+$/g, '') || 'default';
-  const normalizePhone = (value) => {
-    const digits = text(value).replace(/\D+/g, '');
-    return digits.length >= 8 ? digits : '';
+  const clientIdOf = (user) => text(user?.client_id);
+  const activeStateOf = (user) => {
+    if (typeof user?.is_active === 'boolean') {
+      return user.is_active;
+    }
+
+    if (typeof user?.is_active === 'number') {
+      if (user.is_active === 1) return true;
+      if (user.is_active === 0) return false;
+    }
+
+    const rawIsActive = text(user?.is_active).toLowerCase();
+    if (rawIsActive === 'active' || rawIsActive === 'true' || rawIsActive === '1') {
+      return true;
+    }
+    if (rawIsActive === 'inactive' || rawIsActive === 'false' || rawIsActive === '0') {
+      return false;
+    }
+
+    const rawStatus = text(user?.status).toLowerCase();
+    if (rawStatus === 'active' || rawStatus === 'true' || rawStatus === '1') {
+      return true;
+    }
+    if (rawStatus === 'inactive' || rawStatus === 'false' || rawStatus === '0') {
+      return false;
+    }
+
+    return null;
   };
 
   const state = {
@@ -2866,6 +2901,12 @@ function initUsersCatalogPage() {
     users: [],
     loading: false,
     requestId: 0,
+  };
+  const banState = {
+    pendingClientId: '',
+    pendingUserName: '',
+    pendingAction: 'ban',
+    inFlight: false,
   };
 
   const setSelectValue = (select, value, fallback = 'all') => {
@@ -2948,17 +2989,11 @@ function initUsersCatalogPage() {
   };
 
   const statusMetaOf = (user) => {
-    if (typeof user?.is_active === 'boolean') {
-      return user.is_active
-        ? {label: 'Active', css: 'badge-success'}
-        : {label: 'Inactive', css: 'badge-warning'};
-    }
-
-    const rawStatus = text(user?.status).toLowerCase();
-    if (rawStatus === 'active' || rawStatus === '1' || rawStatus === 'true') {
+    const activeState = activeStateOf(user);
+    if (activeState === true) {
       return {label: 'Active', css: 'badge-success'};
     }
-    if (rawStatus === 'inactive' || rawStatus === '0' || rawStatus === 'false') {
+    if (activeState === false) {
       return {label: 'Inactive', css: 'badge-warning'};
     }
 
@@ -2994,22 +3029,26 @@ function initUsersCatalogPage() {
 
   const rowNode = (user) => {
     const name = text(user?.full_name || user?.name) || 'Unknown User';
-    const clientId = text(user?.client_id || user?.user_id || user?.id);
+    const clientId = clientIdOf(user);
+    const displayId = clientId || text(user?.user_id || user?.id);
     const profile = text(user?.profile || user?.profile_pic);
     const channels = channelsOf(user);
     const emotions = emotionsOf(user);
     const userType = text(user?.user_type) || 'N/A';
     const userTypeCss = userType.toLowerCase() === 'price-sensitive' ? 'badge-warning' : 'badge-primary';
     const status = statusMetaOf(user);
-    const waNumber = normalizePhone(user?.whatsapp_number || user?.phone || user?.mobile || user?.contact_number);
+    const activeState = activeStateOf(user);
 
     const viewHref = viewUrl
-      ? `${viewUrl}${viewUrl.includes('?') ? '&' : '?'}user_id=${encodeURIComponent(clientId || name)}`
+      ? `${viewUrl}${viewUrl.includes('?') ? '&' : '?'}user_id=${encodeURIComponent(displayId || name)}`
       : '';
 
-    const messageButton = waNumber
-      ? `<a href="https://wa.me/${encodeURIComponent(waNumber)}?text=${encodeURIComponent(`Hello ${name}`)}" target="_blank" rel="noopener noreferrer" class="btn btn-primary btn-sm">Message</a>`
-      : '<button type="button" class="btn btn-secondary btn-sm" disabled>Message</button>';
+    const banAction = activeState === false ? 'unban' : 'ban';
+    const banLabel = banAction === 'unban' ? 'Unban' : 'Ban';
+    const banClass = banAction === 'unban' ? 'btn-success' : 'btn-danger';
+    const banButton = clientId
+      ? `<button type="button" class="btn ${banClass} btn-sm" data-user-ban-toggle data-client-id="${escapeHtml(clientId)}" data-ban-action="${banAction}" data-user-name="${escapeHtml(name)}">${banLabel}</button>`
+      : '<button type="button" class="btn btn-secondary btn-sm" disabled title="Missing client ID">Ban</button>';
 
     const profileHtml = profile
       ? `<img src="${escapeHtml(profile)}" class="users-avatar" alt="${escapeHtml(name)}" loading="lazy">`
@@ -3023,7 +3062,7 @@ function initUsersCatalogPage() {
       <td>
         <div class="users-name-block">
           <div class="users-name">${escapeHtml(name)}</div>
-          <div class="users-sub-id">${escapeHtml(clientId || 'N/A')}</div>
+          <div class="users-sub-id">${escapeHtml(displayId || 'N/A')}</div>
         </div>
       </td>
       <td>
@@ -3040,7 +3079,7 @@ function initUsersCatalogPage() {
       </td>
       <td>
         <div class="users-actions">
-          ${messageButton}
+          ${banButton}
           ${viewHref ? `<a href="${escapeHtml(viewHref)}" class="btn btn-info btn-sm">View</a>` : ''}
         </div>
       </td>
@@ -3265,6 +3304,155 @@ function initUsersCatalogPage() {
       }
     }
   }
+
+  const setBanPending = (action = 'ban', clientId = '', userName = '') => {
+    const nextAction = text(action).toLowerCase() === 'unban' ? 'unban' : 'ban';
+    banState.pendingAction = nextAction;
+    banState.pendingClientId = text(clientId);
+    banState.pendingUserName = text(userName);
+
+    if (banModalTitle) {
+      banModalTitle.textContent = nextAction === 'unban' ? 'Unban User' : 'Ban User';
+    }
+    if (banModalDescription) {
+      const identity = banState.pendingUserName
+        ? `${banState.pendingUserName} (${banState.pendingClientId || 'N/A'})`
+        : (banState.pendingClientId || 'this user');
+      banModalDescription.textContent = nextAction === 'unban'
+        ? `Are you sure you want to unban ${identity}?`
+        : `Are you sure you want to ban ${identity}?`;
+    }
+    if (banConfirmBtn) {
+      banConfirmBtn.textContent = nextAction === 'unban' ? 'Unban User' : 'Ban User';
+      banConfirmBtn.classList.remove('btn-danger', 'btn-success');
+      banConfirmBtn.classList.add(nextAction === 'unban' ? 'btn-success' : 'btn-danger');
+      banConfirmBtn.disabled = false;
+    }
+  };
+
+  const clearBanPending = () => {
+    banState.pendingAction = 'ban';
+    banState.pendingClientId = '';
+    banState.pendingUserName = '';
+  };
+
+  const setBanLoading = (loading) => {
+    banState.inFlight = loading;
+    tbody.querySelectorAll('[data-user-ban-toggle]').forEach((node) => {
+      if (node instanceof HTMLButtonElement) {
+        node.disabled = loading;
+      }
+    });
+    if (banConfirmBtn) {
+      const action = banState.pendingAction === 'unban' ? 'unban' : 'ban';
+      banConfirmBtn.disabled = loading;
+      banConfirmBtn.textContent = loading
+        ? (action === 'unban' ? 'Unbanning...' : 'Banning...')
+        : (action === 'unban' ? 'Unban User' : 'Ban User');
+    }
+    banCloseButtons.forEach((node) => {
+      if (node instanceof HTMLButtonElement) {
+        node.disabled = loading;
+      }
+    });
+  };
+
+  tbody.addEventListener('click', (event) => {
+    const trigger = event.target instanceof Element
+      ? event.target.closest('[data-user-ban-toggle]')
+      : null;
+
+    if (!(trigger instanceof HTMLButtonElement)) return;
+    event.preventDefault();
+
+    if (state.loading || banState.inFlight || trigger.disabled) return;
+
+    const clientId = text(trigger.dataset.clientId);
+    const action = text(trigger.dataset.banAction).toLowerCase() === 'unban' ? 'unban' : 'ban';
+    const userName = text(trigger.dataset.userName);
+    if (!clientId) {
+      if (typeof window.showError === 'function') window.showError('client_id is required');
+      return;
+    }
+
+    if (!banModal) {
+      if (typeof window.showError === 'function') window.showError('Ban confirmation modal is unavailable.');
+      return;
+    }
+
+    setBanPending(action, clientId, userName);
+    openModal('usersBanConfirmModal');
+  });
+
+  banCloseButtons.forEach((node) => {
+    if (!(node instanceof HTMLButtonElement)) return;
+    node.addEventListener('click', () => {
+      if (banState.inFlight) return;
+      clearBanPending();
+    });
+  });
+
+  banModal?.addEventListener('click', (event) => {
+    if (banState.inFlight) return;
+    if (event.target === banModal) {
+      clearBanPending();
+    }
+  });
+
+  document.addEventListener('keydown', (event) => {
+    if (event.key !== 'Escape') return;
+    if (banState.inFlight) return;
+    if (banModal?.classList.contains('active')) {
+      clearBanPending();
+    }
+  });
+
+  banConfirmBtn?.addEventListener('click', async () => {
+    if (banState.inFlight) return;
+
+    const clientId = text(banState.pendingClientId);
+    const action = banState.pendingAction === 'unban' ? 'unban' : 'ban';
+    if (!clientId) {
+      if (typeof window.showError === 'function') window.showError('client_id is required');
+      return;
+    }
+
+    setBanLoading(true);
+    try {
+      const payload = action === 'unban'
+        ? await window.API.Admin.Users.unban({
+            apiBaseUrl: apiBase,
+            refreshToken: token,
+            clientId,
+            timeoutMs: 12000,
+          })
+        : await window.API.Admin.Users.ban({
+            apiBaseUrl: apiBase,
+            refreshToken: token,
+            clientId,
+            timeoutMs: 12000,
+          });
+
+      closeAllModals();
+      clearBanPending();
+
+      if (typeof window.showSuccess === 'function') {
+        const fallbackMessage = action === 'unban'
+          ? 'user unbanned successfully'
+          : 'user banned successfully';
+        window.showSuccess(text(payload?.message) || fallbackMessage);
+      }
+
+      await loadUsers(state.page);
+    } catch (error) {
+      const message = error?.isTimeout
+        ? 'Request timed out. Please try again.'
+        : (error?.message || (action === 'unban' ? 'Failed to unban user.' : 'Failed to ban user.'));
+      if (typeof window.showError === 'function') window.showError(message);
+    } finally {
+      setBanLoading(false);
+    }
+  });
 
   applyBtn.addEventListener('click', () => {
     if (state.loading) return;

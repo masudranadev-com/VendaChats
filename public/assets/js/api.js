@@ -313,6 +313,34 @@
             timeoutMs,
           });
         },
+        ban({apiBaseUrl, refreshToken, clientId, timeoutMs = 12000} = {}) {
+          const resolvedClientId = toText(clientId);
+          if (!resolvedClientId) {
+            throw new ApiError('client_id is required');
+          }
+
+          return request({
+            baseUrl: normalizeBaseUrl(apiBaseUrl),
+            path: `/api/admin/users/${encodeURIComponent(resolvedClientId)}/ban`,
+            method: 'PUT',
+            token: refreshToken,
+            timeoutMs,
+          });
+        },
+        unban({apiBaseUrl, refreshToken, clientId, timeoutMs = 12000} = {}) {
+          const resolvedClientId = toText(clientId);
+          if (!resolvedClientId) {
+            throw new ApiError('client_id is required');
+          }
+
+          return request({
+            baseUrl: normalizeBaseUrl(apiBaseUrl),
+            path: `/api/admin/users/${encodeURIComponent(resolvedClientId)}/unban`,
+            method: 'PUT',
+            token: refreshToken,
+            timeoutMs,
+          });
+        },
       },
       Categories: {
         list({apiBaseUrl, refreshToken, page = 1, perPage = 200, timeoutMs = 15000} = {}) {

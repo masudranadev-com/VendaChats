@@ -127,4 +127,20 @@
       <nav class="users-pagination-controls" data-users-pagination-controls aria-label="Users pagination"></nav>
     </div>
   </section>
+
+  <div class="modal-overlay" id="usersBanConfirmModal" aria-hidden="true">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="usersBanConfirmTitle">
+      <div class="modal-header">
+        <h3 class="modal-title" id="usersBanConfirmTitle" data-users-ban-modal-title>Ban User</h3>
+        <button type="button" class="modal-close" data-modal-close data-users-ban-close aria-label="Close">x</button>
+      </div>
+      <div class="modal-body">
+        <p data-users-ban-modal-description>Are you sure you want to ban this user?</p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-ghost" data-modal-close data-users-ban-cancel>Cancel</button>
+        <button type="button" class="btn btn-danger" data-users-ban-confirm>Ban User</button>
+      </div>
+    </div>
+  </div>
 @endsection
