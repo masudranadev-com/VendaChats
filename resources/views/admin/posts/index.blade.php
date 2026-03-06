@@ -146,6 +146,24 @@
     .pms__item--locked .pms__checkbox {
       cursor: not-allowed;
     }
+
+    .posts-row-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .posts-product-title {
+      font-weight: 600;
+      color: var(--text-primary, #1a202c);
+    }
+
+    .posts-product-price {
+      font-weight: 700;
+      color: var(--text-primary, #1a202c);
+      white-space: nowrap;
+    }
   </style>
 
   <div class="toast-container" id="toastContainer" aria-live="polite"></div>
@@ -270,13 +288,14 @@
         <thead>
           <tr>
             <th>Post Title</th>
-            <th>Total Comments</th>
-            <th>Time</th>
+            <th>Product</th>
+            <th>Price</th>
+            <th>Actions</th>
           </tr>
         </thead>
         <tbody data-posts-queue-body>
           <tr>
-            <td colspan="3" class="posts-time" style="text-align: center;">Loading queued posts...</td>
+            <td colspan="4" class="posts-time" style="text-align: center;">Loading queued posts...</td>
           </tr>
         </tbody>
       </table>
@@ -329,22 +348,15 @@
         return `${text.slice(0, Math.max(0, maxLength - 3))}...`;
       };
 
-      const normalizeDateString = (value) => String(value || '').replace(/([+-]\d{2})(\d{2})$/, '$1:$2');
-
-      const formatDateTime = (value) => {
-        const input = normalizeDateString(value);
-        const parsed = new Date(input);
-        if (Number.isNaN(parsed.getTime())) {
-          return value ? String(value) : '-';
+      const formatMoney = (value) => {
+        const parsed = Number(value);
+        if (!Number.isFinite(parsed)) {
+          return '-';
         }
-
-        return new Intl.DateTimeFormat('en-US', {
-          year: 'numeric',
-          month: 'short',
-          day: 'numeric',
-          hour: 'numeric',
-          minute: '2-digit',
-        }).format(parsed);
+        return `৳${parsed.toLocaleString('en-US', {
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 2,
+        })}`;
       };
 
       const clearElement = (node) => {
@@ -383,7 +395,7 @@
         clearElement(queueBody);
         const row = document.createElement('tr');
         const cell = document.createElement('td');
-        cell.colSpan = 3;
+        cell.colSpan = 4;
         cell.className = 'posts-time';
         cell.style.textAlign = 'center';
         cell.textContent = message;
@@ -606,37 +618,131 @@
         const fragment = document.createDocumentFragment();
 
         posts.forEach((post, index) => {
+          const queueId = toInt(post.id);
           const row = document.createElement('tr');
           const title = String(post.post_title || post.message || post.post_id || `Post ${index + 1}`).trim();
-          const comments = toInt(post.total_comments);
-          const dateLabel = formatDateTime(post.post_date || post.created_time || '');
+          const productTitle = String(post.product_title || 'N/A').trim() || 'N/A';
+          const productPrice = formatMoney(post.product_price);
 
           const titleCell = document.createElement('td');
           titleCell.className = 'posts-title-cell';
           titleCell.title = title;
           titleCell.textContent = truncate(title, 25);
 
-          const commentsCell = document.createElement('td');
-          const commentsPill = document.createElement('span');
-          commentsPill.className = 'posts-comment-count';
-          commentsPill.textContent = String(comments);
-          commentsCell.appendChild(commentsPill);
+          const productCell = document.createElement('td');
+          const productText = document.createElement('span');
+          productText.className = 'posts-product-title';
+          productText.textContent = truncate(productTitle, 35);
+          productText.title = productTitle;
+          productCell.appendChild(productText);
 
-          const timeCell = document.createElement('td');
-          const timeText = document.createElement('span');
-          timeText.className = 'posts-time';
-          timeText.textContent = dateLabel;
-          timeCell.appendChild(timeText);
+          const priceCell = document.createElement('td');
+          const priceText = document.createElement('span');
+          priceText.className = 'posts-product-price';
+          priceText.textContent = productPrice;
+          priceCell.appendChild(priceText);
+
+          const actionCell = document.createElement('td');
+          const actionWrap = document.createElement('div');
+          actionWrap.className = 'posts-row-actions';
+
+          const viewButton = document.createElement('button');
+          viewButton.type = 'button';
+          viewButton.className = 'btn btn-secondary btn-sm';
+          viewButton.textContent = 'View Product';
+          viewButton.addEventListener('click', () => {
+            showToast(`Product: ${productTitle} | Price: ${productPrice}`, 'info');
+          });
+
+          const deleteButton = document.createElement('button');
+          deleteButton.type = 'button';
+          deleteButton.className = 'btn btn-danger btn-sm';
+          deleteButton.textContent = 'Delete';
+          deleteButton.addEventListener('click', async () => {
+            if (!queueId) {
+              showToast('Invalid queue post id.', 'error');
+              return;
+            }
+
+            const shouldDelete = window.confirm('Delete this queue post?');
+            if (!shouldDelete) {
+              return;
+            }
+
+            const originalLabel = deleteButton.textContent;
+            deleteButton.disabled = true;
+            deleteButton.textContent = 'Deleting...';
+
+            try {
+              const payload = await deleteQueuePost(queueId);
+              showToast(payload.message || 'Queue post deleted', 'success');
+              await loadPostsData();
+            } catch (error) {
+              showToast(error?.message || 'Failed to delete queue post.', 'error');
+            } finally {
+              deleteButton.disabled = false;
+              deleteButton.textContent = originalLabel;
+            }
+          });
+
+          actionWrap.appendChild(viewButton);
+          actionWrap.appendChild(deleteButton);
+          actionCell.appendChild(actionWrap);
 
           row.appendChild(titleCell);
-          row.appendChild(commentsCell);
-          row.appendChild(timeCell);
+          row.appendChild(productCell);
+          row.appendChild(priceCell);
+          row.appendChild(actionCell);
           fragment.appendChild(row);
         });
 
         queueBody.appendChild(fragment);
         if (tableCountBadge) {
           tableCountBadge.textContent = `${posts.length} queued`;
+        }
+      };
+
+      const deleteQueuePost = async (queueId) => {
+        if (!apiBaseUrl) {
+          throw new Error('Missing backend API URL.');
+        }
+
+        const endpoint = `${apiBaseUrl}/api/admin/posts/queue/${encodeURIComponent(String(queueId))}`;
+        const abortController = new AbortController();
+        const timeoutId = window.setTimeout(() => abortController.abort(), 12000);
+
+        try {
+          const response = await fetch(endpoint, {
+            method: 'DELETE',
+            headers: {
+              'Accept': 'application/json',
+              'x-refresh-token': refreshToken,
+            },
+            signal: abortController.signal,
+          });
+
+          const contentType = response.headers.get('content-type') || '';
+          const payload = contentType.includes('application/json')
+            ? await response.json()
+            : await response.text();
+
+          if (!response.ok) {
+            if (response.status === 401) {
+              throw new Error('Unauthorized (401). Session token is invalid or expired.');
+            }
+            throw new Error(readErrorMessage(payload, `Delete failed (${response.status}).`));
+          }
+
+          return payload && typeof payload === 'object'
+            ? payload
+            : { message: 'queue post deleted' };
+        } catch (error) {
+          if (error?.name === 'AbortError') {
+            throw new Error('Request timed out. Please try again.');
+          }
+          throw error;
+        } finally {
+          window.clearTimeout(timeoutId);
         }
       };
 
@@ -763,11 +869,16 @@
 
       const showToast = (message, type = 'success') => {
         if (!toastContainer) return;
+        const iconByType = {
+          success: '✓',
+          error: '✕',
+          info: 'i',
+        };
 
         const toast = document.createElement('div');
-        toast.className = `toast toast--${type}`;
+        toast.className = `toast ${type}`;
         toast.innerHTML = `
-          <span class="toast__icon">${type === 'success' ? '✓' : '✕'}</span>
+          <span class="toast__icon">${iconByType[type] || '✓'}</span>
           <span class="toast__msg">${String(message)}</span>
           <button class="toast__close" aria-label="Dismiss">×</button>
         `;
