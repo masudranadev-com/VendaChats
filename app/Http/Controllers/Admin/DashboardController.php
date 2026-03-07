@@ -8,51 +8,19 @@ use Illuminate\Pagination\LengthAwarePaginator;
 
 class DashboardController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
+        $refreshToken = (string) (
+            $request->session()->get('auth.refresh_token')
+            ?? $request->session()->get('refresh_token')
+            ?? ''
+        );
+
         return view('admin.dashboard', [
             'title' => 'Dashboard',
-            'subtitle' => 'A clean daily snapshot of revenue, orders, and fulfillment health.',
-            'metrics' => [
-                ['label' => 'Today Revenue', 'value' => 'BDT 128,450', 'meta' => '+12.4% vs yesterday', 'tone' => 'primary'],
-                ['label' => 'Orders Today', 'value' => '86', 'meta' => '64 paid, 22 COD', 'tone' => 'success'],
-                ['label' => 'Pending Fulfillment', 'value' => '12', 'meta' => 'Needs dispatch attention', 'tone' => 'warning'],
-                ['label' => 'Customer Messages', 'value' => '19', 'meta' => 'Avg first reply: 3m 12s', 'tone' => 'info'],
-            ],
-            'overview' => [
-                'eyebrow' => 'Daily Snapshot',
-                'headline' => 'Store performance is stable and conversion is trending up.',
-                'note' => 'Revenue, conversion, and delivery flow are moving in a healthy range with no major operational risks.',
-                'highlights' => [
-                    ['label' => 'Avg Order Value', 'value' => 'BDT 1,493'],
-                    ['label' => 'Paid Conversion', 'value' => '4.9%'],
-                    ['label' => 'Repeat Customer Share', 'value' => '31%'],
-                ],
-            ],
-            'revenueTrend' => [
-                ['day' => 'Mon', 'amount' => 92000, 'short_amount' => '92k'],
-                ['day' => 'Tue', 'amount' => 101000, 'short_amount' => '101k'],
-                ['day' => 'Wed', 'amount' => 98000, 'short_amount' => '98k'],
-                ['day' => 'Thu', 'amount' => 110000, 'short_amount' => '110k'],
-                ['day' => 'Fri', 'amount' => 124000, 'short_amount' => '124k'],
-                ['day' => 'Sat', 'amount' => 131000, 'short_amount' => '131k'],
-                ['day' => 'Sun', 'amount' => 128450, 'short_amount' => '128k'],
-            ],
-            'topProducts' => [
-                ['name' => 'Blue Saree', 'sold' => 156, 'unit_price' => 'BDT 1,800', 'revenue' => 'BDT 280,800'],
-                ['name' => 'Cotton Punjabi', 'sold' => 89, 'unit_price' => 'BDT 1,200', 'revenue' => 'BDT 106,800'],
-                ['name' => 'Designer Kurta', 'sold' => 67, 'unit_price' => 'BDT 950', 'revenue' => 'BDT 63,650'],
-                ['name' => 'AirFlex Running Shoes', 'sold' => 54, 'unit_price' => 'BDT 2,450', 'revenue' => 'BDT 132,300'],
-                ['name' => 'Wireless Earbuds Pro', 'sold' => 41, 'unit_price' => 'BDT 3,250', 'revenue' => 'BDT 133,250'],
-            ],
-            'recentOrders' => [
-                ['id' => '#ORD-1234', 'customer' => 'Rabeya Sultana', 'amount' => 'BDT 1,800', 'status' => 'Pending', 'placed_at' => '2 min ago'],
-                ['id' => '#ORD-1233', 'customer' => 'Mehedi Khan', 'amount' => 'BDT 1,200', 'status' => 'Processing', 'placed_at' => '15 min ago'],
-                ['id' => '#ORD-1232', 'customer' => 'Farhan Ahmed', 'amount' => 'BDT 950', 'status' => 'In Transit', 'placed_at' => '1 hour ago'],
-                ['id' => '#ORD-1231', 'customer' => 'Sadia Rahman', 'amount' => 'BDT 2,450', 'status' => 'Delivered', 'placed_at' => '2 hours ago'],
-                ['id' => '#ORD-1230', 'customer' => 'Rafiul Islam', 'amount' => 'BDT 3,250', 'status' => 'Payment Review', 'placed_at' => '3 hours ago'],
-                ['id' => '#ORD-1229', 'customer' => 'Nafisa Jahan', 'amount' => 'BDT 1,150', 'status' => 'Processing', 'placed_at' => '5 hours ago'],
-            ],
+            'subtitle' => 'Live operational snapshot powered by order-history API.',
+            'ordersApiBaseUrl' => rtrim((string) config('services.backend.url', 'http://localhost:8082'), '/'),
+            'ordersRefreshToken' => $refreshToken,
         ]);
     }
 

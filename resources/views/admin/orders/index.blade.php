@@ -15,13 +15,21 @@
   </div>
 
   <section class="orders-kpi-grid">
-    @foreach ($metrics as $metric)
-      <article class="orders-kpi-card">
-        <span>{{ $metric['label'] }}</span>
-        <strong>{{ $metric['value'] }}</strong>
-        <small>{{ $metric['meta'] }}</small>
-      </article>
-    @endforeach
+    <article class="orders-kpi-card">
+      <span>Orders Today</span>
+      <strong data-orders-kpi-orders-today-value>--</strong>
+      <small data-orders-kpi-orders-today-meta>--</small>
+    </article>
+    <article class="orders-kpi-card">
+      <span>Gross Revenue</span>
+      <strong data-orders-kpi-gross-revenue-value>--</strong>
+      <small data-orders-kpi-gross-revenue-meta>--</small>
+    </article>
+    <article class="orders-kpi-card">
+      <span>Pending Dispatch</span>
+      <strong data-orders-kpi-pending-dispatch-value>--</strong>
+      <small data-orders-kpi-pending-dispatch-meta>--</small>
+    </article>
   </section>
 
   <section class="orders-hero-card mt-xl">
@@ -33,90 +41,110 @@
     <div class="orders-hero-meta">
       <div>
         <span>Avg Processing Time</span>
-        <strong>1h 28m</strong>
+        <strong data-orders-hero-processing-time>--</strong>
       </div>
       <div>
         <span>Dispatch SLA</span>
-        <strong>89%</strong>
+        <strong data-orders-hero-dispatch-sla>--</strong>
       </div>
       <div>
         <span>Return Risk</span>
-        <strong>5.1%</strong>
+        <strong data-orders-hero-return-risk>--</strong>
       </div>
     </div>
   </section>
 
   <section class="orders-pipeline-grid mt-xl">
-    @foreach ($pipeline as $lane)
-      <article class="orders-pipeline-card">
-        <span>{{ $lane['name'] }}</span>
-        <a href="" class="text-{{ $lane['tone'] }}">{{ $lane['count'] }}</a>
-      </article>
-    @endforeach
+    <article class="orders-pipeline-card">
+      <span>Total Order</span>
+      <a href="javascript:void(0);" class="text-primary" data-orders-pipeline-total>--</a>
+    </article>
+    <article class="orders-pipeline-card">
+      <span>Rejected Order</span>
+      <a href="javascript:void(0);" class="text-danger" data-orders-pipeline-rejected>--</a>
+    </article>
+    <article class="orders-pipeline-card">
+      <span>Pending Order</span>
+      <a href="javascript:void(0);" class="text-warning" data-orders-pipeline-pending>--</a>
+    </article>
+    <article class="orders-pipeline-card">
+      <span>Completed Order</span>
+      <a href="javascript:void(0);" class="text-success" data-orders-pipeline-completed>--</a>
+    </article>
   </section>
 
-  <section class="card mt-xl">
+  <section
+    class="card mt-xl"
+    id="ordersCatalogSection"
+    data-api-base-url="{{ $ordersApiBaseUrl }}"
+    data-refresh-token="{{ $ordersRefreshToken }}"
+    data-per-page="10"
+  >
     <div class="card-header">
       <h3 class="card-title">Order Queue</h3>
       <span class="badge badge-info" data-orders-count data-initial-count="{{ $orders->total() }}">
-        {{ $orders->total() }} monitored orders
+        -- monitored orders
       </span>
     </div>
 
     <div class="orders-filter-grid">
       <div class="form-group">
         <label class="form-label">Search</label>
-        <input type="text" class="form-input" placeholder="Order ID, customer, location">
+        <input type="text" class="form-input" placeholder="Order ID, customer, location" data-orders-search>
       </div>
       <div class="form-group">
         <label class="form-label">Status</label>
-        <select class="form-select">
-          <option>All Status</option>
-          <option>Payment Review</option>
-          <option>Ready to Dispatch</option>
-          <option>In Transit</option>
-          <option>Delivered</option>
-          <option>Delayed</option>
+        <select class="form-select" data-orders-status>
+          <option value="all">All Status</option>
+          <option value="waiting_for_call">Waiting for Call</option>
+          <option value="waiting_for_confirmation">Waiting for Confirmation</option>
+          <option value="ready_to_dispatch">Ready to Dispatch</option>
+          <option value="in_transit">In Transit</option>
+          <option value="success">Success</option>
+          <option value="cancel_on_called">Cancel on Called</option>
+          <option value="cancel_on_confirmation">Cancel on Confirmation</option>
+          <option value="cancel_on_dispatch">Cancel on Dispatch</option>
+          <option value="cancel_on_delivered">Cancel on Delivered</option>
         </select>
       </div>
       <div class="form-group">
         <label class="form-label">Payment Type</label>
-        <select class="form-select">
-          <option>All Payments</option>
-          <option>Paid</option>
-          <option>COD</option>
+        <select class="form-select" data-orders-payment-type>
+          <option value="all">All Payments</option>
+          <option value="cod">COD</option>
+          <option value="bkash">Bkash</option>
+          <option value="nagad">Nagad</option>
+          <option value="card">Card</option>
+          <option value="bank">Bank</option>
         </select>
       </div>
       <div class="form-group">
         <label class="form-label">Channel</label>
-        <select class="form-select">
-          <option>All Channels</option>
-          <option>Website</option>
-          <option>Messenger</option>
-          <option>WhatsApp</option>
-          <option>Instagram</option>
+        <select class="form-select" data-orders-channel>
+          <option value="all">All Channels</option>
+          <option value="facebook">Facebook</option>
+          <option value="website">Website</option>
+          <option value="messenger">Messenger</option>
+          <option value="whatsapp">WhatsApp</option>
+          <option value="instagram">Instagram</option>
         </select>
       </div>
       <div class="form-group">
         <label class="form-label">Sort By</label>
-        <select class="form-select">
-          <option>Newest First</option>
-          <option>Highest Amount</option>
-          <option>Highest SLA Risk</option>
-          <option>Longest Pending</option>
+        <select class="form-select" data-orders-sort-by>
+          <option value="newest_first">Newest First</option>
+          <option value="oldest_first">Oldest First</option>
+          <option value="highest_amount">Highest Amount</option>
+          <option value="lowest_amount">Lowest Amount</option>
         </select>
       </div>
     </div>
 
     <div class="orders-filter-actions">
-      <button type="button" class="btn btn-primary btn-sm">Apply Filters</button>
-      <button type="button" class="btn btn-ghost btn-sm">Reset</button>
+      <button type="button" class="btn btn-primary btn-sm" data-orders-apply>Apply Filters</button>
+      <button type="button" class="btn btn-ghost btn-sm" data-orders-reset>Reset</button>
       <span class="orders-filter-result" data-orders-filter-result data-universe-count="{{ $orders->total() }}">
-        @if ($orders->count() > 0)
-          Showing {{ $orders->firstItem() }}-{{ $orders->lastItem() }} of {{ $orders->total() }} orders
-        @else
-          Showing 0 orders
-        @endif
+        Loading orders...
       </span>
     </div>
 
@@ -135,101 +163,17 @@
           </tr>
         </thead>
         <tbody data-orders-table-body>
-          @forelse ($orders as $order)
-            @php
-              $statusClass = match ($order['status']) {
-                'Delivered' => 'badge-success',
-                'In Transit' => 'badge-primary',
-                'Ready to Dispatch' => 'badge-info',
-                'Payment Review' => 'badge-warning',
-                'Delayed' => 'badge-danger',
-                default => 'badge-warning',
-              };
-
-              $paymentClass = $order['payment'] === 'Paid' ? 'badge-success' : 'badge-warning';
-            @endphp
-            <tr>
-              <td>
-                <div class="orders-order-cell">
-                  <strong>{{ $order['id'] }}</strong>
-                  <small>{{ $order['placed_at'] }}</small>
-                </div>
-              </td>
-              <td>
-                <div class="orders-customer-cell">
-                  <span class="orders-customer-avatar">{{ strtoupper(substr($order['customer'], 0, 1)) }}</span>
-                  <div>
-                    <strong>{{ $order['customer'] }}</strong>
-                    <small>{{ $order['location'] }}</small>
-                  </div>
-                </div>
-              </td>
-              <td>{{ $order['items'] }}</td>
-              <td class="orders-cell-strong">{{ $order['amount'] }}</td>
-              <td><span class="badge {{ $paymentClass }}">{{ $order['payment'] }}</span></td>
-              <td><span class="badge badge-primary">{{ $order['channel'] }}</span></td>
-              <td>
-                <div class="orders-status-wrap">
-                  <span class="badge {{ $statusClass }}">{{ $order['status'] }}</span>
-                  <div class="orders-progress-track">
-                    <span style="width: {{ $order['progress'] }}%"></span>
-                  </div>
-                </div>
-              </td>
-              <td>
-                <div class="orders-table-actions">
-                  <a href="{{ route('admin.orders.view', ['orderId' => $order['id']]) }}" class="btn btn-info btn-sm">
-                    View
-                  </a>
-                  <form
-                    action="{{ route('admin.orders.confirm', ['orderId' => $order['id']]) }}"
-                    method="POST"
-                    onsubmit="return confirm('Confirm this order and generate invoice now?');"
-                  >
-                    @csrf
-                    <button type="submit" class="btn btn-success btn-sm">Confirm</button>
-                  </form>
-                </div>
-              </td>
-            </tr>
-          @empty
-            <tr>
-              <td colspan="8" class="text-center">No orders found for this page.</td>
-            </tr>
-          @endforelse
+          <tr>
+            <td colspan="8" class="users-empty">Loading orders...</td>
+          </tr>
         </tbody>
       </table>
     </div>
 
-    @if ($orders->hasPages())
-      <div class="orders-table-footer">
-        <p class="orders-pagination-summary">
-          Page {{ $orders->currentPage() }} of {{ $orders->lastPage() }}
-        </p>
-
-        <nav class="orders-pagination-controls" aria-label="Orders pagination">
-          @if ($orders->onFirstPage())
-            <span class="orders-page-btn is-disabled" aria-disabled="true">Prev</span>
-          @else
-            <a href="{{ $orders->previousPageUrl() }}" class="orders-page-btn">Prev</a>
-          @endif
-
-          @for ($page = 1; $page <= $orders->lastPage(); $page++)
-            @if ($page === $orders->currentPage())
-              <span class="orders-page-btn is-active" aria-current="page">{{ $page }}</span>
-            @else
-              <a href="{{ $orders->url($page) }}" class="orders-page-btn">{{ $page }}</a>
-            @endif
-          @endfor
-
-          @if ($orders->hasMorePages())
-            <a href="{{ $orders->nextPageUrl() }}" class="orders-page-btn">Next</a>
-          @else
-            <span class="orders-page-btn is-disabled" aria-disabled="true">Next</span>
-          @endif
-        </nav>
-      </div>
-    @endif
+    <div class="orders-table-footer" data-orders-pagination-wrap hidden>
+      <p class="orders-pagination-summary" data-orders-pagination-summary>Page 1 of 1</p>
+      <nav class="orders-pagination-controls" data-orders-pagination-controls aria-label="Orders pagination"></nav>
+    </div>
   </section>
 
   <div class="modal-overlay" id="ordersManualOrderModal" aria-hidden="true">

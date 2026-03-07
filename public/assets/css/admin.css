@@ -1323,6 +1323,25 @@ ul, ol { list-style: none; }
   gap: 2px;
 }
 
+.dashboard-customer-cell {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.dashboard-customer-cell .users-avatar {
+  width: 36px;
+  height: 36px;
+}
+
+.dashboard-address {
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.35;
+  min-width: 180px;
+}
+
 .dashboard-order-cell strong {
   font-size: 14px;
 }

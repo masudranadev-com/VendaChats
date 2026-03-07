@@ -293,8 +293,10 @@ document.addEventListener('DOMContentLoaded', () => {
   initCharts();
   initSearch();
   initCampaignBuilder();
+  initOrdersCatalogPage();
   initOrdersManualOrder();
   initBotSettings();
+  initDashboardPage();
   initProductsCatalogPage();
   initUsersCatalogPage();
   initProductsAttentionPanel();
@@ -910,6 +912,508 @@ function initCampaignBuilder() {
   updateDateConstraints();
 }
 
+function initOrdersCatalogPage() {
+  const section = document.getElementById('ordersCatalogSection');
+  if (!section) return;
+
+  const searchInput = section.querySelector('[data-orders-search]');
+  const statusSelect = section.querySelector('[data-orders-status]');
+  const paymentTypeSelect = section.querySelector('[data-orders-payment-type]');
+  const channelSelect = section.querySelector('[data-orders-channel]');
+  const sortBySelect = section.querySelector('[data-orders-sort-by]');
+  const applyBtn = section.querySelector('[data-orders-apply]');
+  const resetBtn = section.querySelector('[data-orders-reset]');
+  const countNode = section.querySelector('[data-orders-count]');
+  const filterNode = section.querySelector('[data-orders-filter-result]');
+  const tableBody = section.querySelector('[data-orders-table-body]');
+  const pageWrap = section.querySelector('[data-orders-pagination-wrap]');
+  const pageSummary = section.querySelector('[data-orders-pagination-summary]');
+  const pageControls = section.querySelector('[data-orders-pagination-controls]');
+
+  const kpiOrdersTodayValue = document.querySelector('[data-orders-kpi-orders-today-value]');
+  const kpiOrdersTodayMeta = document.querySelector('[data-orders-kpi-orders-today-meta]');
+  const kpiGrossRevenueValue = document.querySelector('[data-orders-kpi-gross-revenue-value]');
+  const kpiGrossRevenueMeta = document.querySelector('[data-orders-kpi-gross-revenue-meta]');
+  const kpiPendingDispatchValue = document.querySelector('[data-orders-kpi-pending-dispatch-value]');
+  const kpiPendingDispatchMeta = document.querySelector('[data-orders-kpi-pending-dispatch-meta]');
+
+  const heroProcessingTime = document.querySelector('[data-orders-hero-processing-time]');
+  const heroDispatchSla = document.querySelector('[data-orders-hero-dispatch-sla]');
+  const heroReturnRisk = document.querySelector('[data-orders-hero-return-risk]');
+
+  const pipelineTotal = document.querySelector('[data-orders-pipeline-total]');
+  const pipelineRejected = document.querySelector('[data-orders-pipeline-rejected]');
+  const pipelinePending = document.querySelector('[data-orders-pipeline-pending]');
+  const pipelineCompleted = document.querySelector('[data-orders-pipeline-completed]');
+
+  if (
+    !searchInput || !statusSelect || !paymentTypeSelect || !channelSelect || !sortBySelect ||
+    !applyBtn || !resetBtn || !countNode || !filterNode || !tableBody ||
+    !pageWrap || !pageSummary || !pageControls
+  ) {
+    return;
+  }
+
+  if (!window.API?.Admin?.OrderHistory || typeof window.API.Admin.OrderHistory.list !== 'function') {
+    return;
+  }
+
+  const apiBase = String(section.dataset.apiBaseUrl || '').replace(/\/+$/, '');
+  const perPage = Math.max(1, Number.parseInt(section.dataset.perPage || '10', 10) || 10);
+  const sessionToken = String(section.dataset.refreshToken || '').trim();
+  let storageToken = '';
+  try {
+    storageToken = String(window.localStorage.getItem('refresh_token') || '').trim();
+  } catch {
+    storageToken = '';
+  }
+  const token = sessionToken || storageToken;
+
+  const toInt = (value, fallback = 0) => {
+    const parsed = Number.parseInt(String(value ?? ''), 10);
+    return Number.isFinite(parsed) ? parsed : fallback;
+  };
+  const toNumber = (value, fallback = NaN) => {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : fallback;
+  };
+  const text = (value) => String(value ?? '').trim();
+  const titleCase = (value) => text(value)
+    .replace(/[_-]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .replace(/\b\w/g, (char) => char.toUpperCase());
+  const escapeHtml = (value) => text(value)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+  const formatCount = (value) => toInt(value, 0).toLocaleString('en-US');
+  const formatBdt = (value) => {
+    const amount = toNumber(value, NaN);
+    if (!Number.isFinite(amount)) return '-';
+    return `BDT ${amount.toLocaleString('en-US', {
+      minimumFractionDigits: Number.isInteger(amount) ? 0 : 2,
+      maximumFractionDigits: 2,
+    })}`;
+  };
+  const slugify = (value) => text(value)
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '') || 'default';
+  const progressOf = (status) => {
+    const normalized = text(status).toLowerCase();
+    if (normalized === 'waiting_for_call') return 18;
+    if (normalized === 'waiting_for_confirmation') return 34;
+    if (normalized === 'ready_to_dispatch') return 62;
+    if (normalized === 'in_transit') return 84;
+    if (normalized === 'success') return 100;
+    if (normalized.startsWith('cancel_')) return 100;
+    return 24;
+  };
+
+  const state = {
+    page: (() => {
+      const params = new URLSearchParams(window.location.search);
+      const parsed = toInt(params.get('page'), 1);
+      return parsed > 0 ? parsed : 1;
+    })(),
+    perPage,
+    total: 0,
+    from: 0,
+    to: 0,
+    lastPage: 1,
+    orders: [],
+    loading: false,
+    requestId: 0,
+  };
+
+  const setSelectValue = (select, value, fallback = 'all') => {
+    const target = text(value);
+    if (!target) {
+      select.value = fallback;
+      return;
+    }
+
+    const options = Array.from(select.options);
+    const match = options.find((option) => text(option.value).toLowerCase() === target.toLowerCase());
+    if (match) {
+      select.value = match.value;
+      return;
+    }
+
+    select.value = fallback;
+  };
+
+  const urlParams = new URLSearchParams(window.location.search);
+  const initialSearch = text(urlParams.get('search') || urlParams.get('q'));
+  if (initialSearch) {
+    searchInput.value = initialSearch;
+  }
+  setSelectValue(statusSelect, urlParams.get('status'), 'all');
+  setSelectValue(paymentTypeSelect, urlParams.get('payment_type'), 'all');
+  setSelectValue(channelSelect, urlParams.get('channel'), 'all');
+  setSelectValue(sortBySelect, urlParams.get('sort_by'), 'newest_first');
+
+  const normalizeFilter = (value) => {
+    const normalized = text(value);
+    return (!normalized || normalized.toLowerCase() === 'all') ? '' : normalized;
+  };
+  const readFilters = () => ({
+    search: text(searchInput.value),
+    status: normalizeFilter(statusSelect.value),
+    paymentType: normalizeFilter(paymentTypeSelect.value),
+    channel: normalizeFilter(channelSelect.value),
+    sortBy: normalizeFilter(sortBySelect.value) || 'newest_first',
+  });
+
+  const statusMetaOf = (status) => {
+    const normalized = text(status).toLowerCase();
+    if (normalized === 'success') return {label: 'Success', css: 'badge-success'};
+    if (normalized === 'in_transit') return {label: 'In Transit', css: 'badge-primary'};
+    if (normalized === 'ready_to_dispatch') return {label: 'Ready to Dispatch', css: 'badge-info'};
+    if (normalized === 'waiting_for_call' || normalized === 'waiting_for_confirmation') {
+      return {label: titleCase(normalized), css: 'badge-warning'};
+    }
+    if (normalized.startsWith('cancel_')) return {label: titleCase(normalized), css: 'badge-danger'};
+    return {label: titleCase(normalized || 'unknown'), css: 'badge-info'};
+  };
+
+  const paymentMetaOf = (method) => {
+    const normalized = text(method).toLowerCase();
+    if (normalized === 'cod') {
+      return {label: 'COD', css: 'badge-warning'};
+    }
+    return {label: titleCase(normalized || 'unknown'), css: 'badge-success'};
+  };
+
+  const setMessage = (message) => {
+    tableBody.innerHTML = `
+      <tr>
+        <td colspan="8" class="users-empty">${escapeHtml(message)}</td>
+      </tr>
+    `;
+  };
+
+  const rowNode = (order) => {
+    const orderId = text(order?.order_id || order?.id || 'N/A');
+    const fullName = text(order?.full_name || order?.customer_name || 'Unknown');
+    const address = text(order?.address || order?.location || 'N/A');
+    const qty = Math.max(0, toInt(order?.qty, 0));
+    const rawAmount = order?.amount ?? order?.total_amount ?? order?.grand_total ?? null;
+    const amountText = Number.isFinite(toNumber(rawAmount, NaN))
+      ? formatBdt(rawAmount)
+      : (text(rawAmount) || '-');
+    const method = paymentMetaOf(order?.method || order?.payment_type);
+    const channelLabel = titleCase(order?.channel || 'N/A');
+    const status = statusMetaOf(order?.status);
+    const progress = progressOf(order?.status);
+    const placedAt = text(order?.created_at || order?.placed_at || '');
+    const image = text(order?.image || order?.profile || '');
+
+    const avatarHtml = image
+      ? `<img src="${escapeHtml(image)}" class="users-avatar" alt="${escapeHtml(fullName)}" loading="lazy">`
+      : `<span class="orders-customer-avatar">${escapeHtml(fullName.charAt(0).toUpperCase() || 'U')}</span>`;
+
+    const row = document.createElement('tr');
+    row.innerHTML = `
+      <td>
+        <div class="orders-order-cell">
+          <strong>${escapeHtml(orderId)}</strong>
+          <small>${escapeHtml(placedAt || 'Latest')}</small>
+        </div>
+      </td>
+      <td>
+        <div class="orders-customer-cell">
+          ${avatarHtml}
+          <div>
+            <strong>${escapeHtml(fullName)}</strong>
+            <small>${escapeHtml(address)}</small>
+          </div>
+        </div>
+      </td>
+      <td>${formatCount(qty)}</td>
+      <td class="orders-cell-strong">${escapeHtml(amountText)}</td>
+      <td><span class="badge ${method.css}">${escapeHtml(method.label)}</span></td>
+      <td>
+        <span class="badge users-channel-badge users-channel-${escapeHtml(slugify(channelLabel))}">
+          ${escapeHtml(channelLabel)}
+        </span>
+      </td>
+      <td>
+        <div class="orders-status-wrap">
+          <span class="badge ${status.css}">${escapeHtml(status.label)}</span>
+          <div class="orders-progress-track">
+            <span style="width: ${progress}%"></span>
+          </div>
+        </div>
+      </td>
+      <td>
+        <div class="orders-table-actions">
+          <button type="button" class="btn btn-info btn-sm" disabled title="Not wired for API rows yet">View</button>
+          <button type="button" class="btn btn-success btn-sm" disabled title="Not wired for API rows yet">Confirm</button>
+        </div>
+      </td>
+    `;
+
+    return row;
+  };
+
+  const renderTable = () => {
+    const list = Array.isArray(state.orders) ? state.orders : [];
+    tableBody.innerHTML = '';
+
+    if (!list.length) {
+      setMessage('No orders found for the selected filters.');
+      filterNode.textContent = 'No orders found';
+      return;
+    }
+
+    const fragment = document.createDocumentFragment();
+    list.forEach((order) => fragment.appendChild(rowNode(order)));
+    tableBody.appendChild(fragment);
+
+    if (state.total > 0 && state.from > 0 && state.to > 0) {
+      filterNode.textContent = `Showing ${state.from}-${state.to} of ${state.total} orders`;
+      return;
+    }
+
+    filterNode.textContent = `Showing ${list.length} orders`;
+  };
+
+  const renderPagination = () => {
+    const current = Math.max(1, toInt(state.page, 1));
+    const last = Math.max(1, toInt(state.lastPage, 1));
+
+    if (last <= 1) {
+      pageSummary.textContent = 'Page 1 of 1';
+      pageControls.innerHTML = '';
+      pageWrap.hidden = true;
+      return;
+    }
+
+    pageWrap.hidden = false;
+    pageSummary.textContent = `Page ${current} of ${last}`;
+    pageControls.innerHTML = '';
+
+    const btn = (label, page, disabled = false, active = false) => {
+      const node = document.createElement('button');
+      node.type = 'button';
+      node.className = `orders-page-btn${disabled ? ' is-disabled' : ''}${active ? ' is-active' : ''}`;
+      node.textContent = label;
+
+      if (disabled || active) {
+        node.disabled = true;
+        if (disabled) node.setAttribute('aria-disabled', 'true');
+        if (active) node.setAttribute('aria-current', 'page');
+      } else {
+        node.addEventListener('click', () => {
+          if (!state.loading) loadOrders(page);
+        });
+      }
+
+      return node;
+    };
+
+    const pages = [];
+    if (last <= 7) {
+      for (let page = 1; page <= last; page += 1) pages.push(page);
+    } else {
+      pages.push(1);
+      if (current > 3) pages.push('...');
+      for (let page = Math.max(2, current - 1); page <= Math.min(last - 1, current + 1); page += 1) pages.push(page);
+      if (current < last - 2) pages.push('...');
+      pages.push(last);
+    }
+
+    pageControls.appendChild(btn('Prev', current - 1, current <= 1, false));
+    pages.forEach((page) => pageControls.appendChild(page === '...' ? btn('...', 0, true, false) : btn(String(page), page, false, page === current)));
+    pageControls.appendChild(btn('Next', current + 1, current >= last, false));
+  };
+
+  const updateOverview = (others = {}) => {
+    const totalOrder = toInt(others?.total_order, state.total);
+    const rejectedOrder = toInt(others?.rejected_order, 0);
+    const pendingOrder = toInt(others?.pending_order, 0);
+    const completedOrder = toInt(others?.completed_order, 0);
+    const ordersToday = toInt(others?.orders_today, 0);
+    const ordersTodayDelta = toInt(others?.orders_today_delta_vs_yesterday, 0);
+    const grossRevenueValue = text(others?.gross_revenue_display) || formatBdt(others?.gross_revenue);
+    const grossRevenueChange = toNumber(others?.gross_revenue_change_this_week_percent, 0);
+    const pendingDispatch = toInt(others?.pending_dispatch, 0);
+    const pendingDispatchNeedAction = toInt(others?.pending_dispatch_need_action_in_2h, 0);
+    const avgProcessingTime = text(others?.avg_processing_time_display) || '--';
+    const successRate = toNumber(others?.success_rate_percent, 0);
+    const returnRisk = toNumber(others?.return_risk_percent, 0);
+
+    countNode.textContent = `${formatCount(totalOrder)} monitored orders`;
+    countNode.dataset.initialCount = String(totalOrder);
+    filterNode.dataset.universeCount = String(totalOrder);
+
+    if (kpiOrdersTodayValue) kpiOrdersTodayValue.textContent = formatCount(ordersToday);
+    if (kpiOrdersTodayMeta) {
+      const deltaPrefix = ordersTodayDelta > 0 ? '+' : '';
+      kpiOrdersTodayMeta.textContent = `${deltaPrefix}${formatCount(ordersTodayDelta)} vs yesterday`;
+    }
+    if (kpiGrossRevenueValue) kpiGrossRevenueValue.textContent = grossRevenueValue || '--';
+    if (kpiGrossRevenueMeta) kpiGrossRevenueMeta.textContent = `${grossRevenueChange.toFixed(1)}% this week`;
+    if (kpiPendingDispatchValue) kpiPendingDispatchValue.textContent = formatCount(pendingDispatch);
+    if (kpiPendingDispatchMeta) kpiPendingDispatchMeta.textContent = `${formatCount(pendingDispatchNeedAction)} need action in 2h`;
+
+    if (heroProcessingTime) heroProcessingTime.textContent = avgProcessingTime;
+    if (heroDispatchSla) heroDispatchSla.textContent = `${successRate.toFixed(1)}%`;
+    if (heroReturnRisk) heroReturnRisk.textContent = `${returnRisk.toFixed(1)}%`;
+
+    if (pipelineTotal) pipelineTotal.textContent = formatCount(totalOrder);
+    if (pipelineRejected) pipelineRejected.textContent = formatCount(rejectedOrder);
+    if (pipelinePending) pipelinePending.textContent = formatCount(pendingOrder);
+    if (pipelineCompleted) pipelineCompleted.textContent = formatCount(completedOrder);
+  };
+
+  const setLoading = (loading) => {
+    state.loading = loading;
+    [searchInput, statusSelect, paymentTypeSelect, channelSelect, sortBySelect, applyBtn, resetBtn].forEach((node) => {
+      if (node) node.disabled = loading;
+    });
+  };
+
+  const updateUrlState = (page) => {
+    const filters = readFilters();
+    const url = new URL(window.location.href);
+
+    if (filters.search) url.searchParams.set('search', filters.search);
+    else {
+      url.searchParams.delete('search');
+      url.searchParams.delete('q');
+    }
+
+    if (filters.status) url.searchParams.set('status', filters.status);
+    else url.searchParams.delete('status');
+
+    if (filters.paymentType) url.searchParams.set('payment_type', filters.paymentType);
+    else url.searchParams.delete('payment_type');
+
+    if (filters.channel) url.searchParams.set('channel', filters.channel);
+    else url.searchParams.delete('channel');
+
+    if (filters.sortBy) url.searchParams.set('sort_by', filters.sortBy);
+    else url.searchParams.delete('sort_by');
+
+    if (page > 1) url.searchParams.set('page', String(page));
+    else url.searchParams.delete('page');
+
+    window.history.replaceState({}, '', url.toString());
+  };
+
+  async function loadOrders(page) {
+    if (!apiBase) {
+      const message = 'Backend API URL is missing.';
+      countNode.textContent = 'Unavailable';
+      filterNode.textContent = message;
+      setMessage(message);
+      if (typeof window.showError === 'function') window.showError(message);
+      return;
+    }
+
+    const requestId = ++state.requestId;
+    const filters = readFilters();
+    setLoading(true);
+    pageWrap.hidden = true;
+    pageControls.innerHTML = '';
+    pageSummary.textContent = 'Page 1 of 1';
+    filterNode.textContent = 'Loading orders...';
+    setMessage('Loading orders...');
+
+    try {
+      const payload = await window.API.Admin.OrderHistory.list({
+        apiBaseUrl: apiBase,
+        refreshToken: token || undefined,
+        page,
+        perPage: state.perPage,
+        search: filters.search,
+        status: filters.status,
+        paymentType: filters.paymentType,
+        channel: filters.channel,
+        sortBy: filters.sortBy,
+        timeoutMs: 12000,
+      });
+      if (requestId !== state.requestId) return;
+
+      const ordersPayload = payload?.orders && typeof payload.orders === 'object' ? payload.orders : {};
+      const list = Array.isArray(ordersPayload?.data) ? ordersPayload.data : [];
+      const pagination = ordersPayload?.pagination_info && typeof ordersPayload.pagination_info === 'object'
+        ? ordersPayload.pagination_info
+        : {};
+      const others = payload?.others_data && typeof payload.others_data === 'object' ? payload.others_data : {};
+
+      const total = Math.max(0, toInt(pagination.total, list.length));
+      const perPageFromApi = Math.max(1, toInt(pagination.per_page, state.perPage));
+      const derivedLastPage = Math.max(1, toInt(pagination.last_page, Math.ceil(total / perPageFromApi)));
+
+      state.orders = list;
+      state.total = total;
+      state.perPage = perPageFromApi;
+      state.lastPage = derivedLastPage;
+      state.page = Math.min(Math.max(1, toInt(pagination.current_page, page)), state.lastPage);
+      state.from = Math.max(0, toInt(pagination.from, list.length ? ((state.page - 1) * state.perPage) + 1 : 0));
+      state.to = Math.max(0, toInt(pagination.to, state.from ? state.from + list.length - 1 : 0));
+
+      updateOverview(others);
+      renderTable();
+      renderPagination();
+      updateUrlState(state.page);
+    } catch (error) {
+      if (requestId !== state.requestId) return;
+
+      const message = error?.isTimeout
+        ? 'Request timed out. Please try again.'
+        : (error?.message || 'Failed to load orders.');
+
+      state.orders = [];
+      state.total = 0;
+      state.from = 0;
+      state.to = 0;
+      state.lastPage = 1;
+      countNode.textContent = 'Unavailable';
+      filterNode.textContent = message;
+      setMessage(message);
+      pageControls.innerHTML = '';
+      pageSummary.textContent = 'Page 1 of 1';
+      pageWrap.hidden = true;
+      if (typeof window.showError === 'function') window.showError(message);
+    } finally {
+      if (requestId === state.requestId) {
+        setLoading(false);
+      }
+    }
+  }
+
+  applyBtn.addEventListener('click', () => {
+    if (state.loading) return;
+    loadOrders(1);
+  });
+
+  resetBtn.addEventListener('click', () => {
+    searchInput.value = '';
+    statusSelect.value = 'all';
+    paymentTypeSelect.value = 'all';
+    channelSelect.value = 'all';
+    sortBySelect.value = 'newest_first';
+    if (state.loading) return;
+    loadOrders(1);
+  });
+
+  searchInput.addEventListener('keydown', (event) => {
+    if (event.key !== 'Enter') return;
+    event.preventDefault();
+    if (state.loading) return;
+    loadOrders(1);
+  });
+
+  loadOrders(state.page);
+}
+
 function initOrdersManualOrder() {
   const form = document.querySelector('[data-manual-order-form]');
   const tableBody = document.querySelector('[data-orders-table-body]');
@@ -959,11 +1463,11 @@ function initOrdersManualOrder() {
   let manualSequence = 1;
   let createdCount = 0;
   let selectedExistingUser = null;
-  const initialCount = Number.parseInt(countNode?.dataset.initialCount || '0', 10) || 0;
-  const initialUniverseCount = Number.parseInt(
-    filterNode?.dataset.universeCount || String(initialCount),
-    10
-  ) || initialCount;
+  const readInitialCount = () => Number.parseInt(countNode?.dataset.initialCount || '0', 10) || 0;
+  const readUniverseCount = () => {
+    const baseCount = readInitialCount();
+    return Number.parseInt(filterNode?.dataset.universeCount || String(baseCount), 10) || baseCount;
+  };
   const productCatalog = [
     {
       id: 'SKU-TS-2109',
@@ -1371,13 +1875,13 @@ function initOrdersManualOrder() {
   };
 
   const updateCounters = () => {
-    const totalVisible = initialCount + createdCount;
+    const totalVisible = readInitialCount() + createdCount;
     if (countNode) {
       countNode.textContent = `${totalVisible} monitored orders`;
     }
 
     if (filterNode) {
-      const nextUniverse = Math.max(initialUniverseCount, totalVisible);
+      const nextUniverse = Math.max(readUniverseCount(), totalVisible);
       filterNode.textContent = `Showing ${totalVisible} of ${nextUniverse} orders`;
     }
   };
@@ -2100,6 +2604,439 @@ function initBotSettings() {
   syncMessengerDependency();
   markCurrentStateAsSaved();
   fetchFacebookStatus();
+}
+
+function initDashboardPage() {
+  const section = document.getElementById('adminDashboardSection');
+  if (!section) return;
+
+  const statusSelect = section.querySelector('[data-dashboard-status]');
+  const paymentTypeSelect = section.querySelector('[data-dashboard-payment-type]');
+  const channelSelect = section.querySelector('[data-dashboard-channel]');
+  const sortBySelect = section.querySelector('[data-dashboard-sort-by]');
+  const applyBtn = section.querySelector('[data-dashboard-apply]');
+  const resetBtn = section.querySelector('[data-dashboard-reset]');
+  const resultNode = section.querySelector('[data-dashboard-result]');
+
+  const totalBadge = section.querySelector('[data-dashboard-total-badge]');
+  const ordersTodayValue = section.querySelector('[data-dashboard-orders-today-value]');
+  const ordersTodayMeta = section.querySelector('[data-dashboard-orders-today-meta]');
+  const revenueValue = section.querySelector('[data-dashboard-revenue-value]');
+  const revenueMeta = section.querySelector('[data-dashboard-revenue-meta]');
+  const pendingDispatchValue = section.querySelector('[data-dashboard-pending-dispatch-value]');
+  const pendingDispatchMeta = section.querySelector('[data-dashboard-pending-dispatch-meta]');
+  const successRateValue = section.querySelector('[data-dashboard-success-rate-value]');
+  const successRateMeta = section.querySelector('[data-dashboard-success-rate-meta]');
+  const overviewHeadline = section.querySelector('[data-dashboard-overview-headline]');
+  const overviewNote = section.querySelector('[data-dashboard-overview-note]');
+  const totalOrdersValue = section.querySelector('[data-dashboard-total-orders-value]');
+  const pendingOrdersValue = section.querySelector('[data-dashboard-pending-orders-value]');
+  const completedOrdersValue = section.querySelector('[data-dashboard-completed-orders-value]');
+  const rejectedOrdersValue = section.querySelector('[data-dashboard-rejected-orders-value]');
+
+  const tbody = section.querySelector('[data-dashboard-orders-tbody]');
+  const pageWrap = section.querySelector('[data-dashboard-pagination-wrap]');
+  const pageSummary = section.querySelector('[data-dashboard-pagination-summary]');
+  const pageControls = section.querySelector('[data-dashboard-pagination-controls]');
+
+  if (
+    !statusSelect || !paymentTypeSelect || !channelSelect || !sortBySelect || !applyBtn || !resetBtn || !resultNode ||
+    !totalBadge || !ordersTodayValue || !ordersTodayMeta || !revenueValue || !revenueMeta || !pendingDispatchValue ||
+    !pendingDispatchMeta || !successRateValue || !successRateMeta || !overviewHeadline || !overviewNote ||
+    !totalOrdersValue || !pendingOrdersValue || !completedOrdersValue || !rejectedOrdersValue ||
+    !tbody || !pageWrap || !pageSummary || !pageControls
+  ) {
+    return;
+  }
+
+  if (!window.API?.Admin?.OrderHistory || typeof window.API.Admin.OrderHistory.list !== 'function') {
+    return;
+  }
+
+  const apiBase = String(section.dataset.apiBaseUrl || '').replace(/\/+$/, '');
+  const perPage = Math.max(1, Number.parseInt(section.dataset.perPage || '10', 10) || 10);
+  const sessionToken = String(section.dataset.refreshToken || '').trim();
+  let storageToken = '';
+  try {
+    storageToken = String(window.localStorage.getItem('refresh_token') || '').trim();
+  } catch {
+    storageToken = '';
+  }
+  const token = sessionToken || storageToken;
+
+  const toInt = (value, fallback = 0) => {
+    const parsed = Number.parseInt(String(value ?? ''), 10);
+    return Number.isFinite(parsed) ? parsed : fallback;
+  };
+  const toNumber = (value, fallback = 0) => {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : fallback;
+  };
+  const text = (value) => String(value ?? '').trim();
+  const escapeHtml = (value) => text(value)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+  const titleCase = (value) => text(value)
+    .replace(/[_-]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .replace(/\b\w/g, (char) => char.toUpperCase());
+  const formatCount = (value) => toInt(value, 0).toLocaleString('en-US');
+  const slugify = (value) => text(value)
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '') || 'default';
+  const formatBdt = (value) => `BDT ${toNumber(value, 0).toLocaleString('en-US', {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  })}`;
+
+  const state = {
+    page: (() => {
+      const params = new URLSearchParams(window.location.search);
+      const parsed = toInt(params.get('page'), 1);
+      return parsed > 0 ? parsed : 1;
+    })(),
+    perPage,
+    total: 0,
+    from: 0,
+    to: 0,
+    lastPage: 1,
+    orders: [],
+    loading: false,
+    requestId: 0,
+  };
+
+  const setSelectValue = (select, value, fallback = 'all') => {
+    const target = text(value);
+    if (!target) {
+      select.value = fallback;
+      return;
+    }
+
+    const options = Array.from(select.options);
+    const match = options.find((option) => text(option.value).toLowerCase() === target.toLowerCase());
+    select.value = match ? match.value : fallback;
+  };
+
+  const urlParams = new URLSearchParams(window.location.search);
+  setSelectValue(statusSelect, urlParams.get('status'), 'all');
+  setSelectValue(paymentTypeSelect, urlParams.get('payment_type'), 'all');
+  setSelectValue(channelSelect, urlParams.get('channel'), 'all');
+  setSelectValue(sortBySelect, urlParams.get('sort_by'), 'newest_first');
+
+  const normalizeFilter = (value) => {
+    const normalized = text(value);
+    return (!normalized || normalized.toLowerCase() === 'all') ? '' : normalized;
+  };
+  const readFilters = () => ({
+    status: normalizeFilter(statusSelect.value),
+    paymentType: normalizeFilter(paymentTypeSelect.value),
+    channel: normalizeFilter(channelSelect.value),
+    sortBy: normalizeFilter(sortBySelect.value) || 'newest_first',
+  });
+
+  const statusMetaOf = (order) => {
+    const normalized = text(order?.status).toLowerCase();
+    if (normalized === 'success') return {label: 'Success', css: 'badge-success'};
+    if (normalized === 'in_transit') return {label: 'In Transit', css: 'badge-primary'};
+    if (normalized === 'ready_to_dispatch') return {label: 'Ready to Dispatch', css: 'badge-info'};
+    if (normalized === 'waiting_for_call' || normalized === 'waiting_for_confirmation') {
+      return {label: titleCase(normalized), css: 'badge-warning'};
+    }
+    if (normalized.startsWith('cancel_')) return {label: titleCase(normalized), css: 'badge-danger'};
+    return {label: titleCase(normalized || 'unknown'), css: 'badge-info'};
+  };
+
+  const setMessage = (message) => {
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="7" class="users-empty">${escapeHtml(message)}</td>
+      </tr>
+    `;
+  };
+
+  const rowNode = (order) => {
+    const orderId = text(order?.order_id || 'N/A');
+    const name = text(order?.full_name || 'Unknown');
+    const image = text(order?.image || order?.profile || '');
+    const address = text(order?.address || 'N/A');
+    const qty = Math.max(0, toInt(order?.qty, 0));
+    const methodLabel = titleCase(order?.method || 'N/A');
+    const channelLabel = titleCase(order?.channel || 'N/A');
+    const status = statusMetaOf(order);
+
+    const avatarHtml = image
+      ? `<img src="${escapeHtml(image)}" class="users-avatar" alt="${escapeHtml(name)}" loading="lazy">`
+      : `<span class="users-avatar users-avatar-fallback" aria-hidden="true">${escapeHtml(name.charAt(0).toUpperCase() || 'U')}</span>`;
+
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>
+        <div class="dashboard-order-cell">
+          <strong>${escapeHtml(orderId)}</strong>
+        </div>
+      </td>
+      <td>
+        <div class="dashboard-customer-cell">
+          ${avatarHtml}
+          <div class="users-name-block">
+            <div class="users-name">${escapeHtml(name)}</div>
+          </div>
+        </div>
+      </td>
+      <td>
+        <div class="dashboard-address">${escapeHtml(address)}</div>
+      </td>
+      <td class="dashboard-order-amount">${formatCount(qty)}</td>
+      <td><span class="badge badge-info">${escapeHtml(methodLabel)}</span></td>
+      <td>
+        <span class="badge users-channel-badge users-channel-${escapeHtml(slugify(channelLabel))}">
+          ${escapeHtml(channelLabel)}
+        </span>
+      </td>
+      <td><span class="badge ${status.css}">${escapeHtml(status.label)}</span></td>
+    `;
+
+    return tr;
+  };
+
+  const renderTable = () => {
+    const list = Array.isArray(state.orders) ? state.orders : [];
+    tbody.innerHTML = '';
+
+    if (!list.length) {
+      setMessage('No orders found for the selected filters.');
+      resultNode.textContent = 'No orders found';
+      return;
+    }
+
+    const fragment = document.createDocumentFragment();
+    list.forEach((order) => fragment.appendChild(rowNode(order)));
+    tbody.appendChild(fragment);
+
+    if (state.total > 0 && state.from > 0 && state.to > 0) {
+      resultNode.textContent = `Showing ${state.from}-${state.to} of ${state.total} orders`;
+    } else {
+      resultNode.textContent = `Showing ${list.length} orders`;
+    }
+  };
+
+  const renderPagination = () => {
+    const current = Math.max(1, toInt(state.page, 1));
+    const last = Math.max(1, toInt(state.lastPage, 1));
+
+    if (last <= 1) {
+      pageSummary.textContent = 'Page 1 of 1';
+      pageControls.innerHTML = '';
+      pageWrap.hidden = true;
+      return;
+    }
+
+    pageWrap.hidden = false;
+    pageSummary.textContent = `Page ${current} of ${last}`;
+    pageControls.innerHTML = '';
+
+    const btn = (label, page, disabled = false, active = false) => {
+      const node = document.createElement('button');
+      node.type = 'button';
+      node.className = `users-page-btn${disabled ? ' is-disabled' : ''}${active ? ' is-active' : ''}`;
+      node.textContent = label;
+
+      if (disabled || active) {
+        node.disabled = true;
+        if (disabled) node.setAttribute('aria-disabled', 'true');
+        if (active) node.setAttribute('aria-current', 'page');
+      } else {
+        node.addEventListener('click', () => {
+          if (!state.loading) loadDashboardOrders(page);
+        });
+      }
+
+      return node;
+    };
+
+    const pages = [];
+    if (last <= 7) {
+      for (let page = 1; page <= last; page += 1) pages.push(page);
+    } else {
+      pages.push(1);
+      if (current > 3) pages.push('...');
+      for (let page = Math.max(2, current - 1); page <= Math.min(last - 1, current + 1); page += 1) pages.push(page);
+      if (current < last - 2) pages.push('...');
+      pages.push(last);
+    }
+
+    pageControls.appendChild(btn('Prev', current - 1, current <= 1, false));
+    pages.forEach((page) => pageControls.appendChild(page === '...' ? btn('...', 0, true, false) : btn(String(page), page, false, page === current)));
+    pageControls.appendChild(btn('Next', current + 1, current >= last, false));
+  };
+
+  const updateKpis = (others = {}) => {
+    const ordersToday = toInt(others?.orders_today, 0);
+    const delta = toInt(others?.orders_today_delta_vs_yesterday, 0);
+    const deltaPrefix = delta > 0 ? '+' : '';
+    const grossRevenueDisplay = text(others?.gross_revenue_display) || formatBdt(others?.gross_revenue);
+    const grossRevenueChange = toNumber(others?.gross_revenue_change_this_week_percent, 0);
+    const pendingDispatch = toInt(others?.pending_dispatch, 0);
+    const pendingDispatchNeedAction = toInt(others?.pending_dispatch_need_action_in_2h, 0);
+    const successRate = toNumber(others?.success_rate_percent, 0);
+    const returnRisk = toNumber(others?.return_risk_percent, 0);
+    const avgProcessingDisplay = text(others?.avg_processing_time_display) || '--';
+    const totalOrders = toInt(others?.total_order, state.total);
+    const pendingOrders = toInt(others?.pending_order, 0);
+    const completedOrders = toInt(others?.completed_order, 0);
+    const rejectedOrders = toInt(others?.rejected_order, 0);
+
+    totalBadge.textContent = `${formatCount(totalOrders)} total`;
+    ordersTodayValue.textContent = formatCount(ordersToday);
+    ordersTodayMeta.textContent = `${deltaPrefix}${formatCount(delta)} vs yesterday`;
+    revenueValue.textContent = grossRevenueDisplay || '--';
+    revenueMeta.textContent = `${grossRevenueChange.toFixed(1)}% this week`;
+    pendingDispatchValue.textContent = formatCount(pendingDispatch);
+    pendingDispatchMeta.textContent = `${formatCount(pendingDispatchNeedAction)} need action in 2h`;
+    successRateValue.textContent = `${successRate.toFixed(1)}%`;
+    successRateMeta.textContent = `Return risk ${returnRisk.toFixed(1)}%`;
+
+    overviewHeadline.textContent = delta >= 0
+      ? `Orders are moving up by ${deltaPrefix}${formatCount(delta)} today.`
+      : `Orders are down by ${formatCount(Math.abs(delta))} compared to yesterday.`;
+    overviewNote.textContent = `Avg processing time is ${avgProcessingDisplay}. Keep pending dispatch queue under control.`;
+    totalOrdersValue.textContent = formatCount(totalOrders);
+    pendingOrdersValue.textContent = formatCount(pendingOrders);
+    completedOrdersValue.textContent = formatCount(completedOrders);
+    rejectedOrdersValue.textContent = formatCount(rejectedOrders);
+  };
+
+  const setLoading = (loading) => {
+    state.loading = loading;
+    applyBtn.disabled = loading;
+    resetBtn.disabled = loading;
+  };
+
+  const updateUrlState = (page) => {
+    const filters = readFilters();
+    const url = new URL(window.location.href);
+
+    if (filters.status) url.searchParams.set('status', filters.status);
+    else url.searchParams.delete('status');
+
+    if (filters.paymentType) url.searchParams.set('payment_type', filters.paymentType);
+    else url.searchParams.delete('payment_type');
+
+    if (filters.channel) url.searchParams.set('channel', filters.channel);
+    else url.searchParams.delete('channel');
+
+    if (filters.sortBy) url.searchParams.set('sort_by', filters.sortBy);
+    else url.searchParams.delete('sort_by');
+
+    if (page > 1) url.searchParams.set('page', String(page));
+    else url.searchParams.delete('page');
+
+    window.history.replaceState({}, '', url.toString());
+  };
+
+  async function loadDashboardOrders(page) {
+    if (!apiBase) {
+      const message = 'Backend API URL is missing.';
+      resultNode.textContent = message;
+      totalBadge.textContent = 'Unavailable';
+      setMessage(message);
+      if (typeof window.showError === 'function') window.showError(message);
+      return;
+    }
+
+    const requestId = ++state.requestId;
+    const filters = readFilters();
+    setLoading(true);
+    pageWrap.hidden = true;
+    pageControls.innerHTML = '';
+    pageSummary.textContent = 'Page 1 of 1';
+    setMessage('Loading orders...');
+    resultNode.textContent = 'Loading orders...';
+
+    try {
+      const payload = await window.API.Admin.OrderHistory.list({
+        apiBaseUrl: apiBase,
+        refreshToken: token || undefined,
+        page,
+        perPage: state.perPage,
+        status: filters.status,
+        paymentType: filters.paymentType,
+        channel: filters.channel,
+        sortBy: filters.sortBy,
+        timeoutMs: 12000,
+      });
+      if (requestId !== state.requestId) return;
+
+      const ordersPayload = payload?.orders && typeof payload.orders === 'object' ? payload.orders : {};
+      const list = Array.isArray(ordersPayload?.data) ? ordersPayload.data : [];
+      const pagination = ordersPayload?.pagination_info && typeof ordersPayload.pagination_info === 'object'
+        ? ordersPayload.pagination_info
+        : {};
+      const others = payload?.others_data && typeof payload.others_data === 'object' ? payload.others_data : {};
+
+      const total = Math.max(0, toInt(pagination.total, list.length));
+      const perPageFromApi = Math.max(1, toInt(pagination.per_page, state.perPage));
+      const derivedLastPage = Math.max(1, toInt(pagination.last_page, Math.ceil(total / perPageFromApi)));
+
+      state.orders = list;
+      state.total = total;
+      state.perPage = perPageFromApi;
+      state.lastPage = derivedLastPage;
+      state.page = Math.min(Math.max(1, toInt(pagination.current_page, page)), state.lastPage);
+      state.from = Math.max(0, toInt(pagination.from, list.length ? ((state.page - 1) * state.perPage) + 1 : 0));
+      state.to = Math.max(0, toInt(pagination.to, state.from ? state.from + list.length - 1 : 0));
+
+      updateKpis(others);
+      renderTable();
+      renderPagination();
+      updateUrlState(state.page);
+    } catch (error) {
+      if (requestId !== state.requestId) return;
+
+      const message = error?.isTimeout
+        ? 'Request timed out. Please try again.'
+        : (error?.message || 'Failed to load dashboard orders.');
+
+      state.orders = [];
+      state.total = 0;
+      state.from = 0;
+      state.to = 0;
+      state.lastPage = 1;
+      totalBadge.textContent = 'Unavailable';
+      resultNode.textContent = message;
+      setMessage(message);
+      pageControls.innerHTML = '';
+      pageSummary.textContent = 'Page 1 of 1';
+      pageWrap.hidden = true;
+      updateKpis({});
+      if (typeof window.showError === 'function') window.showError(message);
+    } finally {
+      if (requestId === state.requestId) {
+        setLoading(false);
+      }
+    }
+  }
+
+  applyBtn.addEventListener('click', () => {
+    if (state.loading) return;
+    loadDashboardOrders(1);
+  });
+
+  resetBtn.addEventListener('click', () => {
+    statusSelect.value = 'all';
+    paymentTypeSelect.value = 'all';
+    channelSelect.value = 'all';
+    sortBySelect.value = 'newest_first';
+    if (state.loading) return;
+    loadDashboardOrders(1);
+  });
+
+  loadDashboardOrders(state.page);
 }
 
 // ══════════════════════════════════════════

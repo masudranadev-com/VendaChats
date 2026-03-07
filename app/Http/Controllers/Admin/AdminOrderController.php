@@ -12,6 +12,12 @@ class AdminOrderController extends Controller
 {
     public function orders(Request $request): View
     {
+        $refreshToken = (string) (
+            $request->session()->get('auth.refresh_token')
+            ?? $request->session()->get('refresh_token')
+            ?? ''
+        );
+
         $orders = collect($this->ordersDataset())
             ->map(fn (array $order): array => $this->withManualDiscount($order));
         $customerFilter = trim((string) $request->query('customer_id', ''));
@@ -56,6 +62,8 @@ class AdminOrderController extends Controller
         return view('admin.orders.index', [
             'title' => 'Orders',
             'subtitle' => 'Control payment checks, dispatch priorities, and delivery health from one clean operational view.',
+            'ordersApiBaseUrl' => rtrim((string) config('services.backend.url', 'http://localhost:8082'), '/'),
+            'ordersRefreshToken' => $refreshToken,
             'metrics' => [
                 ['label' => 'Orders Today', 'value' => '142', 'meta' => '+19 vs yesterday'],
                 ['label' => 'Gross Revenue', 'value' => 'BDT 218K', 'meta' => '+11.6% this week'],

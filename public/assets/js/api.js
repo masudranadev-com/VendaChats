@@ -275,6 +275,45 @@
           });
         },
       },
+      OrderHistory: {
+        list({
+          apiBaseUrl,
+          refreshToken,
+          page = 1,
+          perPage = 10,
+          search = '',
+          status = '',
+          paymentType = '',
+          channel = '',
+          sortBy = 'newest_first',
+          timeoutMs = 12000
+        } = {}) {
+          const params = new URLSearchParams();
+          params.set('page', String(page));
+          params.set('per_page', String(perPage));
+
+          const searchText = toText(search);
+          const statusText = toText(status);
+          const paymentTypeText = toText(paymentType);
+          const channelText = toText(channel);
+          const sortByText = toText(sortBy);
+
+          if (searchText) params.set('search', searchText);
+          if (statusText && statusText.toLowerCase() !== 'all') params.set('status', statusText);
+          if (paymentTypeText && paymentTypeText.toLowerCase() !== 'all') params.set('payment_type', paymentTypeText);
+          if (channelText && channelText.toLowerCase() !== 'all') params.set('channel', channelText);
+          if (sortByText && sortByText.toLowerCase() !== 'all') params.set('sort_by', sortByText);
+
+          const query = `?${params.toString()}`;
+          return request({
+            baseUrl: normalizeBaseUrl(apiBaseUrl),
+            path: `/api/admin/order-history${query}`,
+            method: 'GET',
+            token: refreshToken,
+            timeoutMs,
+          });
+        },
+      },
       Users: {
         list({
           apiBaseUrl,
