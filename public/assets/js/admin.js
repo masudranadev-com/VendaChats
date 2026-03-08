@@ -945,6 +945,12 @@ function initOrdersCatalogPage() {
   const pipelineRejected = document.querySelector('[data-orders-pipeline-rejected]');
   const pipelinePending = document.querySelector('[data-orders-pipeline-pending]');
   const pipelineCompleted = document.querySelector('[data-orders-pipeline-completed]');
+  const actionModal = document.getElementById('ordersActionModal');
+  const actionModalTitle = actionModal?.querySelector('[data-orders-action-title]');
+  const actionModalMessage = actionModal?.querySelector('[data-orders-action-message]');
+  const actionModalOrderId = actionModal?.querySelector('[data-orders-action-order-id]');
+  const actionModalStatus = actionModal?.querySelector('[data-orders-action-status]');
+  const actionModalConfirmBtn = actionModal?.querySelector('[data-orders-action-confirm]');
 
   if (
     !searchInput || !statusSelect || !paymentTypeSelect || !channelSelect || !sortBySelect ||
@@ -1002,6 +1008,21 @@ function initOrdersCatalogPage() {
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-+|-+$/g, '') || 'default';
+  const formatOrderDate = (value) => {
+    const raw = text(value);
+    if (!raw) return '';
+
+    const parsed = new Date(raw);
+    if (Number.isNaN(parsed.getTime())) return raw;
+
+    return parsed.toLocaleString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  };
   const progressOf = (status) => {
     const normalized = text(status).toLowerCase();
     if (normalized === 'waiting_for_call') return 18;
@@ -1108,13 +1129,22 @@ function initOrdersCatalogPage() {
     const method = paymentMetaOf(order?.method || order?.payment_type);
     const channelLabel = titleCase(order?.channel || 'N/A');
     const status = statusMetaOf(order?.status);
+    const normalizedStatus = text(order?.status).toLowerCase();
     const progress = progressOf(order?.status);
-    const placedAt = text(order?.created_at || order?.placed_at || '');
+    const placedAt = formatOrderDate(order?.order_date || order?.created_at || order?.placed_at || '');
     const image = text(order?.image || order?.profile || '');
 
     const avatarHtml = image
       ? `<img src="${escapeHtml(image)}" class="users-avatar" alt="${escapeHtml(fullName)}" loading="lazy">`
       : `<span class="orders-customer-avatar">${escapeHtml(fullName.charAt(0).toUpperCase() || 'U')}</span>`;
+
+    const actions = [
+      `<button type="button" class="btn btn-info btn-sm" data-orders-row-action="view" data-order-id="${escapeHtml(orderId)}">View</button>`,
+    ];
+    if (normalizedStatus === 'waiting_for_confirmation' || normalizedStatus === 'ready_to_dispatch') {
+      actions.push(`<button type="button" class="btn btn-danger btn-sm" data-orders-row-action="cancelld" data-order-id="${escapeHtml(orderId)}">Cancelld</button>`);
+      actions.push(`<button type="button" class="btn btn-success btn-sm" data-orders-row-action="confirm" data-order-id="${escapeHtml(orderId)}">Confirm</button>`);
+    }
 
     const row = document.createElement('tr');
     row.innerHTML = `
@@ -1151,8 +1181,7 @@ function initOrdersCatalogPage() {
       </td>
       <td>
         <div class="orders-table-actions">
-          <button type="button" class="btn btn-info btn-sm" disabled title="Not wired for API rows yet">View</button>
-          <button type="button" class="btn btn-success btn-sm" disabled title="Not wired for API rows yet">Confirm</button>
+          ${actions.join('')}
         </div>
       </td>
     `;
@@ -1306,6 +1335,120 @@ function initOrdersCatalogPage() {
     window.history.replaceState({}, '', url.toString());
   };
 
+  const findOrderById = (orderId) => {
+    const target = text(orderId);
+    if (!target) return null;
+
+    return state.orders.find((entry) => text(entry?.order_id || entry?.id) === target) || null;
+  };
+
+  const normalizeStatus = (status) => text(status).toLowerCase();
+  const transitionStatusForAction = (action, currentStatus) => {
+    const normalizedAction = text(action).toLowerCase();
+    const normalizedStatus = normalizeStatus(currentStatus);
+
+    if (normalizedAction === 'confirm') {
+      if (normalizedStatus === 'waiting_for_call') return 'waiting_for_confirmation';
+      if (normalizedStatus === 'waiting_for_confirmation') return 'ready_to_dispatch';
+      if (normalizedStatus === 'ready_to_dispatch') return 'in_transit';
+      if (normalizedStatus === 'in_transit') return 'success';
+      return '';
+    }
+
+    if (normalizedAction === 'cancelld') {
+      if (normalizedStatus === 'waiting_for_call') return 'cancel_on_called';
+      if (normalizedStatus === 'waiting_for_confirmation') return 'cancel_on_confirmation';
+      if (normalizedStatus === 'ready_to_dispatch') return 'cancel_on_dispatch';
+      if (normalizedStatus === 'in_transit') return 'cancel_on_delivered';
+      return '';
+    }
+
+    return '';
+  };
+
+  const hideActionConfirmButton = () => {
+    if (!(actionModalConfirmBtn instanceof HTMLButtonElement)) return;
+    actionModalConfirmBtn.hidden = true;
+    actionModalConfirmBtn.disabled = false;
+    actionModalConfirmBtn.dataset.action = '';
+    actionModalConfirmBtn.dataset.orderId = '';
+    actionModalConfirmBtn.dataset.currentStatus = '';
+    actionModalConfirmBtn.dataset.targetStatus = '';
+    actionModalConfirmBtn.classList.remove('btn-danger', 'btn-success');
+    if (!actionModalConfirmBtn.classList.contains('btn-primary')) {
+      actionModalConfirmBtn.classList.add('btn-primary');
+    }
+    actionModalConfirmBtn.textContent = 'Confirm';
+  };
+
+  const openOrderActionModal = (action, orderId) => {
+    if (!actionModal || typeof window.openModal !== 'function') {
+      if (typeof window.showInfo === 'function') window.showInfo(`${titleCase(action)} clicked for ${orderId}.`);
+      return;
+    }
+
+    const normalizedAction = text(action).toLowerCase();
+    const matchedOrder = findOrderById(orderId);
+    const currentStatus = normalizeStatus(matchedOrder?.status || '');
+    const statusMeta = statusMetaOf(currentStatus);
+    const targetStatus = transitionStatusForAction(normalizedAction, currentStatus);
+
+    if (actionModalTitle) actionModalTitle.textContent = 'Order Action';
+    if (actionModalMessage) actionModalMessage.textContent = 'Review this order before taking action.';
+    if (actionModalOrderId) actionModalOrderId.textContent = orderId || '--';
+    if (actionModalStatus) actionModalStatus.textContent = statusMeta.label;
+    hideActionConfirmButton();
+
+    if (normalizedAction === 'view') {
+      if (actionModalTitle) actionModalTitle.textContent = 'View Order';
+      if (actionModalMessage) {
+        actionModalMessage.textContent = 'Review the current order details and status.';
+      }
+      window.openModal('ordersActionModal');
+      return;
+    }
+
+    if (!(actionModalConfirmBtn instanceof HTMLButtonElement)) {
+      window.openModal('ordersActionModal');
+      return;
+    }
+
+    actionModalConfirmBtn.hidden = false;
+    actionModalConfirmBtn.dataset.action = normalizedAction;
+    actionModalConfirmBtn.dataset.orderId = orderId;
+    actionModalConfirmBtn.dataset.currentStatus = currentStatus;
+    actionModalConfirmBtn.dataset.targetStatus = targetStatus;
+    actionModalConfirmBtn.classList.remove('btn-primary', 'btn-danger', 'btn-success');
+
+    if (normalizedAction === 'cancelld') {
+      if (actionModalTitle) actionModalTitle.textContent = 'Cancel Order';
+      if (actionModalMessage) {
+        actionModalMessage.textContent = 'Do you want to cancel this order now?';
+      }
+      actionModalConfirmBtn.textContent = 'Cancelld';
+      actionModalConfirmBtn.classList.add('btn-danger');
+    } else if (normalizedAction === 'confirm') {
+      if (actionModalTitle) actionModalTitle.textContent = 'Confirm Order';
+      if (actionModalMessage) {
+        actionModalMessage.textContent = 'Do you want to confirm this order now?';
+      }
+      actionModalConfirmBtn.textContent = 'Confirm';
+      actionModalConfirmBtn.classList.add('btn-success');
+    } else {
+      actionModalConfirmBtn.hidden = true;
+      actionModalConfirmBtn.classList.add('btn-primary');
+    }
+
+    if (!targetStatus) {
+      actionModalConfirmBtn.hidden = true;
+      if (actionModalMessage) {
+        actionModalMessage.textContent = `Invalid transition from "${statusMeta.label}" for this action.`;
+      }
+    }
+
+    window.openModal('ordersActionModal');
+  };
+
   async function loadOrders(page) {
     if (!apiBase) {
       const message = 'Backend API URL is missing.';
@@ -1409,6 +1552,67 @@ function initOrdersCatalogPage() {
     event.preventDefault();
     if (state.loading) return;
     loadOrders(1);
+  });
+
+  tableBody.addEventListener('click', (event) => {
+    const trigger = event.target instanceof Element
+      ? event.target.closest('[data-orders-row-action]')
+      : null;
+    if (!(trigger instanceof HTMLButtonElement)) return;
+    event.preventDefault();
+
+    const action = text(trigger.dataset.ordersRowAction).toLowerCase();
+    const orderId = text(trigger.dataset.orderId);
+    if (!action || !orderId) return;
+    if (action !== 'view' && action !== 'cancelld' && action !== 'confirm') return;
+    openOrderActionModal(action, orderId);
+  });
+
+  actionModalConfirmBtn?.addEventListener('click', async () => {
+    const action = text(actionModalConfirmBtn.dataset.action).toLowerCase();
+    const orderId = text(actionModalConfirmBtn.dataset.orderId);
+    const currentStatus = text(actionModalConfirmBtn.dataset.currentStatus);
+    const targetStatus = text(actionModalConfirmBtn.dataset.targetStatus);
+    if (!action || !orderId || !targetStatus) return;
+    if (!window.API?.Admin?.OrderHistory || typeof window.API.Admin.OrderHistory.updateStatus !== 'function') {
+      if (typeof window.showError === 'function') {
+        window.showError('Status update API is not configured.');
+      }
+      return;
+    }
+
+    const idleLabel = action === 'cancelld' ? 'Cancelld' : 'Confirm';
+    actionModalConfirmBtn.disabled = true;
+    actionModalConfirmBtn.textContent = 'Updating...';
+
+    try {
+      const payload = await window.API.Admin.OrderHistory.updateStatus({
+        apiBaseUrl: apiBase,
+        refreshToken: token || undefined,
+        orderId,
+        status: targetStatus,
+        timeoutMs: 12000,
+      });
+
+      hideActionConfirmButton();
+      if (typeof window.closeAllModals === 'function') {
+        window.closeAllModals();
+      }
+
+      const responseStatus = text(payload?.status || targetStatus);
+      const successMessage = `Order ${orderId}: ${titleCase(currentStatus)} -> ${titleCase(responseStatus)}.`;
+      if (typeof window.showSuccess === 'function') {
+        window.showSuccess(successMessage);
+      }
+
+      await loadOrders(state.page);
+    } catch (error) {
+      if (typeof window.showError === 'function') {
+        window.showError(error?.message || 'Failed to update order status.');
+      }
+      actionModalConfirmBtn.disabled = false;
+      actionModalConfirmBtn.textContent = idleLabel;
+    }
   });
 
   loadOrders(state.page);

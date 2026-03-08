@@ -313,6 +313,32 @@
             timeoutMs,
           });
         },
+        updateStatus({
+          apiBaseUrl,
+          refreshToken,
+          orderId,
+          status,
+          timeoutMs = 12000
+        } = {}) {
+          const orderIdText = toText(orderId);
+          const statusText = toText(status);
+
+          if (!orderIdText) {
+            throw new ApiError('order_id is required');
+          }
+          if (!statusText) {
+            throw new ApiError('status is required');
+          }
+
+          return request({
+            baseUrl: normalizeBaseUrl(apiBaseUrl),
+            path: `/api/admin/order-history/${encodeURIComponent(orderIdText)}/status`,
+            method: 'PUT',
+            token: refreshToken,
+            body: {status: statusText},
+            timeoutMs,
+          });
+        },
       },
       Users: {
         list({

@@ -308,4 +308,22 @@
       </form>
     </div>
   </div>
+
+  <div class="modal-overlay" id="ordersActionModal" aria-hidden="true">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="ordersActionModalTitle">
+      <div class="modal-header">
+        <h3 class="modal-title" id="ordersActionModalTitle" data-orders-action-title>Order Action</h3>
+        <button type="button" class="modal-close" data-modal-close aria-label="Close">x</button>
+      </div>
+      <div class="modal-body">
+        <p data-orders-action-message>Review this order before taking action.</p>
+        <p><strong>Order ID:</strong> <span data-orders-action-order-id>--</span></p>
+        <p><strong>Status:</strong> <span data-orders-action-status>--</span></p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-ghost" data-modal-close>Close</button>
+        <button type="button" class="btn btn-primary" data-orders-action-confirm hidden>Confirm</button>
+      </div>
+    </div>
+  </div>
 @endsection
