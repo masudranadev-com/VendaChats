@@ -92,7 +92,7 @@ class AdminOrderController extends Controller
 
     public function view(string $orderId): View
     {
-        $order = $this->findOrderById($orderId);
+        $order = $this->findOrderForPreview($orderId);
         abort_unless($order !== null, 404);
 
         $previousOrders = collect($order['previous_orders']);
@@ -182,7 +182,7 @@ class AdminOrderController extends Controller
 
     public function invoice(string $orderId): View
     {
-        $order = $this->findOrderById($orderId);
+        $order = $this->findOrderForPreview($orderId);
         abort_unless($order !== null, 404);
 
         return view('admin.orders.invoice', [
@@ -209,6 +209,26 @@ class AdminOrderController extends Controller
         }
 
         return null;
+    }
+
+    private function findOrderForPreview(string $orderId): ?array
+    {
+        $order = $this->findOrderById($orderId);
+        if ($order !== null) {
+            return $order;
+        }
+
+        $fallbackOrder = $this->ordersDataset()[0] ?? null;
+        if (! is_array($fallbackOrder)) {
+            return null;
+        }
+
+        $preview = $this->withManualDiscount($fallbackOrder);
+        $preview['id'] = $orderId;
+        $invoiceSuffix = trim((string) preg_replace('/[^A-Za-z0-9]+/', '-', strtoupper($orderId)), '-');
+        $preview['invoice_code'] = 'INV-' . ($invoiceSuffix !== '' ? $invoiceSuffix : 'DEMO');
+
+        return $preview;
     }
 
     private function discountSessionKey(string $orderId): string

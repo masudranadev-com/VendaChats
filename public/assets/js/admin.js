@@ -967,6 +967,8 @@ function initOrdersCatalogPage() {
   const apiBase = String(section.dataset.apiBaseUrl || '').replace(/\/+$/, '');
   const perPage = Math.max(1, Number.parseInt(section.dataset.perPage || '10', 10) || 10);
   const sessionToken = String(section.dataset.refreshToken || '').trim();
+  const orderViewUrlTemplate = String(section.dataset.orderViewUrlTemplate || '/admin/orders/__ORDER_ID__').trim();
+  const orderInvoiceUrlTemplate = String(section.dataset.orderInvoiceUrlTemplate || '/admin/orders/__ORDER_ID__/invoice').trim();
   let storageToken = '';
   try {
     storageToken = String(window.localStorage.getItem('refresh_token') || '').trim();
@@ -1088,6 +1090,28 @@ function initOrdersCatalogPage() {
     channel: normalizeFilter(channelSelect.value),
     sortBy: normalizeFilter(sortBySelect.value) || 'newest_first',
   });
+  const buildOrderViewUrl = (orderId, status) => {
+    const cleanedOrderId = text(orderId);
+    if (!cleanedOrderId) return '';
+
+    const normalizedStatus = text(status).toLowerCase();
+    const template = normalizedStatus === 'waiting_for_call'
+      ? orderViewUrlTemplate
+      : orderInvoiceUrlTemplate;
+    const encodedOrderId = encodeURIComponent(cleanedOrderId);
+    const baseUrl = template.includes('__ORDER_ID__')
+      ? template.replace('__ORDER_ID__', encodedOrderId)
+      : template;
+
+    try {
+      const destination = new URL(baseUrl, window.location.origin);
+      destination.searchParams.set('order_id', cleanedOrderId);
+      return destination.toString();
+    } catch {
+      const separator = baseUrl.includes('?') ? '&' : '?';
+      return `${baseUrl}${separator}order_id=${encodedOrderId}`;
+    }
+  };
 
   const statusMetaOf = (status) => {
     const normalized = text(status).toLowerCase();
@@ -1400,10 +1424,14 @@ function initOrdersCatalogPage() {
     hideActionConfirmButton();
 
     if (normalizedAction === 'view') {
-      if (actionModalTitle) actionModalTitle.textContent = 'View Order';
-      if (actionModalMessage) {
-        actionModalMessage.textContent = 'Review the current order details and status.';
+      const destinationUrl = buildOrderViewUrl(orderId, currentStatus);
+      if (destinationUrl) {
+        window.location.assign(destinationUrl);
+        return;
       }
+
+      if (actionModalTitle) actionModalTitle.textContent = 'View Order';
+      if (actionModalMessage) actionModalMessage.textContent = 'Unable to build destination URL.';
       window.openModal('ordersActionModal');
       return;
     }
