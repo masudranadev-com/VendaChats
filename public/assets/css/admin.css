@@ -9099,7 +9099,114 @@ body.products-attention-open {
 .orders-table-actions {
   display: flex;
   align-items: center;
-  gap: 6px;
+  justify-content: flex-end;
+}
+
+.orders-actions-wrap {
+  position: relative;
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-end;
+}
+
+.orders-actions-trigger {
+  width: 32px;
+  height: 32px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all var(--transition);
+}
+
+.orders-actions-trigger:hover {
+  border-color: var(--border-hover);
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.orders-actions-trigger:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.orders-actions-trigger:focus-visible {
+  outline: 2px solid rgba(19,82,220,0.35);
+  outline-offset: 2px;
+}
+
+.orders-actions-trigger-dots {
+  font-size: 20px;
+  line-height: 1;
+  transform: translateY(-1px);
+}
+
+.orders-actions-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  min-width: 176px;
+  padding: 6px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-card);
+  box-shadow: var(--shadow-lg);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  z-index: 30;
+}
+
+.orders-actions-menu[hidden] {
+  display: none !important;
+}
+
+.orders-actions-menu-item {
+  width: 100%;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  font-size: 13px;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+  transition: all var(--transition);
+}
+
+.orders-actions-menu-item:hover {
+  background: var(--bg-hover);
+}
+
+.orders-actions-menu-item.is-info {
+  color: var(--brand-primary);
+}
+
+.orders-actions-menu-item.is-danger {
+  color: var(--brand-danger);
+}
+
+.orders-actions-menu-item.is-success {
+  color: var(--brand-success);
+}
+
+.orders-action-label {
+  line-height: 1;
+}
+
+.orders-action-icon {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+  pointer-events: none;
 }
 
 .orders-table-footer {
@@ -9690,8 +9797,11 @@ body.products-attention-open {
   }
 
   .orders-table-actions {
-    flex-direction: column;
-    align-items: stretch;
+    justify-content: flex-end;
+  }
+
+  .orders-actions-wrap {
+    width: auto;
   }
 }
 

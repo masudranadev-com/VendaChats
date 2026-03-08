@@ -90,9 +90,9 @@ class AdminOrderController extends Controller
         ]);
     }
 
-    public function view(string $orderId): View
+    public function view(Request $request, string $orderId): View
     {
-        $order = $this->findOrderForPreview($orderId);
+        $order = $this->findOrderForPreview($orderId, (string) $request->query('status', ''));
         abort_unless($order !== null, 404);
 
         $previousOrders = collect($order['previous_orders']);
@@ -108,6 +108,7 @@ class AdminOrderController extends Controller
                 'delivered' => $previousOrders->where('status', 'Delivered')->count(),
                 'completed' => $previousOrders->where('status', 'Completed')->count(),
             ],
+            'invoiceEnabled' => ! $this->isInvoiceDisabledForStatus((string) ($order['status'] ?? '')),
         ]);
     }
 
@@ -175,15 +176,27 @@ class AdminOrderController extends Controller
         $order = $this->findOrderById($orderId);
         abort_unless($order !== null, 404);
 
+        if ($this->isInvoiceDisabledForStatus((string) ($order['status'] ?? ''))) {
+            return redirect()
+                ->route('admin.orders.view', ['orderId' => $order['id']])
+                ->withErrors(['invoice' => 'Invoice is disabled for canceled orders.']);
+        }
+
         return redirect()
             ->route('admin.orders.invoice', ['orderId' => $order['id']])
             ->with('success', "Order {$order['id']} confirmed. Invoice generated with demo data.");
     }
 
-    public function invoice(string $orderId): View
+    public function invoice(Request $request, string $orderId): View|RedirectResponse
     {
-        $order = $this->findOrderForPreview($orderId);
+        $order = $this->findOrderForPreview($orderId, (string) $request->query('status', ''));
         abort_unless($order !== null, 404);
+
+        if ($this->isInvoiceDisabledForStatus((string) ($order['status'] ?? ''))) {
+            return redirect()
+                ->route('admin.orders.view', ['orderId' => $order['id']])
+                ->withErrors(['invoice' => 'Invoice is disabled for canceled orders.']);
+        }
 
         return view('admin.orders.invoice', [
             'title' => 'Invoice',
@@ -211,24 +224,52 @@ class AdminOrderController extends Controller
         return null;
     }
 
-    private function findOrderForPreview(string $orderId): ?array
+    private function findOrderForPreview(string $orderId, string $statusHint = ''): ?array
     {
         $order = $this->findOrderById($orderId);
-        if ($order !== null) {
-            return $order;
+        if ($order === null) {
+            $fallbackOrder = $this->ordersDataset()[0] ?? null;
+            if (! is_array($fallbackOrder)) {
+                return null;
+            }
+
+            $preview = $this->withManualDiscount($fallbackOrder);
+            $preview['id'] = $orderId;
+            $invoiceSuffix = trim((string) preg_replace('/[^A-Za-z0-9]+/', '-', strtoupper($orderId)), '-');
+            $preview['invoice_code'] = 'INV-' . ($invoiceSuffix !== '' ? $invoiceSuffix : 'DEMO');
+            $order = $preview;
         }
 
-        $fallbackOrder = $this->ordersDataset()[0] ?? null;
-        if (! is_array($fallbackOrder)) {
-            return null;
+        $normalizedHint = $this->normalizeStatus($statusHint);
+        if ($normalizedHint !== '') {
+            $order['status'] = $this->presentStatus($normalizedHint);
         }
 
-        $preview = $this->withManualDiscount($fallbackOrder);
-        $preview['id'] = $orderId;
-        $invoiceSuffix = trim((string) preg_replace('/[^A-Za-z0-9]+/', '-', strtoupper($orderId)), '-');
-        $preview['invoice_code'] = 'INV-' . ($invoiceSuffix !== '' ? $invoiceSuffix : 'DEMO');
+        return $order;
+    }
 
-        return $preview;
+    private function isInvoiceDisabledForStatus(string $status): bool
+    {
+        return in_array(
+            $this->normalizeStatus($status),
+            ['cancel_on_called', 'cancel_on_confirmation'],
+            true
+        );
+    }
+
+    private function normalizeStatus(string $status): string
+    {
+        $normalized = strtolower(trim($status));
+        $normalized = preg_replace('/[^a-z0-9]+/', '_', $normalized) ?? '';
+
+        return trim($normalized, '_');
+    }
+
+    private function presentStatus(string $status): string
+    {
+        $parts = array_filter(explode('_', $this->normalizeStatus($status)));
+
+        return implode(' ', array_map(static fn (string $part): string => ucfirst($part), $parts));
     }
 
     private function discountSessionKey(string $orderId): string

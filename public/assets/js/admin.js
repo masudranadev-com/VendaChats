@@ -1026,7 +1026,7 @@ function initOrdersCatalogPage() {
     });
   };
   const progressOf = (status) => {
-    const normalized = text(status).toLowerCase();
+    const normalized = text(status).toLowerCase().replace(/[\s-]+/g, '_');
     if (normalized === 'waiting_for_call') return 18;
     if (normalized === 'waiting_for_confirmation') return 34;
     if (normalized === 'ready_to_dispatch') return 62;
@@ -1090,31 +1090,74 @@ function initOrdersCatalogPage() {
     channel: normalizeFilter(channelSelect.value),
     sortBy: normalizeFilter(sortBySelect.value) || 'newest_first',
   });
-  const buildOrderViewUrl = (orderId, status) => {
+  const buildOrderRouteUrl = (template, orderId) => {
     const cleanedOrderId = text(orderId);
     if (!cleanedOrderId) return '';
 
-    const normalizedStatus = text(status).toLowerCase();
-    const template = normalizedStatus === 'waiting_for_call'
-      ? orderViewUrlTemplate
-      : orderInvoiceUrlTemplate;
     const encodedOrderId = encodeURIComponent(cleanedOrderId);
-    const baseUrl = template.includes('__ORDER_ID__')
+    const templateUrl = template.includes('__ORDER_ID__')
       ? template.replace('__ORDER_ID__', encodedOrderId)
       : template;
 
-    try {
-      const destination = new URL(baseUrl, window.location.origin);
-      destination.searchParams.set('order_id', cleanedOrderId);
-      return destination.toString();
-    } catch {
-      const separator = baseUrl.includes('?') ? '&' : '?';
-      return `${baseUrl}${separator}order_id=${encodedOrderId}`;
+    if (template.includes('__ORDER_ID__')) {
+      return templateUrl;
     }
+
+    return `${templateUrl.replace(/\/+$/, '')}/${encodedOrderId}`;
   };
+  const buildOrderDetailsUrl = (orderId) => buildOrderRouteUrl(orderViewUrlTemplate, orderId);
+  const buildOrderInvoiceUrl = (orderId) => buildOrderRouteUrl(orderInvoiceUrlTemplate, orderId);
+  const actionIcon = (name) => {
+    if (name === 'details') {
+      return `
+        <svg class="orders-action-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+          <path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6-10-6-10-6Z" fill="none" stroke="currentColor" stroke-width="2"></path>
+          <circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" stroke-width="2"></circle>
+        </svg>
+      `;
+    }
+
+    if (name === 'invoice') {
+      return `
+        <svg class="orders-action-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+          <path d="M7 3h8l5 5v13H7z" fill="none" stroke="currentColor" stroke-width="2"></path>
+          <path d="M15 3v5h5" fill="none" stroke="currentColor" stroke-width="2"></path>
+          <path d="M10 13h7M10 17h7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"></path>
+        </svg>
+      `;
+    }
+
+    if (name === 'cancelld') {
+      return `
+        <svg class="orders-action-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+          <circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2"></circle>
+          <path d="M9 9l6 6M15 9l-6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"></path>
+        </svg>
+      `;
+    }
+
+    return `
+      <svg class="orders-action-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+        <circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2"></circle>
+        <path d="M8 12.5l2.5 2.5 5.5-5.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
+      </svg>
+    `;
+  };
+  const actionMenuItem = (orderId, action, label, tone = 'default') => `
+    <button
+      type="button"
+      class="orders-actions-menu-item is-${tone}"
+      data-orders-row-action="${action}"
+      data-order-id="${escapeHtml(orderId)}"
+      role="menuitem"
+    >
+      ${actionIcon(action)}
+      <span class="orders-action-label">${label}</span>
+    </button>
+  `;
 
   const statusMetaOf = (status) => {
-    const normalized = text(status).toLowerCase();
+    const normalized = text(status).toLowerCase().replace(/[\s-]+/g, '_');
     if (normalized === 'success') return {label: 'Success', css: 'badge-success'};
     if (normalized === 'in_transit') return {label: 'In Transit', css: 'badge-primary'};
     if (normalized === 'ready_to_dispatch') return {label: 'Ready to Dispatch', css: 'badge-info'};
@@ -1153,7 +1196,7 @@ function initOrdersCatalogPage() {
     const method = paymentMetaOf(order?.method || order?.payment_type);
     const channelLabel = titleCase(order?.channel || 'N/A');
     const status = statusMetaOf(order?.status);
-    const normalizedStatus = text(order?.status).toLowerCase();
+    const normalizedStatus = normalizeStatus(order?.status);
     const progress = progressOf(order?.status);
     const placedAt = formatOrderDate(order?.order_date || order?.created_at || order?.placed_at || '');
     const image = text(order?.image || order?.profile || '');
@@ -1162,12 +1205,23 @@ function initOrdersCatalogPage() {
       ? `<img src="${escapeHtml(image)}" class="users-avatar" alt="${escapeHtml(fullName)}" loading="lazy">`
       : `<span class="orders-customer-avatar">${escapeHtml(fullName.charAt(0).toUpperCase() || 'U')}</span>`;
 
+    const isWaitingForCall = normalizedStatus === 'waiting_for_call';
+    const isWaitingForConfirmation = normalizedStatus === 'waiting_for_confirmation';
+    const isReadyToDispatch = normalizedStatus === 'ready_to_dispatch';
+    const isCancelOnCalled = normalizedStatus === 'cancel_on_called';
+    const isCancelOnConfirmation = normalizedStatus === 'cancel_on_confirmation';
+    const shouldShowInvoice = !isWaitingForCall && !isWaitingForConfirmation && !isCancelOnCalled && !isCancelOnConfirmation;
+    const shouldShowConfirmControls = isWaitingForCall || isWaitingForConfirmation || isReadyToDispatch;
+
     const actions = [
-      `<button type="button" class="btn btn-info btn-sm" data-orders-row-action="view" data-order-id="${escapeHtml(orderId)}">View</button>`,
+      actionMenuItem(orderId, 'details', 'Details', 'info'),
     ];
-    if (normalizedStatus === 'waiting_for_confirmation' || normalizedStatus === 'ready_to_dispatch') {
-      actions.push(`<button type="button" class="btn btn-danger btn-sm" data-orders-row-action="cancelld" data-order-id="${escapeHtml(orderId)}">Cancelld</button>`);
-      actions.push(`<button type="button" class="btn btn-success btn-sm" data-orders-row-action="confirm" data-order-id="${escapeHtml(orderId)}">Confirm</button>`);
+    if (shouldShowInvoice) {
+      actions.push(actionMenuItem(orderId, 'invoice', 'Invoice'));
+    }
+    if (shouldShowConfirmControls) {
+      actions.push(actionMenuItem(orderId, 'cancelld', 'Cancelled', 'danger'));
+      actions.push(actionMenuItem(orderId, 'confirm', 'Confirm', 'success'));
     }
 
     const row = document.createElement('tr');
@@ -1205,12 +1259,58 @@ function initOrdersCatalogPage() {
       </td>
       <td>
         <div class="orders-table-actions">
-          ${actions.join('')}
+          <div class="orders-actions-wrap" data-orders-actions-wrap>
+            <button
+              type="button"
+              class="orders-actions-trigger"
+              data-orders-actions-trigger
+              aria-haspopup="menu"
+              aria-expanded="false"
+              aria-label="Open actions for ${escapeHtml(orderId)}"
+            >
+              <span class="orders-actions-trigger-dots" aria-hidden="true">⋯</span>
+            </button>
+            <div class="orders-actions-menu" data-orders-actions-menu role="menu" hidden>
+              ${actions.join('')}
+            </div>
+          </div>
         </div>
       </td>
     `;
 
     return row;
+  };
+  const closeAllActionMenus = (exceptWrap = null) => {
+    const wraps = tableBody.querySelectorAll('[data-orders-actions-wrap]');
+    wraps.forEach((wrap) => {
+      if (exceptWrap !== null && wrap === exceptWrap) return;
+
+      const menu = wrap.querySelector('[data-orders-actions-menu]');
+      const trigger = wrap.querySelector('[data-orders-actions-trigger]');
+      if (menu instanceof HTMLElement) {
+        menu.setAttribute('hidden', '');
+      }
+      if (trigger instanceof HTMLButtonElement) {
+        trigger.setAttribute('aria-expanded', 'false');
+      }
+    });
+  };
+  const toggleActionMenu = (trigger) => {
+    const wrap = trigger.closest('[data-orders-actions-wrap]');
+    if (!(wrap instanceof HTMLElement)) return;
+
+    const menu = wrap.querySelector('[data-orders-actions-menu]');
+    if (!(menu instanceof HTMLElement)) return;
+
+    const isOpen = !menu.hasAttribute('hidden');
+    if (isOpen) {
+      closeAllActionMenus();
+      return;
+    }
+
+    closeAllActionMenus(wrap);
+    menu.removeAttribute('hidden');
+    trigger.setAttribute('aria-expanded', 'true');
   };
 
   const renderTable = () => {
@@ -1366,7 +1466,7 @@ function initOrdersCatalogPage() {
     return state.orders.find((entry) => text(entry?.order_id || entry?.id) === target) || null;
   };
 
-  const normalizeStatus = (status) => text(status).toLowerCase();
+  const normalizeStatus = (status) => text(status).toLowerCase().replace(/[\s-]+/g, '_');
   const transitionStatusForAction = (action, currentStatus) => {
     const normalizedAction = text(action).toLowerCase();
     const normalizedStatus = normalizeStatus(currentStatus);
@@ -1423,15 +1523,28 @@ function initOrdersCatalogPage() {
     if (actionModalStatus) actionModalStatus.textContent = statusMeta.label;
     hideActionConfirmButton();
 
-    if (normalizedAction === 'view') {
-      const destinationUrl = buildOrderViewUrl(orderId, currentStatus);
+    if (normalizedAction === 'details') {
+      const destinationUrl = buildOrderDetailsUrl(orderId);
       if (destinationUrl) {
         window.location.assign(destinationUrl);
         return;
       }
 
-      if (actionModalTitle) actionModalTitle.textContent = 'View Order';
-      if (actionModalMessage) actionModalMessage.textContent = 'Unable to build destination URL.';
+      if (actionModalTitle) actionModalTitle.textContent = 'Order Details';
+      if (actionModalMessage) actionModalMessage.textContent = 'Unable to open details page.';
+      window.openModal('ordersActionModal');
+      return;
+    }
+
+    if (normalizedAction === 'invoice') {
+      const destinationUrl = buildOrderInvoiceUrl(orderId);
+      if (destinationUrl) {
+        window.location.assign(destinationUrl);
+        return;
+      }
+
+      if (actionModalTitle) actionModalTitle.textContent = 'Order Invoice';
+      if (actionModalMessage) actionModalMessage.textContent = 'Unable to open invoice page.';
       window.openModal('ordersActionModal');
       return;
     }
@@ -1453,7 +1566,7 @@ function initOrdersCatalogPage() {
       if (actionModalMessage) {
         actionModalMessage.textContent = 'Do you want to cancel this order now?';
       }
-      actionModalConfirmBtn.textContent = 'Cancelld';
+      actionModalConfirmBtn.textContent = 'Cancelled';
       actionModalConfirmBtn.classList.add('btn-danger');
     } else if (normalizedAction === 'confirm') {
       if (actionModalTitle) actionModalTitle.textContent = 'Confirm Order';
@@ -1583,17 +1696,44 @@ function initOrdersCatalogPage() {
   });
 
   tableBody.addEventListener('click', (event) => {
+    const menuTrigger = event.target instanceof Element
+      ? event.target.closest('[data-orders-actions-trigger]')
+      : null;
+    if (menuTrigger instanceof HTMLButtonElement) {
+      event.preventDefault();
+      event.stopPropagation();
+      toggleActionMenu(menuTrigger);
+      return;
+    }
+
     const trigger = event.target instanceof Element
       ? event.target.closest('[data-orders-row-action]')
       : null;
     if (!(trigger instanceof HTMLButtonElement)) return;
     event.preventDefault();
+    closeAllActionMenus();
 
     const action = text(trigger.dataset.ordersRowAction).toLowerCase();
     const orderId = text(trigger.dataset.orderId);
     if (!action || !orderId) return;
-    if (action !== 'view' && action !== 'cancelld' && action !== 'confirm') return;
+    if (action !== 'details' && action !== 'invoice' && action !== 'cancelld' && action !== 'confirm') return;
     openOrderActionModal(action, orderId);
+  });
+
+  document.addEventListener('click', (event) => {
+    if (!(event.target instanceof Element)) {
+      closeAllActionMenus();
+      return;
+    }
+
+    if (event.target.closest('[data-orders-actions-wrap]')) return;
+    closeAllActionMenus();
+  });
+
+  document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape') {
+      closeAllActionMenus();
+    }
   });
 
   actionModalConfirmBtn?.addEventListener('click', async () => {
@@ -1609,7 +1749,7 @@ function initOrdersCatalogPage() {
       return;
     }
 
-    const idleLabel = action === 'cancelld' ? 'Cancelld' : 'Confirm';
+    const idleLabel = action === 'cancelld' ? 'Cancelled' : 'Confirm';
     actionModalConfirmBtn.disabled = true;
     actionModalConfirmBtn.textContent = 'Updating...';
 
@@ -2279,8 +2419,17 @@ function initOrdersManualOrder() {
       </td>
       <td>
         <div class="orders-table-actions">
-          <button type="button" class="btn btn-info btn-sm" disabled title="Frontend demo row only">View</button>
-          <button type="button" class="btn btn-success btn-sm" disabled title="Frontend demo row only">Confirm</button>
+          <div class="orders-actions-wrap">
+            <button
+              type="button"
+              class="orders-actions-trigger"
+              disabled
+              title="Frontend demo row only"
+              aria-label="Actions unavailable for demo row"
+            >
+              <span class="orders-actions-trigger-dots" aria-hidden="true">⋯</span>
+            </button>
+          </div>
         </div>
       </td>
     `;

@@ -19,14 +19,18 @@
       <a href="{{ route('admin.users.views', ['user_id' => $order['customer']['id']]) }}" class="btn btn-info">
         User Profile
       </a>
-      <form
-        action="{{ route('admin.orders.confirm', ['orderId' => $order['id']]) }}"
-        method="POST"
-        onsubmit="return confirm('Confirm this order and generate invoice now?');"
-      >
-        @csrf
-        <button type="submit" class="btn btn-success">Confirm + Invoice</button>
-      </form>
+      @if ($invoiceEnabled ?? true)
+        <form
+          action="{{ route('admin.orders.confirm', ['orderId' => $order['id']]) }}"
+          method="POST"
+          onsubmit="return confirm('Confirm this order and generate invoice now?');"
+        >
+          @csrf
+          <button type="submit" class="btn btn-success">Confirm + Invoice</button>
+        </form>
+      @else
+        <span class="badge badge-danger">Invoice disabled for {{ $order['status'] }}</span>
+      @endif
     </div>
   </div>
 
