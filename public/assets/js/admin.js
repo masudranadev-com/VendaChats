@@ -294,6 +294,7 @@ document.addEventListener('DOMContentLoaded', () => {
   initSearch();
   initCampaignBuilder();
   initOrdersCatalogPage();
+  initOrderDetailsPage();
   initOrdersManualOrder();
   initBotSettings();
   initDashboardPage();
@@ -1095,11 +1096,14 @@ function initOrdersCatalogPage() {
     if (!cleanedOrderId) return '';
 
     const encodedOrderId = encodeURIComponent(cleanedOrderId);
-    const templateUrl = template.includes('__ORDER_ID__')
-      ? template.replace('__ORDER_ID__', encodedOrderId)
-      : template;
+    const sanitizedTemplate = text(template).split('?')[0];
+    if (!sanitizedTemplate) return '';
 
-    if (template.includes('__ORDER_ID__')) {
+    const templateUrl = sanitizedTemplate.includes('__ORDER_ID__')
+      ? sanitizedTemplate.replace('__ORDER_ID__', encodedOrderId)
+      : sanitizedTemplate;
+
+    if (sanitizedTemplate.includes('__ORDER_ID__')) {
       return templateUrl;
     }
 
@@ -1108,6 +1112,7 @@ function initOrdersCatalogPage() {
   const buildOrderDetailsUrl = (orderId) => buildOrderRouteUrl(orderViewUrlTemplate, orderId);
   const buildOrderInvoiceUrl = (orderId) => buildOrderRouteUrl(orderInvoiceUrlTemplate, orderId);
   const actionIcon = (name) => {
+
     if (name === 'details') {
       return `
         <svg class="orders-action-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
@@ -1785,6 +1790,461 @@ function initOrdersCatalogPage() {
 
   loadOrders(state.page);
 }
+
+function initOrderDetailsPage() {
+  const section = document.querySelector('[data-order-details-page]');
+  if (!section) return;
+
+  const apiBase = String(section.dataset.apiBaseUrl || '').replace(/\/+$/, '');
+  const sessionToken = String(section.dataset.refreshToken || '').trim();
+  const configuredOrderId = String(section.dataset.orderId || '').trim();
+  const apiToken = String(window.API?.getToken?.() || '').trim();
+  let accessToken = '';
+  let storageToken = '';
+  try {
+    accessToken = String(window.localStorage.getItem('access_token') || '').trim();
+    storageToken = String(window.localStorage.getItem('refresh_token') || '').trim();
+  } catch {
+    accessToken = '';
+    storageToken = '';
+  }
+
+  const refreshToken = sessionToken || apiToken || storageToken || accessToken;
+  const bearerToken = accessToken || apiToken || sessionToken || storageToken;
+
+  const text = (value) => String(value ?? '').trim();
+  const toInt = (value, fallback = 0) => {
+    const parsed = Number.parseInt(String(value ?? ''), 10);
+    return Number.isFinite(parsed) ? parsed : fallback;
+  };
+  const toNumber = (value, fallback = NaN) => {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : fallback;
+  };
+  const normalizeStatus = (value) => text(value)
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '_')
+    .replace(/^_+|_+$/g, '');
+  const titleCase = (value) => text(value)
+    .replace(/[_-]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .replace(/\b\w/g, (char) => char.toUpperCase());
+  const escapeHtml = (value) => text(value)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+  const formatBdt = (value) => {
+    const amount = Math.max(0, toNumber(value, 0));
+    return `BDT ${amount.toLocaleString('en-US', {
+      minimumFractionDigits: Number.isInteger(amount) ? 0 : 2,
+      maximumFractionDigits: 2,
+    })}`;
+  };
+  const inferOrderIdFromPath = () => {
+    const parts = window.location.pathname.split('/').filter(Boolean);
+    return text(parts[parts.length - 1] || '');
+  };
+
+  const orderId = text(configuredOrderId || inferOrderIdFromPath());
+  const normalizeDetailsUrl = () => {
+    if (typeof window.history?.replaceState !== 'function') return;
+
+    const currentUrl = new URL(window.location.href);
+    const pathParts = currentUrl.pathname.split('/').filter(Boolean);
+    const adminOrdersIndex = pathParts.findIndex((part, index) => part === 'admin' && pathParts[index + 1] === 'orders');
+    const basePath = adminOrdersIndex >= 0
+      ? `/${pathParts.slice(0, adminOrdersIndex + 2).join('/')}`
+      : '/admin/orders';
+    const canonicalPath = `${basePath}/${encodeURIComponent(orderId)}`;
+
+    let currentOrderSegment = text(pathParts[pathParts.length - 1]);
+    try {
+      currentOrderSegment = decodeURIComponent(currentOrderSegment);
+    } catch {
+      // Keep original segment when decoding fails.
+    }
+
+    if (currentUrl.search || currentUrl.pathname !== canonicalPath || currentOrderSegment !== orderId) {
+      window.history.replaceState(window.history.state, '', `${canonicalPath}${currentUrl.hash}`);
+    }
+  };
+  const messageNode = section.querySelector('[data-order-details-fetch-message]');
+  const loaderNode = section.querySelector('[data-ui-loader]');
+  const titleNode = section.querySelector('[data-order-details-order-title]');
+  const userProfileLinkNode = section.querySelector('[data-order-details-user-profile-link]');
+  const customerIdNode = section.querySelector('[data-order-details-customer-id]');
+  const avatarWrap = section.querySelector('[data-order-details-avatar-wrap]');
+  const nameNode = section.querySelector('[data-order-details-name]');
+  const emailNode = section.querySelector('[data-order-details-email]');
+  const phoneNode = section.querySelector('[data-order-details-phone]');
+  const addressNode = section.querySelector('[data-order-details-address]');
+  const methodNode = section.querySelector('[data-order-details-method]');
+  const channelNode = section.querySelector('[data-order-details-channel]');
+  const productsCountNode = section.querySelector('[data-order-details-products-count]');
+  const productsBody = section.querySelector('[data-order-details-products-body]');
+  const fraudTotalOrderNode = section.querySelector('[data-order-details-fraud-total-order]');
+  const fraudTotalCancelledNode = section.querySelector('[data-order-details-fraud-total-cancelled]');
+  const fraudCodCancelledNode = section.querySelector('[data-order-details-fraud-cod-cancelled]');
+  const fraudSuccessOrderNode = section.querySelector('[data-order-details-fraud-success-order]');
+  const totalSubtotalNode = section.querySelector('[data-order-details-total-subtotal]');
+  const totalShippingNode = section.querySelector('[data-order-details-total-shipping]');
+  const totalDiscountNode = section.querySelector('[data-order-details-total-discount]');
+  const totalGrandNode = section.querySelector('[data-order-details-total-grand]');
+  const historyCountNode = section.querySelector('[data-order-details-history-count]');
+  const historyBody = section.querySelector('[data-order-details-history-body]');
+
+  const setMessage = (message, tone = 'info') => {
+    if (!(messageNode instanceof HTMLElement)) return;
+    messageNode.hidden = false;
+    messageNode.innerHTML = `<span class="badge badge-${escapeHtml(tone)}">${escapeHtml(message)}</span>`;
+  };
+  const clearMessage = () => {
+    if (!(messageNode instanceof HTMLElement)) return;
+    messageNode.hidden = true;
+    messageNode.innerHTML = '';
+  };
+  const setLoading = (loading) => {
+    if (loaderNode instanceof HTMLElement) {
+      loaderNode.hidden = !loading;
+    }
+    section.classList.toggle('is-loading', loading);
+  };
+
+  const setUserProfileLink = (userId = '') => {
+    if (!(userProfileLinkNode instanceof HTMLAnchorElement)) return;
+
+    const baseUrlRaw = text(userProfileLinkNode.dataset.userProfileBaseUrl || userProfileLinkNode.getAttribute('href') || '/admin/users/views');
+    const baseUrl = baseUrlRaw || '/admin/users/views';
+
+    if (!userId) {
+      userProfileLinkNode.href = baseUrl;
+      return;
+    }
+
+    const parsedBase = new URL(baseUrl, window.location.origin);
+    parsedBase.searchParams.set('user_id', userId);
+    userProfileLinkNode.href = `${parsedBase.pathname}${parsedBase.search}`;
+  };
+  const resetUiForLoading = () => {
+    if (titleNode) titleNode.textContent = `Order ${orderId || '--'}`;
+    if (customerIdNode) customerIdNode.textContent = '--';
+    if (avatarWrap instanceof HTMLElement) avatarWrap.textContent = '-';
+    if (nameNode) nameNode.textContent = '--';
+    if (emailNode) emailNode.textContent = '--';
+    if (phoneNode) phoneNode.textContent = '--';
+    if (addressNode) addressNode.textContent = '--';
+    if (methodNode) methodNode.textContent = 'Payment: --';
+    if (channelNode) channelNode.textContent = 'Channel: --';
+    if (productsCountNode) productsCountNode.textContent = '0 products';
+    if (productsBody instanceof HTMLElement) {
+      productsBody.innerHTML = `
+        <tr>
+          <td colspan="6" class="users-empty"><span class="ui-skeleton-line is-lg"></span><span class="ui-skeleton-line is-sm"></span></td>
+        </tr>
+      `;
+    }
+    if (totalSubtotalNode) totalSubtotalNode.textContent = 'BDT 0';
+    if (totalShippingNode) totalShippingNode.textContent = 'BDT 0';
+    if (totalDiscountNode) totalDiscountNode.textContent = '- BDT 0';
+    if (totalGrandNode) totalGrandNode.textContent = 'BDT 0';
+    if (historyCountNode) historyCountNode.textContent = '0 history';
+    if (historyBody instanceof HTMLElement) {
+      historyBody.innerHTML = `
+        <tr>
+          <td colspan="5" class="users-empty"><span class="ui-skeleton-line is-lg"></span><span class="ui-skeleton-line is-sm"></span></td>
+        </tr>
+      `;
+    }
+
+    updateFraudUi({
+      total_order: 0,
+      total_cancelled: 0,
+      cod_cancelled: 0,
+      success_order: 0,
+    });
+    setUserProfileLink('');
+  };
+
+  const updateFraudUi = (fraudSignals) => {
+
+    const totalOrder = Math.max(0, toInt(fraudSignals?.total_order, 0));
+    const totalCancelled = Math.max(0, toInt(fraudSignals?.total_cancelled, 0));
+    const codCancelled = Math.max(0, toInt(fraudSignals?.cod_cancelled, 0));
+    const successOrder = Math.max(0, toInt(fraudSignals?.success_order, 0));
+
+    if (fraudTotalOrderNode instanceof HTMLElement) {
+      fraudTotalOrderNode.textContent = String(totalOrder);
+    }
+    if (fraudTotalCancelledNode instanceof HTMLElement) {
+      fraudTotalCancelledNode.textContent = String(totalCancelled);
+    }
+    if (fraudCodCancelledNode instanceof HTMLElement) {
+      fraudCodCancelledNode.textContent = String(codCancelled);
+    }
+    if (fraudSuccessOrderNode instanceof HTMLElement) {
+      fraudSuccessOrderNode.textContent = String(successOrder);
+    }
+  };
+
+  const renderHistoryRows = (historyRows) => {
+    if (!(historyBody instanceof HTMLElement)) return;
+
+    if (!historyRows.length) {
+      historyBody.innerHTML = `
+        <tr>
+          <td colspan="5" class="users-empty">No previous orders found.</td>
+        </tr>
+      `;
+      if (historyCountNode instanceof HTMLElement) {
+        historyCountNode.textContent = '0 history';
+      }
+      return;
+    }
+
+    if (historyCountNode instanceof HTMLElement) {
+      historyCountNode.textContent = `${historyRows.length} history`;
+    }
+
+    historyBody.innerHTML = historyRows.map((entry) => {
+      const historyId = text(entry?.order_id || entry?.id || 'N/A');
+      const date = text(entry?.date || entry?.order_date || entry?.created_at || entry?.placed_at || '-');
+      const statusText = titleCase(entry?.status || entry?.order_status || entry?.state || 'Unknown');
+      const statusNormalized = normalizeStatus(statusText);
+      const amount = toNumber(entry?.amount ?? entry?.grand_total ?? entry?.total ?? entry?.subtotal, 0);
+      const issue = text(entry?.issue || entry?.reason || entry?.cancel_reason || 'None');
+      const statusClass = ['completed', 'delivered', 'success'].includes(statusNormalized)
+        ? 'badge-success'
+        : 'badge-warning';
+      const issueClass = normalizeStatus(issue) === 'none' ? 'badge-success' : 'badge-danger';
+
+      return `
+        <tr>
+          <td>${escapeHtml(historyId)}</td>
+          <td>${escapeHtml(date)}</td>
+          <td><span class="badge ${statusClass}">${escapeHtml(statusText)}</span></td>
+          <td>${escapeHtml(formatBdt(amount))}</td>
+          <td><span class="badge ${issueClass}">${escapeHtml(issue)}</span></td>
+        </tr>
+      `;
+    }).join('');
+  };
+
+  const extractDetailsPayload = (payload) => {
+    const raw = payload && typeof payload === 'object' ? payload : {};
+
+    if (raw.data && typeof raw.data === 'object') {
+      if (raw.data.order && typeof raw.data.order === 'object') return raw.data.order;
+      if (raw.data.details && typeof raw.data.details === 'object') return raw.data.details;
+      return raw.data;
+    }
+
+    if (raw.order && typeof raw.order === 'object') return raw.order;
+    if (raw.details && typeof raw.details === 'object') return raw.details;
+
+    return raw;
+  };
+
+  const fetchWithJquery = () => {
+    if (!window.jQuery || typeof window.jQuery.ajax !== 'function') {
+      return Promise.reject(new Error('__NO_JQUERY__'));
+    }
+
+    return new Promise((resolve, reject) => {
+      const headers = {
+        Accept: 'application/json',
+        'ngrok-skip-browser-warning': 'true',
+      };
+
+      if (refreshToken) {
+        headers['x-refresh-token'] = refreshToken;
+      }
+      if (bearerToken) {
+        headers.Authorization = bearerToken.startsWith('Bearer ')
+          ? bearerToken
+          : `Bearer ${bearerToken}`;
+      }
+
+      window.jQuery.ajax({
+        url: `${apiBase}/api/admin/order-history/${encodeURIComponent(orderId)}/details`,
+        method: 'GET',
+        headers,
+        timeout: 12000,
+      }).done(resolve).fail((xhr, statusText, errorThrown) => {
+        const error = new Error(errorThrown || statusText || 'Failed to load order details.');
+        error.status = xhr?.status || 0;
+        error.payload = xhr?.responseJSON || null;
+        error.isTimeout = statusText === 'timeout';
+        reject(error);
+      });
+    });
+  };
+
+  const fetchWithApiModule = () => {
+    if (!window.API?.Admin?.OrderHistory || typeof window.API.Admin.OrderHistory.details !== 'function') {
+      return Promise.reject(new Error('Order details API is not configured.'));
+    }
+
+    return window.API.Admin.OrderHistory.details({
+      apiBaseUrl: apiBase,
+      refreshToken: refreshToken || bearerToken || undefined,
+      orderId,
+      timeoutMs: 12000,
+    });
+  };
+
+  const hydrate = (details) => {
+    const resolvedOrderId = text(details.order_id || details.id || orderId);
+    const customerName = text(details.name || details.customer_name || 'Unknown');
+    const profile = text(details.profile || '');
+    const email = text(details.email || '-');
+    const phone = text(details.phone || '-');
+    const address = text(details.address || '-');
+    const method = titleCase(details.method || details.payment || 'N/A');
+    const channel = titleCase(details.channel || 'N/A');
+
+    const products = Array.isArray(details.products)
+      ? details.products
+      : (Array.isArray(details.products?.data) ? details.products.data : []);
+    const historyRows = Array.isArray(details.previous_orders)
+      ? details.previous_orders
+      : (Array.isArray(details.previous_orders?.data) ? details.previous_orders.data : []);
+    const fraudSignals = details.fraud_signals && typeof details.fraud_signals === 'object'
+      ? details.fraud_signals
+      : {};
+
+    const subtotal = Math.max(0, toNumber(details.subtotal, 0));
+    const shipping = Math.max(0, toNumber(details.delivery_charge ?? details.shipping_fee, 0));
+    const discount = Math.max(0, toNumber(details.discount, 0));
+    const grandTotal = Math.max(0, toNumber(details.grand_total, subtotal + shipping - discount));
+
+    if (titleNode) titleNode.textContent = `Order ${resolvedOrderId}`;
+    const userProfileId = text(details.customer_id || details.user_id || details.user_client_id || '');
+    if (customerIdNode) {
+      customerIdNode.textContent = userProfileId || resolvedOrderId;
+    }
+    setUserProfileLink(userProfileId);
+    if (avatarWrap instanceof HTMLElement) {
+      if (profile) {
+        avatarWrap.innerHTML = `<img src="${escapeHtml(profile)}" class="users-avatar" alt="${escapeHtml(customerName)}" loading="lazy">`;
+      } else {
+        avatarWrap.textContent = (customerName.charAt(0) || 'U').toUpperCase();
+      }
+    }
+    if (nameNode) nameNode.textContent = customerName;
+    if (emailNode) emailNode.textContent = email;
+    if (phoneNode) phoneNode.textContent = phone;
+    if (addressNode) addressNode.textContent = address;
+    if (methodNode) methodNode.textContent = `Payment: ${method}`;
+    if (channelNode) channelNode.textContent = `Channel: ${channel}`;
+
+    if (productsCountNode) productsCountNode.textContent = `${products.length} products`;
+
+    if (productsBody instanceof HTMLElement) {
+      if (!products.length) {
+        productsBody.innerHTML = `
+          <tr>
+            <td colspan="6" class="users-empty">No products found for this order.</td>
+          </tr>
+        `;
+      } else {
+        productsBody.innerHTML = products.map((item) => {
+          const title = text(item?.title || item?.name || 'Unnamed Product');
+          const sku = text(item?.sku || '-');
+          const qty = Math.max(0, toInt(item?.qty, 0));
+          const variant = text(item?.variant || '-');
+          const image = text(item?.image || '');
+          const unitPrice = toNumber(item?.unit_price, NaN);
+          const total = toNumber(item?.total, Number.isFinite(unitPrice) ? unitPrice * qty : NaN);
+          const unitPriceText = Number.isFinite(unitPrice) ? formatBdt(unitPrice) : '-';
+          const totalText = Number.isFinite(total) ? formatBdt(total) : '-';
+
+          return `
+            <tr>
+              <td>
+                <div class="orders-line-product">
+                  <span class="orders-line-product-thumb">
+                    ${image
+                      ? `<img src="${escapeHtml(image)}" alt="${escapeHtml(title)}" loading="lazy">`
+                      : '<span class="orders-customer-avatar">P</span>'}
+                  </span>
+                  <div>
+                    <strong>${escapeHtml(title)}</strong>
+                  </div>
+                </div>
+              </td>
+              <td>${escapeHtml(sku)}</td>
+              <td>${escapeHtml(variant)}</td>
+              <td>${qty}</td>
+              <td>${escapeHtml(unitPriceText)}</td>
+              <td class="orders-cell-strong">${escapeHtml(totalText)}</td>
+            </tr>
+          `;
+        }).join('');
+      }
+    }
+
+    if (totalSubtotalNode) totalSubtotalNode.textContent = formatBdt(subtotal);
+    if (totalShippingNode) totalShippingNode.textContent = formatBdt(shipping);
+    if (totalDiscountNode) totalDiscountNode.textContent = `- ${formatBdt(discount)}`;
+    if (totalGrandNode) totalGrandNode.textContent = formatBdt(grandTotal);
+
+    renderHistoryRows(historyRows);
+    updateFraudUi(fraudSignals);
+  };
+
+  resetUiForLoading();
+  setLoading(true);
+  setMessage('Loading order details...', 'info');
+
+  if (!apiBase) {
+    setLoading(false);
+    setMessage('Backend API URL is missing.', 'danger');
+    return;
+  }
+  if (!orderId) {
+    setLoading(false);
+    setMessage('Order ID is missing from URL.', 'danger');
+    return;
+  }
+
+  normalizeDetailsUrl();
+
+  fetchWithJquery()
+    .catch((error) => {
+      if (error?.message === '__NO_JQUERY__') {
+        return fetchWithApiModule();
+      }
+
+      return fetchWithApiModule().catch(() => Promise.reject(error));
+    })
+    .then((payload) => {
+      const details = extractDetailsPayload(payload);
+      if (!details || typeof details !== 'object') {
+        throw new Error('Order details payload is invalid.');
+      }
+
+      hydrate(details);
+      clearMessage();
+    })
+    .catch((error) => {
+      const payloadMessage = text(error?.payload?.message || error?.payload?.error);
+      const message = payloadMessage || (error?.isTimeout
+        ? 'Order details request timed out. Please try again.'
+        : (error?.message || 'Failed to load order details.'));
+
+      setMessage(message, 'danger');
+      if (typeof window.showError === 'function') {
+        window.showError(message);
+      }
+    })
+    .finally(() => {
+      setLoading(false);
+    });
+}
+
 
 function initOrdersManualOrder() {
   const form = document.querySelector('[data-manual-order-form]');

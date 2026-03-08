@@ -313,6 +313,30 @@
             timeoutMs,
           });
         },
+        details({
+          apiBaseUrl,
+          refreshToken,
+          orderId,
+          timeoutMs = 12000
+        } = {}) {
+          const orderIdText = toText(orderId);
+          const tokenText = toText(refreshToken || getToken());
+
+          if (!orderIdText) {
+            throw new ApiError('order_id is required');
+          }
+
+          return request({
+            baseUrl: normalizeBaseUrl(apiBaseUrl),
+            path: `/api/admin/order-history/${encodeURIComponent(orderIdText)}/details`,
+            method: 'GET',
+            token: tokenText,
+            headers: tokenText
+              ? {Authorization: tokenText.startsWith('Bearer ') ? tokenText : `Bearer ${tokenText}`}
+              : {},
+            timeoutMs,
+          });
+        },
         updateStatus({
           apiBaseUrl,
           refreshToken,

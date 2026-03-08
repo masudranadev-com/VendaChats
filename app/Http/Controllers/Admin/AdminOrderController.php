@@ -92,23 +92,19 @@ class AdminOrderController extends Controller
 
     public function view(Request $request, string $orderId): View
     {
-        $order = $this->findOrderForPreview($orderId, (string) $request->query('status', ''));
-        abort_unless($order !== null, 404);
-
-        $previousOrders = collect($order['previous_orders']);
-        $claims = (int) ($order['customer']['delivered_not_received_claims'] ?? 0);
+        $refreshToken = (string) (
+            $request->session()->get('auth.refresh_token')
+            ?? $request->session()->get('refresh_token')
+            ?? ''
+        );
 
         return view('admin.orders.view', [
             'title' => 'Order Details',
             'subtitle' => 'Review customer profile, fraud risk, product line items, and fulfillment trail.',
-            'order' => $order,
-            'fraud' => [
-                'is_flagged' => $claims > 0,
-                'claims' => $claims,
-                'delivered' => $previousOrders->where('status', 'Delivered')->count(),
-                'completed' => $previousOrders->where('status', 'Completed')->count(),
-            ],
-            'invoiceEnabled' => ! $this->isInvoiceDisabledForStatus((string) ($order['status'] ?? '')),
+            'invoiceEnabled' => true,
+            'ordersApiBaseUrl' => rtrim((string) config('services.backend.url', 'http://localhost:8082'), '/'),
+            'ordersRefreshToken' => $refreshToken,
+            'orderId' => $orderId,
         ]);
     }
 
