@@ -1892,6 +1892,7 @@ function initOrderDetailsPage() {
   const totalSubtotalNode = section.querySelector('[data-order-details-total-subtotal]');
   const totalShippingNode = section.querySelector('[data-order-details-total-shipping]');
   const totalDiscountNode = section.querySelector('[data-order-details-total-discount]');
+  const totalPaymentNode = section.querySelector('[data-order-details-total-payment]');
   const totalGrandNode = section.querySelector('[data-order-details-total-grand]');
   const historyCountNode = section.querySelector('[data-order-details-history-count]');
   const historyBody = section.querySelector('[data-order-details-history-body]');
@@ -2001,6 +2002,7 @@ function initOrderDetailsPage() {
     if (totalSubtotalNode) totalSubtotalNode.textContent = 'BDT 0';
     if (totalShippingNode) totalShippingNode.textContent = 'BDT 0';
     if (totalDiscountNode) totalDiscountNode.textContent = '- BDT 0';
+    if (totalPaymentNode) totalPaymentNode.textContent = 'BDT 0';
     if (totalGrandNode) totalGrandNode.textContent = 'BDT 0';
     if (historyCountNode) historyCountNode.textContent = '0 history';
     if (historyBody instanceof HTMLElement) {
@@ -2242,6 +2244,14 @@ function initOrderDetailsPage() {
     const shipping = Math.max(0, toNumber(details.delivery_charge ?? details.shipping_fee, 0));
     const discount = Math.max(0, toNumber(details.discount, 0));
     const grandTotal = Math.max(0, toNumber(details.grand_total, subtotal + shipping - discount));
+    const totalPayment = Math.max(0, toNumber(
+      details.total_payment
+      ?? details.total_paid
+      ?? details.paid_amount
+      ?? details.partial_paid
+      ?? details.partial_payment,
+      grandTotal
+    ));
 
     if (titleNode) titleNode.textContent = `Order ${resolvedOrderId}`;
     const userProfileId = text(details.customer_id || details.user_id || details.user_client_id || '');
@@ -2313,6 +2323,7 @@ function initOrderDetailsPage() {
     if (totalSubtotalNode) totalSubtotalNode.textContent = formatBdt(subtotal);
     if (totalShippingNode) totalShippingNode.textContent = formatBdt(shipping);
     if (totalDiscountNode) totalDiscountNode.textContent = `- ${formatBdt(discount)}`;
+    if (totalPaymentNode) totalPaymentNode.textContent = formatBdt(totalPayment);
     if (totalGrandNode) totalGrandNode.textContent = formatBdt(grandTotal);
 
     renderHistoryRows(historyRows);

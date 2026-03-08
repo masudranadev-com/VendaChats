@@ -210,6 +210,10 @@
         <span>Discount</span>
         <strong data-order-details-total-discount>- BDT 0</strong>
       </div>
+      <div>
+        <span>Total Payment</span>
+        <strong data-order-details-total-payment>BDT 0</strong>
+      </div>
       <div class="orders-total-grand">
         <span>Grand Total</span>
         <strong data-order-details-total-grand>BDT 0</strong>
