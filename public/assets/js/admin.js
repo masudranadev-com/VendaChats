@@ -1895,6 +1895,23 @@ function initOrderDetailsPage() {
   const totalGrandNode = section.querySelector('[data-order-details-total-grand]');
   const historyCountNode = section.querySelector('[data-order-details-history-count]');
   const historyBody = section.querySelector('[data-order-details-history-body]');
+  const discountForm = section.querySelector('[data-order-details-discount-form]');
+  const discountAmountInput = section.querySelector('[data-order-details-discount-input]');
+  const discountReasonInput = section.querySelector('[data-order-details-discount-reason]');
+  const discountSubmitButton = section.querySelector('[data-order-details-discount-submit]');
+  const partialForm = section.querySelector('[data-order-details-partial-form]');
+  const partialAmountInput = section.querySelector('[data-order-details-partial-input]');
+  const partialSubmitButton = section.querySelector('[data-order-details-partial-submit]');
+  const confirmActionForm = section.querySelector('[data-order-details-confirm-form]');
+  const discountSection = section.querySelector('[data-order-details-discount-section]');
+  const partialSection = section.querySelector('[data-order-details-partial-section]');
+  const allowedOrderActionStatuses = new Set([
+    'waiting_for_call',
+    'waiting_for_confirmation',
+    'ready_to_dispatch',
+  ]);
+  const orderActionStatusHint = 'Waiting For Call, Waiting For Confirmation, or Ready To Dispatch';
+  let orderActionsAllowed = false;
 
   const setMessage = (message, tone = 'info') => {
     if (!(messageNode instanceof HTMLElement)) return;
@@ -1911,6 +1928,41 @@ function initOrderDetailsPage() {
       loaderNode.hidden = !loading;
     }
     section.classList.toggle('is-loading', loading);
+  };
+  const parsePositiveAmount = (value) => {
+    const numeric = Number.parseFloat(String(value ?? '').trim());
+    return Number.isFinite(numeric) && numeric > 0 ? numeric : NaN;
+  };
+  const setButtonLoading = (button, loading, loadingLabel = 'Applying...') => {
+    if (!(button instanceof HTMLButtonElement)) return;
+    if (!button.dataset.idleLabel) {
+      button.dataset.idleLabel = button.textContent || 'Apply';
+    }
+
+    button.disabled = loading;
+    button.textContent = loading ? loadingLabel : (button.dataset.idleLabel || 'Apply');
+  };
+  const resolveErrorMessage = (error, fallbackMessage) => {
+    const payloadMessage = text(error?.payload?.message || error?.payload?.error);
+    if (payloadMessage) return payloadMessage;
+    if (error?.isTimeout) return 'Request timed out. Please try again.';
+    return text(error?.message || fallbackMessage) || fallbackMessage;
+  };
+  const setOrderActionsAvailability = (statusValue) => {
+    const normalized = normalizeStatus(statusValue);
+    orderActionsAllowed = allowedOrderActionStatuses.has(normalized);
+
+    if (confirmActionForm instanceof HTMLFormElement) {
+      confirmActionForm.hidden = !orderActionsAllowed;
+    }
+    if (discountSection instanceof HTMLElement) {
+      discountSection.hidden = !orderActionsAllowed;
+    }
+    if (partialSection instanceof HTMLElement) {
+      partialSection.hidden = !orderActionsAllowed;
+    }
+
+    return orderActionsAllowed;
   };
 
   const setUserProfileLink = (userId = '') => {
@@ -1966,6 +2018,7 @@ function initOrderDetailsPage() {
       success_order: 0,
     });
     setUserProfileLink('');
+    setOrderActionsAvailability('');
   };
 
   const updateFraudUi = (fraudSignals) => {
@@ -2094,6 +2147,75 @@ function initOrderDetailsPage() {
       timeoutMs: 12000,
     });
   };
+  const putWithFetch = async (path, body) => {
+    const headers = {
+      Accept: 'application/json',
+      'Content-Type': 'application/json',
+      'ngrok-skip-browser-warning': 'true',
+    };
+
+    const tokenForHeader = refreshToken || bearerToken;
+    if (tokenForHeader) {
+      headers['x-refresh-token'] = tokenForHeader;
+    }
+    if (bearerToken) {
+      headers.Authorization = bearerToken.startsWith('Bearer ')
+        ? bearerToken
+        : `Bearer ${bearerToken}`;
+    }
+
+    const response = await fetch(`${apiBase}${path}`, {
+      method: 'PUT',
+      headers,
+      body: JSON.stringify(body),
+    });
+    const contentType = text(response.headers.get('content-type')).toLowerCase();
+    const payload = contentType.includes('application/json')
+      ? await response.json().catch(() => ({}))
+      : await response.text().catch(() => '');
+
+    if (!response.ok) {
+      const message = typeof payload === 'string'
+        ? payload
+        : text(payload?.message || payload?.error || '');
+      const error = new Error(message || `Request failed (${response.status}).`);
+      error.status = response.status;
+      error.payload = payload;
+      throw error;
+    }
+
+    return payload;
+  };
+  const requestOrderMutationByPath = async (path, body) => {
+    const tokenForRequest = refreshToken || bearerToken || undefined;
+    if (window.API && typeof window.API.request === 'function') {
+      return window.API.request({
+        baseUrl: apiBase,
+        path,
+        method: 'PUT',
+        token: tokenForRequest,
+        body,
+        timeoutMs: 12000,
+        includeNgrokHeader: true,
+      });
+    }
+
+    return putWithFetch(path, body);
+  };
+  const mutateOrderHistory = async (suffix, body, apiModuleCall) => {
+    const encodedOrderId = encodeURIComponent(orderId);
+    const fallbackPath = `/order-history/${encodedOrderId}/${suffix}`;
+
+    if (typeof apiModuleCall === 'function') {
+      try {
+        return await apiModuleCall();
+      } catch (error) {
+        if (error?.status !== 404 && error?.message !== '__NO_API_METHOD__') throw error;
+      }
+    }
+
+    return requestOrderMutationByPath(fallbackPath, body);
+  };
 
   const hydrate = (details) => {
     const resolvedOrderId = text(details.order_id || details.id || orderId);
@@ -2104,6 +2226,7 @@ function initOrderDetailsPage() {
     const address = text(details.address || '-');
     const method = titleCase(details.method || details.payment || 'N/A');
     const channel = titleCase(details.channel || 'N/A');
+    const status = text(details.status || details.order_status || details.state || '');
 
     const products = Array.isArray(details.products)
       ? details.products
@@ -2139,6 +2262,7 @@ function initOrderDetailsPage() {
     if (addressNode) addressNode.textContent = address;
     if (methodNode) methodNode.textContent = `Payment: ${method}`;
     if (channelNode) channelNode.textContent = `Channel: ${channel}`;
+    setOrderActionsAvailability(status);
 
     if (productsCountNode) productsCountNode.textContent = `${products.length} products`;
 
@@ -2195,54 +2319,195 @@ function initOrderDetailsPage() {
     updateFraudUi(fraudSignals);
   };
 
-  resetUiForLoading();
-  setLoading(true);
-  setMessage('Loading order details...', 'info');
+  const loadOrderDetails = ({showLoader = true, infoMessage = 'Loading order details...'} = {}) => {
+    if (showLoader) {
+      resetUiForLoading();
+      setLoading(true);
+    }
+    if (infoMessage) {
+      setMessage(infoMessage, 'info');
+    }
+
+    return fetchWithJquery()
+      .catch((error) => {
+        if (error?.message === '__NO_JQUERY__') {
+          return fetchWithApiModule();
+        }
+
+        return fetchWithApiModule().catch(() => Promise.reject(error));
+      })
+      .then((payload) => {
+        const details = extractDetailsPayload(payload);
+        if (!details || typeof details !== 'object') {
+          throw new Error('Order details payload is invalid.');
+        }
+
+        hydrate(details);
+        clearMessage();
+        return details;
+      })
+      .catch((error) => {
+        const message = resolveErrorMessage(error, 'Failed to load order details.');
+        setMessage(message, 'danger');
+        if (typeof window.showError === 'function') {
+          window.showError(message);
+        }
+        throw error;
+      })
+      .finally(() => {
+        if (showLoader) {
+          setLoading(false);
+        }
+      });
+  };
 
   if (!apiBase) {
-    setLoading(false);
     setMessage('Backend API URL is missing.', 'danger');
     return;
   }
   if (!orderId) {
-    setLoading(false);
     setMessage('Order ID is missing from URL.', 'danger');
     return;
   }
 
   normalizeDetailsUrl();
 
-  fetchWithJquery()
-    .catch((error) => {
-      if (error?.message === '__NO_JQUERY__') {
-        return fetchWithApiModule();
+  if (discountForm instanceof HTMLFormElement) {
+    discountForm.addEventListener('submit', async (event) => {
+      event.preventDefault();
+
+      if (!orderActionsAllowed) {
+        setMessage(`Discount update is available only for ${orderActionStatusHint}.`, 'danger');
+        return;
       }
 
-      return fetchWithApiModule().catch(() => Promise.reject(error));
-    })
-    .then((payload) => {
-      const details = extractDetailsPayload(payload);
-      if (!details || typeof details !== 'object') {
-        throw new Error('Order details payload is invalid.');
+      if (!(discountAmountInput instanceof HTMLInputElement) || !discountForm.reportValidity()) {
+        return;
       }
 
-      hydrate(details);
-      clearMessage();
-    })
-    .catch((error) => {
-      const payloadMessage = text(error?.payload?.message || error?.payload?.error);
-      const message = payloadMessage || (error?.isTimeout
-        ? 'Order details request timed out. Please try again.'
-        : (error?.message || 'Failed to load order details.'));
-
-      setMessage(message, 'danger');
-      if (typeof window.showError === 'function') {
-        window.showError(message);
+      const discountAmount = parsePositiveAmount(discountAmountInput.value);
+      if (!Number.isFinite(discountAmount)) {
+        setMessage('Enter a valid discount amount greater than 0.', 'danger');
+        discountAmountInput.focus();
+        return;
       }
-    })
-    .finally(() => {
-      setLoading(false);
+
+      setButtonLoading(discountSubmitButton, true);
+      setMessage('Applying discount...', 'info');
+
+      try {
+        await mutateOrderHistory(
+          'discount',
+          {discount: discountAmount},
+          () => {
+            if (!window.API?.Admin?.OrderHistory || typeof window.API.Admin.OrderHistory.updateDiscount !== 'function') {
+              return Promise.reject(new Error('__NO_API_METHOD__'));
+            }
+
+            return window.API.Admin.OrderHistory.updateDiscount({
+              apiBaseUrl: apiBase,
+              refreshToken: refreshToken || bearerToken || undefined,
+              orderId,
+              discount: discountAmount,
+              timeoutMs: 12000,
+            });
+          }
+        );
+
+        if (discountAmountInput instanceof HTMLInputElement) {
+          discountAmountInput.value = '';
+        }
+        if (discountReasonInput instanceof HTMLInputElement) {
+          discountReasonInput.value = '';
+        }
+
+        if (typeof window.showSuccess === 'function') {
+          window.showSuccess(`Discount updated for ${orderId}.`);
+        }
+        await loadOrderDetails({
+          showLoader: false,
+          infoMessage: 'Discount applied. Refreshing order details...',
+        });
+      } catch (error) {
+        const message = resolveErrorMessage(error, 'Failed to apply discount.');
+        setMessage(message, 'danger');
+        if (typeof window.showError === 'function') {
+          window.showError(message);
+        }
+      } finally {
+        setButtonLoading(discountSubmitButton, false);
+      }
     });
+  }
+
+  if (partialForm instanceof HTMLFormElement) {
+    partialForm.addEventListener('submit', async (event) => {
+      event.preventDefault();
+
+      if (!orderActionsAllowed) {
+        setMessage(`Partial payment is available only for ${orderActionStatusHint}.`, 'danger');
+        return;
+      }
+
+      if (!(partialAmountInput instanceof HTMLInputElement) || !partialForm.reportValidity()) {
+        return;
+      }
+
+      const partialPaid = parsePositiveAmount(partialAmountInput.value);
+      if (!Number.isFinite(partialPaid)) {
+        setMessage('Enter a valid partial payment amount greater than 0.', 'danger');
+        partialAmountInput.focus();
+        return;
+      }
+
+      setButtonLoading(partialSubmitButton, true);
+      setMessage('Applying partial payment...', 'info');
+
+      try {
+        await mutateOrderHistory(
+          'partial-payment',
+          {partial_paid: partialPaid},
+          () => {
+            if (!window.API?.Admin?.OrderHistory || typeof window.API.Admin.OrderHistory.updatePartialPayment !== 'function') {
+              return Promise.reject(new Error('__NO_API_METHOD__'));
+            }
+
+            return window.API.Admin.OrderHistory.updatePartialPayment({
+              apiBaseUrl: apiBase,
+              refreshToken: refreshToken || bearerToken || undefined,
+              orderId,
+              partialPaid,
+              timeoutMs: 12000,
+            });
+          }
+        );
+
+        if (partialAmountInput instanceof HTMLInputElement) {
+          partialAmountInput.value = '';
+        }
+
+        if (typeof window.showSuccess === 'function') {
+          window.showSuccess(`Partial payment updated for ${orderId}.`);
+        }
+        await loadOrderDetails({
+          showLoader: false,
+          infoMessage: 'Partial payment applied. Refreshing order details...',
+        });
+      } catch (error) {
+        const message = resolveErrorMessage(error, 'Failed to apply partial payment.');
+        setMessage(message, 'danger');
+        if (typeof window.showError === 'function') {
+          window.showError(message);
+        }
+      } finally {
+        setButtonLoading(partialSubmitButton, false);
+      }
+    });
+  }
+
+  loadOrderDetails().catch(() => {
+    // Error is already handled in loadOrderDetails.
+  });
 }
 
 

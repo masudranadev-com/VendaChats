@@ -363,6 +363,58 @@
             timeoutMs,
           });
         },
+        updateDiscount({
+          apiBaseUrl,
+          refreshToken,
+          orderId,
+          discount,
+          timeoutMs = 12000
+        } = {}) {
+          const orderIdText = toText(orderId);
+          const discountAmount = Number(discount);
+
+          if (!orderIdText) {
+            throw new ApiError('order_id is required');
+          }
+          if (!Number.isFinite(discountAmount) || discountAmount <= 0) {
+            throw new ApiError('discount must be greater than 0');
+          }
+
+          return request({
+            baseUrl: normalizeBaseUrl(apiBaseUrl),
+            path: `/api/admin/order-history/${encodeURIComponent(orderIdText)}/discount`,
+            method: 'PUT',
+            token: refreshToken,
+            body: {discount: discountAmount},
+            timeoutMs,
+          });
+        },
+        updatePartialPayment({
+          apiBaseUrl,
+          refreshToken,
+          orderId,
+          partialPaid,
+          timeoutMs = 12000
+        } = {}) {
+          const orderIdText = toText(orderId);
+          const partialPaidAmount = Number(partialPaid);
+
+          if (!orderIdText) {
+            throw new ApiError('order_id is required');
+          }
+          if (!Number.isFinite(partialPaidAmount) || partialPaidAmount <= 0) {
+            throw new ApiError('partial_paid must be greater than 0');
+          }
+
+          return request({
+            baseUrl: normalizeBaseUrl(apiBaseUrl),
+            path: `/api/admin/order-history/${encodeURIComponent(orderIdText)}/partial-payment`,
+            method: 'PUT',
+            token: refreshToken,
+            body: {partial_paid: partialPaidAmount},
+            timeoutMs,
+          });
+        },
       },
       Users: {
         list({

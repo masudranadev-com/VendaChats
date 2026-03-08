@@ -18,6 +18,7 @@
       </div>
     </div>
   <div class="page-header orders-page-header">
+    @php($orderActionsEnabled = (bool) ($invoiceEnabled ?? false))
     <div>
       <h1 class="page-title" data-order-details-order-title>Order {{ $orderId }}</h1>
       <p class="page-subtitle">{{ $subtitle }}</p>
@@ -28,18 +29,18 @@
       <a href="{{ route('admin.users.views') }}" class="btn btn-info" data-order-details-user-profile-link data-user-profile-base-url="{{ route('admin.users.views') }}">
         User Profile
       </a>
-      @if ($invoiceEnabled ?? true)
+      <div data-order-details-confirm-wrap>
         <form
+          data-order-details-confirm-form
           action="{{ route('admin.orders.confirm', ['orderId' => $orderId]) }}"
           method="POST"
+          {{ $orderActionsEnabled ? '' : 'hidden' }}
           onsubmit="return confirm('Confirm this order and generate invoice now?');"
         >
           @csrf
           <button type="submit" class="btn btn-success">Confirm + Invoice</button>
         </form>
-      @else
-        <span class="badge badge-danger">Invoice disabled for this order status.</span>
-      @endif
+      </div>
     </div>
   </div>
 
@@ -111,62 +112,63 @@
     </section>
   </div>
 
-  <section class="card mt-xl">
+  <section class="card mt-xl" data-order-details-discount-section {{ $orderActionsEnabled ? '' : 'hidden' }}>
     <div class="card-header">
-      <h3 class="card-title">Coupon / Manual Discount</h3>
-      <span class="badge badge-warning">Not Applied</span>
+      <h3 class="card-title">Discount Info</h3>
     </div>
 
-    <form action="{{ route('admin.orders.discount.apply', ['orderId' => $orderId]) }}" method="POST">
-      @csrf
+    <form data-order-details-discount-form>
       <div class="orders-discount-grid">
-        <div class="form-group">
-          <label class="form-label" for="coupon_code">Coupon Code (Optional)</label>
+        <div class="form-group" style="grid-column: 1 / -1;">
+          <label class="form-label" for="orderDiscountAmount">Discount Amount</label>
           <input
-            id="coupon_code"
-            type="text"
-            name="coupon_code"
-            class="form-input"
-            placeholder="EID25, VIP-150..."
-            value="{{ old('coupon_code', '') }}"
-          >
-        </div>
-        <div class="form-group">
-          <label class="form-label" for="discount_type">Discount Type</label>
-          <select id="discount_type" name="discount_type" class="form-select">
-            <option value="fixed" {{ old('discount_type', 'fixed') === 'fixed' ? 'selected' : '' }}>
-              Fixed Amount (BDT)
-            </option>
-            <option value="percent" {{ old('discount_type', 'fixed') === 'percent' ? 'selected' : '' }}>
-              Percentage (%)
-            </option>
-          </select>
-        </div>
-        <div class="form-group">
-          <label class="form-label" for="discount_value">Discount Value</label>
-          <input
-            id="discount_value"
+            id="orderDiscountAmount"
             type="number"
-            name="discount_value"
+            name="discount"
             class="form-input"
             min="0.01"
             step="0.01"
-            placeholder="100 or 10 for 10%"
-            value="{{ old('discount_value', '') }}"
+            placeholder="Enter discount amount"
+            value=""
+            data-order-details-discount-input
             required
           >
         </div>
       </div>
 
       <div class="orders-discount-actions">
-        <button type="submit" class="btn btn-primary">Apply Discount</button>
+        <button type="submit" class="btn btn-primary" data-order-details-discount-submit>Apply</button>
       </div>
     </form>
+  </section>
 
+  <section class="card mt-xl" data-order-details-partial-section {{ $orderActionsEnabled ? '' : 'hidden' }}>
+    <div class="card-header">
+      <h3 class="card-title">Partial Payment</h3>
+    </div>
+    <form data-order-details-partial-form>
+      <div class="orders-discount-grid">
+        <div class="form-group" style="grid-column: 1 / -1;">
+          <label class="form-label" for="orderPartialPayment">Partial Payment</label>
+          <input
+            id="orderPartialPayment"
+            type="number"
+            name="partial_paid"
+            class="form-input"
+            min="0.01"
+            step="0.01"
+            placeholder="Enter partial amount"
+            value=""
+            data-order-details-partial-input
+            required
+          >
+        </div>
+      </div>
 
-    <p class="orders-discount-help">
-      Tip: use Percentage for coupon campaigns and Fixed Amount for direct negotiation discounts.
-    </p>
+      <div class="orders-discount-actions">
+        <button type="submit" class="btn btn-primary" data-order-details-partial-submit>Apply</button>
+      </div>
+    </form>
   </section>
 
   <section class="card mt-xl">

@@ -97,11 +97,15 @@ class AdminOrderController extends Controller
             ?? $request->session()->get('refresh_token')
             ?? ''
         );
+        $order = $this->findOrderById($orderId, false);
+        $invoiceEnabled = is_array($order)
+            ? $this->isInvoiceAllowedForStatus((string) ($order['status'] ?? ''))
+            : false;
 
         return view('admin.orders.view', [
             'title' => 'Order Details',
             'subtitle' => 'Review customer profile, fraud risk, product line items, and fulfillment trail.',
-            'invoiceEnabled' => true,
+            'invoiceEnabled' => $invoiceEnabled,
             'ordersApiBaseUrl' => rtrim((string) config('services.backend.url', 'http://localhost:8082'), '/'),
             'ordersRefreshToken' => $refreshToken,
             'orderId' => $orderId,
@@ -172,10 +176,10 @@ class AdminOrderController extends Controller
         $order = $this->findOrderById($orderId);
         abort_unless($order !== null, 404);
 
-        if ($this->isInvoiceDisabledForStatus((string) ($order['status'] ?? ''))) {
+        if (! $this->isInvoiceAllowedForStatus((string) ($order['status'] ?? ''))) {
             return redirect()
                 ->route('admin.orders.view', ['orderId' => $order['id']])
-                ->withErrors(['invoice' => 'Invoice is disabled for canceled orders.']);
+                ->withErrors(['invoice' => 'Confirm + Invoice is available only for Waiting For Call, Waiting For Confirmation, or Ready To Dispatch.']);
         }
 
         return redirect()
@@ -188,10 +192,10 @@ class AdminOrderController extends Controller
         $order = $this->findOrderForPreview($orderId, (string) $request->query('status', ''));
         abort_unless($order !== null, 404);
 
-        if ($this->isInvoiceDisabledForStatus((string) ($order['status'] ?? ''))) {
+        if (! $this->isInvoiceAllowedForStatus((string) ($order['status'] ?? ''))) {
             return redirect()
                 ->route('admin.orders.view', ['orderId' => $order['id']])
-                ->withErrors(['invoice' => 'Invoice is disabled for canceled orders.']);
+                ->withErrors(['invoice' => 'Confirm + Invoice is available only for Waiting For Call, Waiting For Confirmation, or Ready To Dispatch.']);
         }
 
         return view('admin.orders.invoice', [
@@ -244,11 +248,11 @@ class AdminOrderController extends Controller
         return $order;
     }
 
-    private function isInvoiceDisabledForStatus(string $status): bool
+    private function isInvoiceAllowedForStatus(string $status): bool
     {
         return in_array(
             $this->normalizeStatus($status),
-            ['cancel_on_called', 'cancel_on_confirmation'],
+            ['waiting_for_call', 'waiting_for_confirmation', 'ready_to_dispatch'],
             true
         );
     }
