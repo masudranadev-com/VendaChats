@@ -1798,6 +1798,7 @@ function initOrderDetailsPage() {
   const apiBase = String(section.dataset.apiBaseUrl || '').replace(/\/+$/, '');
   const sessionToken = String(section.dataset.refreshToken || '').trim();
   const configuredOrderId = String(section.dataset.orderId || '').trim();
+  const invoiceUrlTemplate = String(section.dataset.orderInvoiceUrlTemplate || '').trim();
   const apiToken = String(window.API?.getToken?.() || '').trim();
   let accessToken = '';
   let storageToken = '';
@@ -1904,6 +1905,7 @@ function initOrderDetailsPage() {
   const partialAmountInput = section.querySelector('[data-order-details-partial-input]');
   const partialSubmitButton = section.querySelector('[data-order-details-partial-submit]');
   const confirmActionForm = section.querySelector('[data-order-details-confirm-form]');
+  const confirmSubmitButton = confirmActionForm?.querySelector('button[type="submit"]');
   const discountSection = section.querySelector('[data-order-details-discount-section]');
   const partialSection = section.querySelector('[data-order-details-partial-section]');
   const allowedOrderActionStatuses = new Set([
@@ -1913,6 +1915,8 @@ function initOrderDetailsPage() {
   ]);
   const orderActionStatusHint = 'Waiting For Call, Waiting For Confirmation, or Ready To Dispatch';
   let orderActionsAllowed = false;
+  let currentOrderStatus = '';
+  let currentResolvedOrderId = orderId;
 
   const setMessage = (message, tone = 'info') => {
     if (!(messageNode instanceof HTMLElement)) return;
@@ -1949,8 +1953,28 @@ function initOrderDetailsPage() {
     if (error?.isTimeout) return 'Request timed out. Please try again.';
     return text(error?.message || fallbackMessage) || fallbackMessage;
   };
+  const transitionStatusForConfirm = (statusValue) => {
+    const normalized = normalizeStatus(statusValue);
+    if (normalized === 'waiting_for_call') return 'waiting_for_confirmation';
+    if (normalized === 'waiting_for_confirmation') return 'ready_to_dispatch';
+    if (normalized === 'ready_to_dispatch') return 'in_transit';
+    if (normalized === 'in_transit') return 'success';
+    return '';
+  };
+  const buildInvoiceUrl = (nextOrderId = '') => {
+    const resolvedId = text(nextOrderId || currentResolvedOrderId || orderId);
+    if (invoiceUrlTemplate.includes('__ORDER_ID__')) {
+      return invoiceUrlTemplate.replace('__ORDER_ID__', encodeURIComponent(resolvedId));
+    }
+    if (invoiceUrlTemplate) {
+      return invoiceUrlTemplate;
+    }
+
+    return `${window.location.pathname.replace(/\/+$/, '')}/invoice`;
+  };
   const setOrderActionsAvailability = (statusValue) => {
     const normalized = normalizeStatus(statusValue);
+    currentOrderStatus = normalized;
     orderActionsAllowed = allowedOrderActionStatuses.has(normalized);
 
     if (confirmActionForm instanceof HTMLFormElement) {
@@ -1995,7 +2019,7 @@ function initOrderDetailsPage() {
     if (productsBody instanceof HTMLElement) {
       productsBody.innerHTML = `
         <tr>
-          <td colspan="6" class="users-empty"><span class="ui-skeleton-line is-lg"></span><span class="ui-skeleton-line is-sm"></span></td>
+          <td colspan="5" class="users-empty"><span class="ui-skeleton-line is-lg"></span><span class="ui-skeleton-line is-sm"></span></td>
         </tr>
       `;
     }
@@ -2019,6 +2043,7 @@ function initOrderDetailsPage() {
       cod_cancelled: 0,
       success_order: 0,
     });
+    currentResolvedOrderId = orderId;
     setUserProfileLink('');
     setOrderActionsAvailability('');
   };
@@ -2206,7 +2231,7 @@ function initOrderDetailsPage() {
   };
   const mutateOrderHistory = async (suffix, body, apiModuleCall) => {
     const encodedOrderId = encodeURIComponent(orderId);
-    const fallbackPath = `/order-history/${encodedOrderId}/${suffix}`;
+    const fallbackPath = `/api/admin/order-history/${encodedOrderId}/${suffix}`;
 
     if (typeof apiModuleCall === 'function') {
       try {
@@ -2221,6 +2246,7 @@ function initOrderDetailsPage() {
 
   const hydrate = (details) => {
     const resolvedOrderId = text(details.order_id || details.id || orderId);
+    currentResolvedOrderId = resolvedOrderId || orderId;
     const customerName = text(details.name || details.customer_name || 'Unknown');
     const profile = text(details.profile || '');
     const email = text(details.email || '-');
@@ -2280,7 +2306,7 @@ function initOrderDetailsPage() {
       if (!products.length) {
         productsBody.innerHTML = `
           <tr>
-            <td colspan="6" class="users-empty">No products found for this order.</td>
+            <td colspan="5" class="users-empty">No products found for this order.</td>
           </tr>
         `;
       } else {
@@ -2288,7 +2314,6 @@ function initOrderDetailsPage() {
           const title = text(item?.title || item?.name || 'Unnamed Product');
           const sku = text(item?.sku || '-');
           const qty = Math.max(0, toInt(item?.qty, 0));
-          const variant = text(item?.variant || '-');
           const image = text(item?.image || '');
           const unitPrice = toNumber(item?.unit_price, NaN);
           const total = toNumber(item?.total, Number.isFinite(unitPrice) ? unitPrice * qty : NaN);
@@ -2310,7 +2335,6 @@ function initOrderDetailsPage() {
                 </div>
               </td>
               <td>${escapeHtml(sku)}</td>
-              <td>${escapeHtml(variant)}</td>
               <td>${qty}</td>
               <td>${escapeHtml(unitPriceText)}</td>
               <td class="orders-cell-strong">${escapeHtml(totalText)}</td>
@@ -2382,6 +2406,74 @@ function initOrderDetailsPage() {
   }
 
   normalizeDetailsUrl();
+
+  if (confirmActionForm instanceof HTMLFormElement) {
+    confirmActionForm.addEventListener('submit', async (event) => {
+      event.preventDefault();
+
+      if (!orderActionsAllowed) {
+        setMessage(`Confirm + Invoice is available only for ${orderActionStatusHint}.`, 'danger');
+        return;
+      }
+
+      const sourceStatus = currentOrderStatus;
+      const targetStatus = transitionStatusForConfirm(sourceStatus);
+      if (!targetStatus) {
+        setMessage('This order cannot be confirmed from its current status.', 'danger');
+        return;
+      }
+
+      if (typeof window.confirm === 'function' && !window.confirm('Confirm this order and generate invoice now?')) {
+        return;
+      }
+
+      setButtonLoading(confirmSubmitButton, true, 'Confirming...');
+      setMessage('Confirming order and preparing invoice...', 'info');
+
+      try {
+        const payload = await mutateOrderHistory(
+          'status',
+          {status: targetStatus},
+          () => {
+            if (!window.API?.Admin?.OrderHistory || typeof window.API.Admin.OrderHistory.updateStatus !== 'function') {
+              return Promise.reject(new Error('__NO_API_METHOD__'));
+            }
+
+            return window.API.Admin.OrderHistory.updateStatus({
+              apiBaseUrl: apiBase,
+              refreshToken: refreshToken || bearerToken || undefined,
+              orderId,
+              status: targetStatus,
+              timeoutMs: 12000,
+            });
+          }
+        );
+
+        const responseStatus = normalizeStatus(
+          payload?.status
+          || payload?.data?.status
+          || payload?.order?.status
+          || targetStatus
+        ) || targetStatus;
+
+        currentOrderStatus = responseStatus;
+
+        if (typeof window.showSuccess === 'function') {
+          window.showSuccess(`Order ${currentResolvedOrderId}: ${titleCase(sourceStatus)} -> ${titleCase(responseStatus)}.`);
+        }
+
+        window.location.assign(buildInvoiceUrl(currentResolvedOrderId));
+      } catch (error) {
+        const message = resolveErrorMessage(error, 'Failed to confirm order.');
+        setMessage(message, 'danger');
+        if (typeof window.showError === 'function') {
+          window.showError(message);
+        }
+      } finally {
+        setButtonLoading(confirmSubmitButton, false);
+      }
+    });
+  }
 
   if (discountForm instanceof HTMLFormElement) {
     discountForm.addEventListener('submit', async (event) => {

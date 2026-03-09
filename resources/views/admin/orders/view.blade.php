@@ -9,6 +9,7 @@
     data-api-base-url="{{ $ordersApiBaseUrl ?? '' }}"
     data-refresh-token="{{ $ordersRefreshToken ?? '' }}"
     data-order-id="{{ $orderId }}"
+    data-order-invoice-url-template="{{ route('admin.orders.invoice', ['orderId' => '__ORDER_ID__']) }}"
   >
     <div class="ui-section-loader" data-ui-loader>
       <span class="ui-section-loader-spinner" aria-hidden="true"></span>
@@ -35,7 +36,6 @@
           action="{{ route('admin.orders.confirm', ['orderId' => $orderId]) }}"
           method="POST"
           {{ $orderActionsEnabled ? '' : 'hidden' }}
-          onsubmit="return confirm('Confirm this order and generate invoice now?');"
         >
           @csrf
           <button type="submit" class="btn btn-success">Confirm + Invoice</button>
@@ -183,7 +183,6 @@
           <tr>
             <th>Product</th>
             <th>SKU</th>
-            <th>Variant</th>
             <th>Qty</th>
             <th>Unit Price</th>
             <th>Line Total</th>
@@ -191,7 +190,7 @@
         </thead>
 <tbody data-order-details-products-body>
   <tr>
-    <td colspan="6" class="users-empty"><span class="ui-skeleton-line is-lg"></span><span class="ui-skeleton-line is-sm"></span></td>
+    <td colspan="5" class="users-empty"><span class="ui-skeleton-line is-lg"></span><span class="ui-skeleton-line is-sm"></span></td>
   </tr>
 </tbody>
       </table>
