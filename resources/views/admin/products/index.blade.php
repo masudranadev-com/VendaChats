@@ -11,6 +11,7 @@
       <p class="page-subtitle">{{ $subtitle }}</p>
     </div>
     <div class="products-header-actions">
+      <a href="{{ route('admin.order-call') }}" class="btn btn-info">Call Voice Setup</a>
       <a href="{{ route('admin.categories') }}" class="btn btn-secondary">Manage Categories</a>
       <a href="{{ route('admin.products.create') }}" class="btn btn-primary">+ Add Product</a>
     </div>
@@ -33,6 +34,59 @@
     <article class="products-kpi-card is-info">
         <span>Total Visitor</span>
         <strong>--</strong>
+    </article>
+  </section>
+
+  <section class="products-voice-overview">
+    <article class="card products-voice-upsell-card">
+      <div class="card-header">
+        <h3 class="card-title">AI Call Confirmation Voice</h3>
+        <span class="badge badge-warning">{{ $callVoiceFeature['enabled'] ? 'Active' : 'Locked' }}</span>
+      </div>
+
+      <div class="products-voice-upsell-copy">
+        <strong>Premium package required</strong>
+        <p>Unlock automated phone confirmation for orders. Every product title can generate its own call voice script for confirm or reject flow.</p>
+      </div>
+
+      <div class="products-voice-price-chip">
+        <span>Monthly package</span>
+        <strong>BDT {{ number_format($callVoiceFeature['price_bdt']) }}</strong>
+      </div>
+
+      <ul class="products-voice-feature-list">
+        <li>Bangla + English voice script preview</li>
+        <li>All-language support through automatic AI adaptation</li>
+        <li>Auto sync when product title changes</li>
+        <li>1 to confirm, 2 to cancel call flow</li>
+      </ul>
+
+      <div class="products-voice-actions">
+        <a href="{{ route('admin.order-call') }}" class="btn btn-primary">Open Feature Page</a>
+        <a href="{{ route('admin.products.create') }}" class="btn btn-ghost">Try Product Preview</a>
+      </div>
+    </article>
+
+    <article class="card products-voice-library-card">
+      <div class="card-header">
+        <h3 class="card-title">Voice Library Preview</h3>
+        <span class="badge badge-info">Demo Queue</span>
+      </div>
+
+      <div class="products-voice-library-list">
+        @foreach ($callVoiceFeature['recent_voices'] as $voice)
+          <article class="products-voice-library-item">
+            <div>
+              <strong>{{ $voice['title'] }}</strong>
+              <p>{{ $voice['language'] }}</p>
+            </div>
+            <div class="products-voice-library-meta">
+              <span>{{ $voice['duration'] }}</span>
+              <small>{{ $voice['status'] }}</small>
+            </div>
+          </article>
+        @endforeach
+      </div>
     </article>
   </section>
 
@@ -195,4 +249,3 @@
   </div>
 
 @endsection
-

@@ -16,6 +16,7 @@
     'admin.products.create' => 'products',
     'admin.products.edit' => 'products',
     'admin.categories' => 'products',
+    'admin.order-call' => 'order-call',
     'admin.users' => 'users',
     'admin.users.views' => 'users',
     'admin.posts' => 'posts',
@@ -90,6 +91,10 @@
           <a href="{{ route('admin.bot-settings') }}" class="nav-item {{ $currentPage === 'bot-settings' ? 'active' : '' }}">
             <span class="nav-icon">🤖</span>
             <span class="nav-label">Bot Settings</span>
+          </a>
+          <a href="{{ route('admin.order-call') }}" class="nav-item {{ $currentPage === 'order-call' ? 'active' : '' }}">
+            <span class="nav-icon">📞</span>
+            <span class="nav-label">Call Confirm</span>
           </a>
           <a href="{{ route('admin.campaigns') }}" class="nav-item {{ $currentPage === 'campaigns' ? 'active' : '' }}">
             <span class="nav-icon">🚀</span>

@@ -281,6 +281,8 @@ const AdminCkeditor = (() => {
 
 window.AdminCkeditor = AdminCkeditor;
 
+const ORDER_CALL_PAGE_NAME_STORAGE_KEY = 'admin_order_call_page_name';
+
 // ── Initialize on DOM load ──
 document.addEventListener('DOMContentLoaded', () => {
   initTheme();
@@ -297,6 +299,7 @@ document.addEventListener('DOMContentLoaded', () => {
   initOrderDetailsPage();
   initOrdersManualOrder();
   initBotSettings();
+  initOrderCallPage();
   initDashboardPage();
   initProductsCatalogPage();
   initUsersCatalogPage();
@@ -315,6 +318,7 @@ document.addEventListener('DOMContentLoaded', () => {
   initCategoryEditor();
   initCategoryDeleteGuards();
   initProductCreateAiWriter();
+  initProductCallVoicePreview();
   initProductCreateSubmit();
   initProductEditPrefill();
   setActivePage();
@@ -9164,6 +9168,172 @@ function initProductDemoAutoFill() {
   set('#productMetaTitle', 'Classic T-Shirt | Shop');
   set('#productMetaDescription', 'Buy our premium cotton t-shirt in multiple sizes and colors.');
   set('#productTags', 'buy tshirt online, cotton tee shop');
+}
+
+function initOrderCallPage() {
+  const section = document.querySelector('[data-order-call-page]');
+  if (!section) return;
+
+  const pageNameInput = section.querySelector('[data-order-call-page-name-input]');
+  if (!(pageNameInput instanceof HTMLInputElement)) return;
+
+  const saveStatusNode = section.querySelector('[data-order-call-save-status]');
+  const previewPageNameNode = section.querySelector('[data-order-call-preview-page-name]');
+  const previewProductTitleNode = section.querySelector('[data-order-call-preview-product-title]');
+  const banglaNode = section.querySelector('[data-order-call-script-bn]');
+  const englishNode = section.querySelector('[data-order-call-script-en]');
+
+  const text = (value) => String(value ?? '').trim();
+  const defaultPageName = text(section.dataset.defaultPageName || 'A Metafy');
+  const sampleProductTitle = text(section.dataset.sampleProductTitle || 'Premium Cotton T-Shirt');
+
+  let statusTimer = 0;
+
+  const readStoredPageName = () => {
+    try {
+      return text(window.localStorage.getItem(ORDER_CALL_PAGE_NAME_STORAGE_KEY)) || defaultPageName;
+    } catch {
+      return defaultPageName;
+    }
+  };
+
+  const writeStoredPageName = (value) => {
+    try {
+      window.localStorage.setItem(ORDER_CALL_PAGE_NAME_STORAGE_KEY, value);
+    } catch {
+      // Ignore storage failures and keep UI responsive.
+    }
+  };
+
+  const buildBanglaScript = (pageName, productTitle) => (
+    `Assalamu alaikum. ${pageName}-e apnake shagotom. ` +
+    `Apni amader ${pageName} theke ${productTitle} order korechen. ` +
+    'Apnar order ti confirm korte 1 chapun, cancel korte 2 chapun.'
+  );
+
+  const buildEnglishScript = (pageName, productTitle) => (
+    `Assalamu alaikum. Welcome to ${pageName}. ` +
+    `You placed an order for ${productTitle} from ${pageName}. ` +
+    'Press 1 to confirm your order, or press 2 to cancel it.'
+  );
+
+  const render = (pageName, statusText = 'Saved. This page name will be used in product voice previews on this browser.') => {
+    const resolvedPageName = text(pageName) || defaultPageName;
+
+    pageNameInput.value = resolvedPageName;
+    if (previewPageNameNode) previewPageNameNode.textContent = resolvedPageName;
+    if (previewProductTitleNode) previewProductTitleNode.textContent = sampleProductTitle;
+    if (banglaNode) banglaNode.textContent = buildBanglaScript(resolvedPageName, sampleProductTitle);
+    if (englishNode) englishNode.textContent = buildEnglishScript(resolvedPageName, sampleProductTitle);
+    if (saveStatusNode) saveStatusNode.textContent = statusText;
+  };
+
+  const persistAndRender = () => {
+    const resolvedPageName = text(pageNameInput.value) || defaultPageName;
+    writeStoredPageName(resolvedPageName);
+    render(resolvedPageName, 'Saved. Product create/edit previews now use this page name automatically.');
+
+    window.clearTimeout(statusTimer);
+    statusTimer = window.setTimeout(() => {
+      if (saveStatusNode) {
+        saveStatusNode.textContent = 'Only {PAGE_NAME} changes here. {PRODUCT_TITLE} always comes from product create/edit.';
+      }
+    }, 2400);
+  };
+
+  pageNameInput.addEventListener('input', persistAndRender);
+  pageNameInput.addEventListener('change', persistAndRender);
+
+  window.addEventListener('storage', (event) => {
+    if (event.key !== ORDER_CALL_PAGE_NAME_STORAGE_KEY) return;
+    render(readStoredPageName(), 'Updated from another tab.');
+  });
+
+  render(readStoredPageName(), 'Only {PAGE_NAME} changes here. {PRODUCT_TITLE} always comes from product create/edit.');
+}
+
+function initProductCallVoicePreview() {
+  const card = document.querySelector('[data-product-call-voice]');
+  if (!card) return;
+
+  const productNameInput = document.getElementById('productName');
+  if (!(productNameInput instanceof HTMLInputElement)) return;
+
+  const titleNode = card.querySelector('[data-product-call-voice-title]');
+  const statusNode = card.querySelector('[data-product-call-voice-status]');
+  const durationNode = card.querySelector('[data-product-call-voice-duration]');
+  const pageNode = card.querySelector('[data-product-call-voice-page]');
+  const banglaNode = card.querySelector('[data-product-call-script-bn]');
+  const englishNode = card.querySelector('[data-product-call-script-en]');
+
+  const text = (value) => String(value ?? '').trim();
+  const defaultPageName = text(card.dataset.pageName || 'A Metafy');
+  const defaultProductTitle = text(card.dataset.defaultProductTitle || 'Premium Cotton T-Shirt');
+  const defaultDuration = text(card.dataset.defaultDuration || '00:18');
+  const featureActive = text(card.dataset.featureActive) === '1';
+
+  let renderTimer = 0;
+
+  const readStoredPageName = () => {
+    try {
+      return text(window.localStorage.getItem(ORDER_CALL_PAGE_NAME_STORAGE_KEY)) || defaultPageName;
+    } catch {
+      return defaultPageName;
+    }
+  };
+
+  const buildBanglaScript = (pageName, productTitle) => (
+    `Assalamu alaikum. ${pageName}-e apnake shagotom. ` +
+    `Apni amader ${pageName} theke ${productTitle} order korechen. ` +
+    'Apnar order ti confirm korte 1 chapun, cancel korte 2 chapun.'
+  );
+
+  const buildEnglishScript = (pageName, productTitle) => (
+    `Assalamu alaikum. Welcome to ${pageName}. ` +
+    `You placed an order for ${productTitle} from ${pageName}. ` +
+    'Press 1 to confirm your order, or press 2 to cancel it.'
+  );
+
+  const resolveDuration = (productTitle) => {
+    const words = text(productTitle).split(/\s+/).filter(Boolean).length;
+    if (!words) return defaultDuration;
+    const seconds = Math.max(16, Math.min(26, 15 + words));
+    return `00:${String(seconds).padStart(2, '0')}`;
+  };
+
+  const renderPreview = (statusText) => {
+    const productTitle = text(productNameInput.value) || defaultProductTitle;
+    const pageName = readStoredPageName();
+
+    if (titleNode) titleNode.textContent = productTitle;
+    if (pageNode) pageNode.textContent = pageName;
+    if (statusNode) {
+      statusNode.textContent = statusText || (featureActive ? 'Auto voice ready' : 'Demo voice preview ready');
+    }
+    if (durationNode) durationNode.textContent = resolveDuration(productTitle);
+    if (banglaNode) banglaNode.textContent = buildBanglaScript(pageName, productTitle);
+    if (englishNode) englishNode.textContent = buildEnglishScript(pageName, productTitle);
+  };
+
+  const queueRefresh = () => {
+    if (statusNode) {
+      statusNode.textContent = featureActive ? 'Regenerating voice preview...' : 'Updating demo voice preview...';
+    }
+
+    window.clearTimeout(renderTimer);
+    renderTimer = window.setTimeout(() => {
+      renderPreview(featureActive ? 'Auto voice ready' : 'Demo voice preview ready');
+    }, 260);
+  };
+
+  productNameInput.addEventListener('input', queueRefresh);
+  productNameInput.addEventListener('change', queueRefresh);
+  window.addEventListener('storage', (event) => {
+    if (event.key !== ORDER_CALL_PAGE_NAME_STORAGE_KEY) return;
+    renderPreview(featureActive ? 'Page name updated from Call Voice Setup.' : 'Page name updated for demo preview.');
+  });
+
+  renderPreview();
 }
 
 // ══════════════════════════════════════════

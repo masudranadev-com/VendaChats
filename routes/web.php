@@ -11,6 +11,7 @@ use App\Http\Controllers\Admin\AdminOrderController;
 use App\Http\Controllers\Admin\CompetitionController;
 use App\Http\Controllers\Admin\CoachController;
 use App\Http\Controllers\Admin\CourierController;
+use App\Http\Controllers\Admin\OrderCallController;
 use App\Http\Controllers\Admin\ProfileController;
 use App\Http\Controllers\Admin\ShopSettingsController;
 use App\Http\Controllers\User\AccountController;
@@ -134,6 +135,7 @@ Route::prefix('admin')->name('admin.')->middleware('admin.auth')->group(function
     Route::get('/products/create', [AdminProductsController::class, 'productCreate'])->name('products.create');
     Route::get('/products/{productId}/edit', [AdminProductsController::class, 'productEdit'])->name('products.edit');
     Route::get('/categories', [AdminProductsController::class, 'categories'])->name('categories');
+    Route::get('/order-call', [OrderCallController::class, 'index'])->name('order-call');
 
     // orders 
     Route::get('/orders', [AdminOrderController::class, 'orders'])->name('orders');
