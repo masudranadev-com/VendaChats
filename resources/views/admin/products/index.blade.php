@@ -37,60 +37,6 @@
     </article>
   </section>
 
-  <section class="products-voice-overview">
-    <article class="card products-voice-upsell-card">
-      <div class="card-header">
-        <h3 class="card-title">AI Call Confirmation Voice</h3>
-        <span class="badge badge-warning">{{ $callVoiceFeature['enabled'] ? 'Active' : 'Locked' }}</span>
-      </div>
-
-      <div class="products-voice-upsell-copy">
-        <strong>Premium package required</strong>
-        <p>Unlock automated phone confirmation for orders. Every product title can generate its own call voice script for confirm or reject flow.</p>
-      </div>
-
-      <div class="products-voice-price-chip">
-        <span>Monthly package</span>
-        <strong>BDT {{ number_format($callVoiceFeature['price_bdt']) }}</strong>
-      </div>
-
-      <ul class="products-voice-feature-list">
-        <li>Bangla + English voice script preview</li>
-        <li>All-language support through automatic AI adaptation</li>
-        <li>Auto sync when product title changes</li>
-        <li>1 to confirm, 2 to cancel call flow</li>
-      </ul>
-
-      <div class="products-voice-actions">
-        <a href="{{ route('admin.order-call') }}" class="btn btn-primary">Open Feature Page</a>
-        <a href="{{ route('admin.products.create') }}" class="btn btn-ghost">Try Product Preview</a>
-      </div>
-    </article>
-
-    <article class="card products-voice-library-card">
-      <div class="card-header">
-        <h3 class="card-title">Voice Library Preview</h3>
-        <span class="badge badge-info">Demo Queue</span>
-      </div>
-
-      <div class="products-voice-library-list">
-        @foreach ($callVoiceFeature['recent_voices'] as $voice)
-          <article class="products-voice-library-item">
-            <div>
-              <strong>{{ $voice['title'] }}</strong>
-              <p>{{ $voice['language'] }}</p>
-            </div>
-            <div class="products-voice-library-meta">
-              <span>{{ $voice['duration'] }}</span>
-              <small>{{ $voice['status'] }}</small>
-            </div>
-          </article>
-        @endforeach
-      </div>
-    </article>
-  </section>
-
-
   {{-- -- PRODUCT CATALOG -- --}}
   <section
     class="card mt-xl"
@@ -164,12 +110,13 @@
             <th>Stock / Access</th>
             <th>Performance <small style="font-weight:400; font-size:10px;">(7d)</small></th>
             <th>Status</th>
+            <th>Voice</th>
             <th>Actions</th>
           </tr>
         </thead>
         <tbody data-products-tbody>
           <tr>
-            <td colspan="6">
+            <td colspan="7">
               <div class="products-catalog-empty">
                 <p>Loading products...</p>
               </div>
@@ -244,6 +191,116 @@
       <div class="modal-footer">
         <button type="button" class="btn btn-ghost" data-modal-close>Cancel</button>
         <button type="button" class="btn btn-danger" data-products-delete-confirm>Delete Product</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="productsVoiceReadyModal" aria-hidden="true">
+    <div class="modal products-voice-modal" role="dialog" aria-modal="true" aria-labelledby="productsVoiceReadyTitle">
+      <div class="modal-header products-voice-modal-header">
+        <div>
+          <span class="products-voice-modal-kicker">Voice Ready</span>
+          <h3 class="modal-title" id="productsVoiceReadyTitle" data-products-voice-ready-product>Product Voice Preview</h3>
+        </div>
+        <button type="button" class="modal-close" data-modal-close aria-label="Close">x</button>
+      </div>
+      <div class="modal-body products-voice-modal-body">
+        <div class="products-voice-modal-topline">
+          <span class="products-voice-modal-pill is-ready" data-products-voice-ready-language>English</span>
+          <span class="products-voice-modal-topline-text" data-products-voice-ready-duration>00:32 total</span>
+        </div>
+
+        <div class="products-voice-player-card" data-products-voice-player-card>
+          <button type="button" class="products-voice-player-toggle" data-products-voice-play-toggle aria-label="Play voice preview" aria-pressed="false">
+            <span data-products-voice-play-icon>&gt;</span>
+          </button>
+
+          <div class="products-voice-player-content">
+            <div class="products-voice-waveform" data-products-voice-waveform aria-hidden="true">
+              @for ($i = 0; $i < 16; $i++)
+                <span style="--voice-bar: {{ ($i % 6) + 2 }};"></span>
+              @endfor
+            </div>
+            <div class="products-voice-player-copy">
+              <strong data-products-voice-ready-title>Voice title</strong>
+              <p>Preview the current call voice, update the title, and send it back to queue.</p>
+            </div>
+          </div>
+
+          <div class="products-voice-player-timing">
+            <strong data-products-voice-current-time>00:00</strong>
+            <span data-products-voice-total-time>00:06</span>
+          </div>
+
+          <audio data-products-voice-audio preload="none"></audio>
+        </div>
+
+        <div class="products-voice-editor-card">
+          <label class="form-label" for="productsVoiceTitleInput">Voice Title</label>
+          <input type="text" class="form-input" id="productsVoiceTitleInput" data-products-voice-title-input placeholder="Enter voice title">
+          <p class="products-voice-editor-note">Saving this title will place the voice back into the creation queue.</p>
+          <div class="products-voice-editor-action">
+            <button type="button" class="btn btn-primary" data-products-voice-save>Save &amp; Queue</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="productsVoiceQueueModal" aria-hidden="true">
+    <div class="modal products-voice-modal products-voice-modal--queue" role="dialog" aria-modal="true" aria-labelledby="productsVoiceQueueTitle">
+      <div class="modal-header products-voice-modal-header">
+        <div>
+          <span class="products-voice-modal-kicker">Voice Queue</span>
+          <h3 class="modal-title" id="productsVoiceQueueTitle" data-products-voice-queue-product>Voice is being prepared</h3>
+        </div>
+        <button type="button" class="modal-close" data-modal-close aria-label="Close">x</button>
+      </div>
+      <div class="modal-body products-voice-modal-body">
+        <div class="products-voice-modal-topline">
+          <span class="products-voice-modal-pill is-queue">Creating</span>
+          <span class="products-voice-modal-topline-text" data-products-voice-queue-position>Queue slot #1</span>
+        </div>
+
+        <div class="products-voice-queue-card">
+          <div class="products-voice-queue-copy">
+            <strong data-products-voice-queue-title>Voice title</strong>
+            <p>The voice is still generating. This preview updates live while the queue is running.</p>
+          </div>
+
+          <div class="products-voice-queue-clock">
+            <span>Already creating for</span>
+            <strong data-products-voice-queue-elapsed>00m 00s</strong>
+            <small data-products-voice-queue-eta>About 3 min left</small>
+          </div>
+
+          <div class="products-voice-queue-loader" aria-hidden="true">
+            <span></span>
+            <span></span>
+            <span></span>
+            <span></span>
+            <span></span>
+          </div>
+
+          <div class="products-voice-queue-progress">
+            <span class="products-voice-queue-progress-fill" data-products-voice-queue-progress></span>
+          </div>
+
+          <div class="products-voice-queue-meta">
+            <article>
+              <span>Language</span>
+              <strong data-products-voice-queue-language>English</strong>
+            </article>
+            <article>
+              <span>Status</span>
+              <strong>Generating</strong>
+            </article>
+            <article>
+              <span>Output</span>
+              <strong>Call confirmation</strong>
+            </article>
+          </div>
+        </div>
       </div>
     </div>
   </div>

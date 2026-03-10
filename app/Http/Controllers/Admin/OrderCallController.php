@@ -11,14 +11,26 @@ class OrderCallController extends Controller
     {
         $pageName = 'A Metafy';
         $productTitle = 'Premium Cotton T-Shirt';
+        $defaultLanguage = 'Bangla';
+        $packagePrice = 500;
+        $defaultBillingCycle = 'monthly';
+        $yearlyDiscount = 10;
+        $yearlyPrice = (int) round(($packagePrice * 12) * (1 - ($yearlyDiscount / 100)));
+        $packageExpiresAt = now()->addDays(24)->addHours(6)->addMinutes(42);
 
         return view('admin.order-call.index', [
             'title' => 'Order Call Confirmation',
             'subtitle' => 'Premium AI-powered voice calls for order confirm and reject flows. Locked until subscription is activated.',
             'featureLocked' => true,
-            'packagePrice' => 500,
+            'packagePrice' => $packagePrice,
+            'packageYearlyPrice' => $yearlyPrice,
+            'packageYearlyDiscount' => $yearlyDiscount,
+            'defaultBillingCycle' => $defaultBillingCycle,
+            'packageExpiresAt' => $packageExpiresAt->toIso8601String(),
+            'packageExpiresLabel' => $packageExpiresAt->format('d M Y, h:i A'),
             'pageName' => $pageName,
             'productTitle' => $productTitle,
+            'defaultLanguage' => $defaultLanguage,
             'stats' => [
                 ['label' => 'Package Price', 'value' => 'BDT 500', 'meta' => 'Per month, per store', 'tone' => 'primary'],
                 ['label' => 'Languages', 'value' => 'All', 'meta' => 'Auto language adaptation', 'tone' => 'success'],
@@ -50,13 +62,18 @@ class OrderCallController extends Controller
                 'AI auto-generates the recorded voice preview for that product.',
             ],
             'supportedLanguages' => [
-                'Bangla',
                 'English',
-                'Arabic',
                 'Hindi',
-                'Urdu',
                 'Spanish',
-                'More...',
+                'Arabic',
+                'Bangla',
+                'Portuguese',
+                'Indonesian',
+                'Urdu',
+                'Filipino',
+                'Vietnamese',
+                'Thai',
+                'French',
             ],
             'scripts' => [
                 'bangla' => "Assalamu alaikum. {$pageName}-e apnake shagotom. Apni amader {$pageName} theke {$productTitle} order korechen. Apnar order ti confirm korte 1 chapun, cancel korte 2 chapun.",

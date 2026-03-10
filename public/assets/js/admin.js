@@ -282,6 +282,10 @@ const AdminCkeditor = (() => {
 window.AdminCkeditor = AdminCkeditor;
 
 const ORDER_CALL_PAGE_NAME_STORAGE_KEY = 'admin_order_call_page_name';
+const ORDER_CALL_LANGUAGE_STORAGE_KEY = 'admin_order_call_language';
+const ORDER_CALL_ENABLED_STORAGE_KEY = 'admin_order_call_enabled';
+const ORDER_CALL_BILLING_STORAGE_KEY = 'admin_order_call_billing';
+const ORDER_CALL_PREVIEW_MODE_STORAGE_KEY = 'admin_order_call_preview_mode';
 
 // ── Initialize on DOM load ──
 document.addEventListener('DOMContentLoaded', () => {
@@ -4343,6 +4347,27 @@ function initProductsCatalogPage() {
   const deleteModal = document.getElementById('productsDeleteConfirmModal');
   const deleteNameNode = deleteModal?.querySelector('[data-products-delete-name]');
   const deleteConfirmBtn = deleteModal?.querySelector('[data-products-delete-confirm]');
+  const voiceReadyModal = document.getElementById('productsVoiceReadyModal');
+  const voiceQueueModal = document.getElementById('productsVoiceQueueModal');
+  const voiceReadyProductNode = voiceReadyModal?.querySelector('[data-products-voice-ready-product]');
+  const voiceReadyTitleNode = voiceReadyModal?.querySelector('[data-products-voice-ready-title]');
+  const voiceReadyLanguageNode = voiceReadyModal?.querySelector('[data-products-voice-ready-language]');
+  const voiceReadyDurationNode = voiceReadyModal?.querySelector('[data-products-voice-ready-duration]');
+  const voiceTitleInput = voiceReadyModal?.querySelector('[data-products-voice-title-input]');
+  const voiceSaveBtn = voiceReadyModal?.querySelector('[data-products-voice-save]');
+  const voicePlayToggle = voiceReadyModal?.querySelector('[data-products-voice-play-toggle]');
+  const voicePlayIcon = voiceReadyModal?.querySelector('[data-products-voice-play-icon]');
+  const voiceAudioNode = voiceReadyModal?.querySelector('[data-products-voice-audio]');
+  const voicePlayerCard = voiceReadyModal?.querySelector('[data-products-voice-player-card]');
+  const voiceCurrentTimeNode = voiceReadyModal?.querySelector('[data-products-voice-current-time]');
+  const voiceTotalTimeNode = voiceReadyModal?.querySelector('[data-products-voice-total-time]');
+  const voiceQueueProductNode = voiceQueueModal?.querySelector('[data-products-voice-queue-product]');
+  const voiceQueueTitleNode = voiceQueueModal?.querySelector('[data-products-voice-queue-title]');
+  const voiceQueuePositionNode = voiceQueueModal?.querySelector('[data-products-voice-queue-position]');
+  const voiceQueueElapsedNode = voiceQueueModal?.querySelector('[data-products-voice-queue-elapsed]');
+  const voiceQueueEtaNode = voiceQueueModal?.querySelector('[data-products-voice-queue-eta]');
+  const voiceQueueLanguageNode = voiceQueueModal?.querySelector('[data-products-voice-queue-language]');
+  const voiceQueueProgressNode = voiceQueueModal?.querySelector('[data-products-voice-queue-progress]');
 
   if (
     !tbody || !totalBadge || !resultNode || !pageWrap || !pageSummary || !pageControls ||
@@ -4361,6 +4386,7 @@ function initProductsCatalogPage() {
     storageToken = '';
   }
   const token = sessionToken || storageToken;
+  const tableColumnCount = 7;
 
   const state = {
     page: (() => {
@@ -4376,6 +4402,7 @@ function initProductsCatalogPage() {
     products: [],
     categories: [],
     categoryById: {},
+    voiceByProductId: {},
     info: [],
     loading: false,
     requestId: 0,
@@ -4384,6 +4411,11 @@ function initProductsCatalogPage() {
     pendingId: '',
     pendingName: '',
     inFlight: false,
+  };
+  const voiceUiState = {
+    activeProductId: '',
+    activePreviewDuration: 0,
+    queueIntervalId: 0,
   };
 
   const toInt = (value, fallback = 0) => {
@@ -4542,7 +4574,7 @@ function initProductsCatalogPage() {
   const setMessage = (message, showAdd = false) => {
     tbody.innerHTML = `
       <tr>
-        <td colspan="6">
+        <td colspan="${tableColumnCount}">
           <div class="products-catalog-empty">
             <p>${escapeHtml(message)}</p>
             ${showAdd ? '<a href="/admin/products/create" class="btn btn-primary btn-sm">+ Add First Product</a>' : ''}
@@ -4560,6 +4592,295 @@ function initProductsCatalogPage() {
     if (rawStatus === 'visible') return 'active';
     if (rawStatus === 'hidden') return 'draft';
     return rawStatus;
+  };
+  const voiceLanguages = ['English', 'Bangla', 'Hindi', 'Arabic', 'Spanish', 'Portuguese'];
+  const previewAudioCache = new Map();
+  const hashSeed = (value) => text(value).split('').reduce((sum, char, index) => ((sum * 33) + char.charCodeAt(0) + index) % 104729, 17);
+  const formatClock = (value) => {
+    const totalSeconds = Math.max(0, Math.floor(toNumber(value, 0)));
+    const hours = Math.floor(totalSeconds / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    const seconds = totalSeconds % 60;
+    if (hours > 0) {
+      return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+    }
+    return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+  };
+  const formatElapsed = (value) => {
+    const totalSeconds = Math.max(0, Math.floor(toNumber(value, 0)));
+    const hours = Math.floor(totalSeconds / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    const seconds = totalSeconds % 60;
+    if (hours > 0) {
+      return `${hours}h ${String(minutes).padStart(2, '0')}m ${String(seconds).padStart(2, '0')}s`;
+    }
+    return `${String(minutes).padStart(2, '0')}m ${String(seconds).padStart(2, '0')}s`;
+  };
+  const getProductById = (productId) => state.products.find((product) => text(product?.id) === text(productId)) || null;
+  const voiceRecordFor = (product) => {
+    const productId = text(product?.id);
+    if (!productId) return null;
+
+    const existing = state.voiceByProductId[productId];
+    if (existing) return existing;
+
+    const productName = text(product?.name) || 'Product';
+    const seed = hashSeed(`${productId}|${productName}|${statusOf(product)}|${product?.sales_7d}|${product?.visitors_7d}`);
+    const productStatus = statusOf(product);
+    const totalDurationSeconds = 24 + (seed % 24);
+    const previewDurationSeconds = 5 + (seed % 3);
+    const elapsedSeconds = 120 + (seed % 900);
+    const estimatedTotalSeconds = 300 + (seed % 420);
+    const isReady = productStatus === 'active'
+      ? (seed % 5 !== 0)
+      : (productStatus === 'draft' || productStatus === 'pending' ? seed % 4 === 0 : seed % 7 === 0);
+
+    const record = {
+      productId,
+      seed,
+      status: isReady ? 'ready' : 'queue',
+      title: `${productName} confirmation voice`,
+      language: voiceLanguages[seed % voiceLanguages.length],
+      totalDurationSeconds,
+      previewDurationSeconds,
+      queuePosition: 1 + (seed % 4),
+      startedAt: Date.now() - (elapsedSeconds * 1000),
+      estimatedTotalSeconds,
+      progressBase: isReady ? 100 : Math.min(84, Math.max(18, Math.round((elapsedSeconds / estimatedTotalSeconds) * 100))),
+    };
+
+    state.voiceByProductId[productId] = record;
+    return record;
+  };
+  const queueProgressMeta = (record) => {
+    const elapsedSeconds = Math.max(0, Math.floor((Date.now() - toNumber(record?.startedAt, Date.now())) / 1000));
+    const estimatedTotalSeconds = Math.max(180, toInt(record?.estimatedTotalSeconds, 300));
+    const progressBase = Math.max(8, Math.min(96, toInt(record?.progressBase, 12)));
+    const progress = record?.status === 'ready'
+      ? 100
+      : Math.min(96, Math.max(progressBase, Math.round((elapsedSeconds / estimatedTotalSeconds) * 100)));
+    const remainingMinutes = progress >= 96 ? 1 : Math.max(1, Math.ceil(((100 - progress) / 100) * estimatedTotalSeconds / 60));
+    return {elapsedSeconds, progress, remainingMinutes};
+  };
+  const createVoicePreviewSource = (record) => {
+    const cacheKey = `${record.seed}:${record.previewDurationSeconds}`;
+    if (previewAudioCache.has(cacheKey)) {
+      return previewAudioCache.get(cacheKey);
+    }
+
+    const durationSeconds = Math.max(4, Math.min(8, toInt(record?.previewDurationSeconds, 6)));
+    const sampleRate = 8000;
+    const sampleCount = sampleRate * durationSeconds;
+    const dataSize = sampleCount * 2;
+    const buffer = new ArrayBuffer(44 + dataSize);
+    const view = new DataView(buffer);
+    const writeString = (offset, value) => {
+      for (let index = 0; index < value.length; index += 1) {
+        view.setUint8(offset + index, value.charCodeAt(index));
+      }
+    };
+
+    writeString(0, 'RIFF');
+    view.setUint32(4, 36 + dataSize, true);
+    writeString(8, 'WAVE');
+    writeString(12, 'fmt ');
+    view.setUint32(16, 16, true);
+    view.setUint16(20, 1, true);
+    view.setUint16(22, 1, true);
+    view.setUint32(24, sampleRate, true);
+    view.setUint32(28, sampleRate * 2, true);
+    view.setUint16(32, 2, true);
+    view.setUint16(34, 16, true);
+    writeString(36, 'data');
+    view.setUint32(40, dataSize, true);
+
+    const seed = toInt(record?.seed, 37);
+    const modulation = 2 + (seed % 4);
+    for (let index = 0; index < sampleCount; index += 1) {
+      const timeValue = index / sampleRate;
+      const phrase = Math.floor(timeValue * 3.1);
+      const baseFrequency = 165 + ((seed + (phrase * 29)) % 120);
+      const rhythm = 0.62 + (0.38 * Math.sin(timeValue * Math.PI * (4 + (seed % 3))));
+      const wobble = Math.sin(timeValue * Math.PI * modulation) * 0.16;
+      const fadeIn = Math.min(1, timeValue * 4);
+      const fadeOut = Math.min(1, Math.max(0, durationSeconds - timeValue) * 4);
+      const envelope = Math.max(0, Math.min(fadeIn, fadeOut));
+      const sample = Math.sin((2 * Math.PI * baseFrequency * timeValue) + wobble) * rhythm * envelope * 0.22;
+      view.setInt16(44 + (index * 2), Math.max(-1, Math.min(1, sample)) * 0x7fff, true);
+    }
+
+    const bytes = new Uint8Array(buffer);
+    const chunkSize = 0x8000;
+    let binary = '';
+    for (let index = 0; index < bytes.length; index += chunkSize) {
+      binary += String.fromCharCode(...bytes.subarray(index, index + chunkSize));
+    }
+
+    const source = `data:audio/wav;base64,${window.btoa(binary)}`;
+    previewAudioCache.set(cacheKey, source);
+    return source;
+  };
+  const updateVoicePlayerVisualState = (isPlaying) => {
+    if (voicePlayerCard) {
+      voicePlayerCard.classList.toggle('is-playing', Boolean(isPlaying));
+    }
+    if (voicePlayToggle) {
+      voicePlayToggle.setAttribute('aria-pressed', isPlaying ? 'true' : 'false');
+    }
+    if (voicePlayIcon) {
+      voicePlayIcon.textContent = isPlaying ? '||' : '>';
+    }
+  };
+  const updateVoiceCurrentTime = (seconds) => {
+    if (voiceCurrentTimeNode) {
+      voiceCurrentTimeNode.textContent = formatClock(seconds);
+    }
+  };
+  const stopVoicePreview = () => {
+    if (voiceAudioNode) {
+      voiceAudioNode.pause();
+      voiceAudioNode.currentTime = 0;
+    }
+    updateVoiceCurrentTime(0);
+    updateVoicePlayerVisualState(false);
+  };
+  const stopQueueTimer = () => {
+    if (voiceUiState.queueIntervalId) {
+      window.clearInterval(voiceUiState.queueIntervalId);
+      voiceUiState.queueIntervalId = 0;
+    }
+  };
+  const updateQueueModal = () => {
+    if (!voiceQueueModal?.classList.contains('active')) return;
+
+    const record = state.voiceByProductId[voiceUiState.activeProductId];
+    if (!record) return;
+
+    const {elapsedSeconds, progress, remainingMinutes} = queueProgressMeta(record);
+    if (voiceQueueElapsedNode) {
+      voiceQueueElapsedNode.textContent = formatElapsed(elapsedSeconds);
+    }
+    if (voiceQueueEtaNode) {
+      voiceQueueEtaNode.textContent = progress >= 96 ? 'Final pass in progress' : `About ${remainingMinutes} min left`;
+    }
+    if (voiceQueueProgressNode) {
+      voiceQueueProgressNode.style.width = `${progress}%`;
+    }
+  };
+  const startQueueTimer = (productId) => {
+    voiceUiState.activeProductId = text(productId);
+    stopQueueTimer();
+    updateQueueModal();
+    voiceUiState.queueIntervalId = window.setInterval(updateQueueModal, 1000);
+  };
+  const openVoiceReadyModal = (product, record) => {
+    if (!voiceReadyModal || !record) return;
+
+    stopQueueTimer();
+    stopVoicePreview();
+    voiceUiState.activeProductId = text(record.productId);
+    voiceUiState.activePreviewDuration = toInt(record.previewDurationSeconds, 6);
+
+    if (voiceReadyProductNode) {
+      voiceReadyProductNode.textContent = text(product?.name) || 'Product Voice Preview';
+    }
+    if (voiceReadyTitleNode) {
+      voiceReadyTitleNode.textContent = record.title;
+    }
+    if (voiceReadyLanguageNode) {
+      voiceReadyLanguageNode.textContent = record.language;
+    }
+    if (voiceReadyDurationNode) {
+      voiceReadyDurationNode.textContent = `${formatClock(record.totalDurationSeconds)} total`;
+    }
+    if (voiceTitleInput) {
+      voiceTitleInput.value = record.title;
+    }
+    if (voiceTotalTimeNode) {
+      voiceTotalTimeNode.textContent = formatClock(record.previewDurationSeconds);
+    }
+    updateVoiceCurrentTime(0);
+    updateVoicePlayerVisualState(false);
+
+    if (voiceAudioNode) {
+      voiceAudioNode.src = createVoicePreviewSource(record);
+      voiceAudioNode.currentTime = 0;
+      voiceAudioNode.load();
+    }
+
+    openModal('productsVoiceReadyModal');
+    if (voiceTitleInput) {
+      voiceTitleInput.focus();
+      voiceTitleInput.select();
+    }
+  };
+  const openVoiceQueueModal = (product, record) => {
+    if (!voiceQueueModal || !record) return;
+
+    stopVoicePreview();
+    stopQueueTimer();
+    voiceUiState.activeProductId = text(record.productId);
+
+    if (voiceQueueProductNode) {
+      voiceQueueProductNode.textContent = text(product?.name) || 'Voice is being prepared';
+    }
+    if (voiceQueueTitleNode) {
+      voiceQueueTitleNode.textContent = record.title;
+    }
+    if (voiceQueuePositionNode) {
+      voiceQueuePositionNode.textContent = `Queue slot #${record.queuePosition}`;
+    }
+    if (voiceQueueLanguageNode) {
+      voiceQueueLanguageNode.textContent = record.language;
+    }
+
+    openModal('productsVoiceQueueModal');
+    updateQueueModal();
+    startQueueTimer(record.productId);
+  };
+  const cleanupVoiceUi = () => {
+    stopVoicePreview();
+    stopQueueTimer();
+    voiceUiState.activeProductId = '';
+    voiceUiState.activePreviewDuration = 0;
+  };
+  const voiceHtml = (product) => {
+    const record = voiceRecordFor(product);
+    if (!record) {
+      return '<span class="products-voice-inline-note">Unavailable</span>';
+    }
+
+    if (record.status === 'ready') {
+      return `
+        <div class="products-voice-cell">
+          <button
+            type="button"
+            class="products-voice-action products-voice-action--ready"
+            data-products-voice-trigger
+            data-product-id="${escapeHtml(record.productId)}"
+          >
+            <span class="products-voice-action-icon">></span>
+            <span>Play Voice</span>
+          </button>
+        </div>
+      `;
+    }
+
+    const {elapsedSeconds} = queueProgressMeta(record);
+    return `
+      <div class="products-voice-cell">
+        <button
+          type="button"
+          class="products-voice-action products-voice-action--queue"
+          data-products-voice-trigger
+          data-product-id="${escapeHtml(record.productId)}"
+        >
+          <span class="products-voice-action-pulse" aria-hidden="true"></span>
+          <span>In Queue</span>
+        </button>
+        <small>${escapeHtml(formatElapsed(elapsedSeconds))} so far</small>
+      </div>
+    `;
   };
 
   const stockMeta = (product) => {
@@ -4652,6 +4973,7 @@ function initProductsCatalogPage() {
       <td>${stockHtml(product, type)}</td>
       <td><div class="products-catalog-perf"><strong>${formatCount(product.sales_7d)} sales</strong><small>${formatCount(product.visitors_7d)} visitors</small></div></td>
       <td><span class="badge ${statusCss}">${escapeHtml(titleCase(status || 'unknown'))}</span></td>
+      <td>${voiceHtml(product)}</td>
       <td><div class="products-table-actions"><a href="/admin/products/${encodeURIComponent(productId)}/edit" class="btn btn-secondary btn-sm">Edit</a>${deleteButton}</div></td>
     `;
     return tr;
@@ -4935,8 +5257,115 @@ function initProductsCatalogPage() {
       loadProducts(1);
     }
   });
+  voicePlayToggle?.addEventListener('click', async () => {
+    if (!voiceAudioNode?.src) return;
+
+    try {
+      if (voiceAudioNode.paused) {
+        await voiceAudioNode.play();
+        updateVoicePlayerVisualState(true);
+      } else {
+        voiceAudioNode.pause();
+        updateVoicePlayerVisualState(false);
+      }
+    } catch (error) {
+      updateVoicePlayerVisualState(false);
+      if (typeof window.showError === 'function') {
+        window.showError(error?.message || 'Unable to play voice preview.');
+      }
+    }
+  });
+  voiceAudioNode?.addEventListener('timeupdate', () => {
+    updateVoiceCurrentTime(voiceAudioNode.currentTime);
+  });
+  voiceAudioNode?.addEventListener('play', () => {
+    updateVoicePlayerVisualState(true);
+  });
+  voiceAudioNode?.addEventListener('pause', () => {
+    updateVoicePlayerVisualState(false);
+  });
+  voiceAudioNode?.addEventListener('ended', () => {
+    updateVoiceCurrentTime(voiceUiState.activePreviewDuration);
+    updateVoicePlayerVisualState(false);
+  });
+  voiceSaveBtn?.addEventListener('click', () => {
+    const productId = text(voiceUiState.activeProductId);
+    const product = getProductById(productId);
+    const record = state.voiceByProductId[productId];
+    if (!product || !record) {
+      if (typeof window.showError === 'function') window.showError('Unable to update this voice right now.');
+      return;
+    }
+
+    const nextTitle = text(voiceTitleInput?.value) || record.title;
+    const updatedRecord = {
+      ...record,
+      title: nextTitle,
+      status: 'queue',
+      queuePosition: 1 + (hashSeed(`${productId}|${nextTitle}`) % 4),
+      startedAt: Date.now(),
+      estimatedTotalSeconds: Math.max(240, toInt(record.estimatedTotalSeconds, 300)),
+      progressBase: 10,
+    };
+
+    state.voiceByProductId[productId] = updatedRecord;
+    cleanupVoiceUi();
+    closeAllModals();
+    renderTable();
+    if (typeof window.showSuccess === 'function') {
+      window.showSuccess('Voice title saved and moved to queue.');
+    }
+    openVoiceQueueModal(product, updatedRecord);
+  });
+
+  document.addEventListener('click', (event) => {
+    const target = event.target;
+    if (target === voiceReadyModal || target === voiceQueueModal) {
+      cleanupVoiceUi();
+      return;
+    }
+
+    const closeTrigger = target?.closest?.('.modal-close, [data-modal-close]');
+    if (!closeTrigger) return;
+    if (
+      (voiceReadyModal && voiceReadyModal.contains(closeTrigger)) ||
+      (voiceQueueModal && voiceQueueModal.contains(closeTrigger))
+    ) {
+      cleanupVoiceUi();
+    }
+  });
+
+  document.addEventListener('keydown', (event) => {
+    if (event.key !== 'Escape') return;
+    if (
+      voiceReadyModal?.classList.contains('active') ||
+      voiceQueueModal?.classList.contains('active')
+    ) {
+      window.setTimeout(cleanupVoiceUi, 0);
+    }
+  });
 
   tbody.addEventListener('click', (event) => {
+    const voiceTrigger = event.target.closest('[data-products-voice-trigger]');
+    if (voiceTrigger && tbody.contains(voiceTrigger)) {
+      event.preventDefault();
+
+      const productId = text(voiceTrigger.dataset.productId);
+      const product = getProductById(productId);
+      const record = product ? voiceRecordFor(product) : null;
+      if (!product || !record) {
+        if (typeof window.showError === 'function') window.showError('Voice preview is not available.');
+        return;
+      }
+
+      if (record.status === 'ready') {
+        openVoiceReadyModal(product, record);
+      } else {
+        openVoiceQueueModal(product, record);
+      }
+      return;
+    }
+
     const trigger = event.target.closest('[data-products-delete-trigger]');
     if (!trigger || !tbody.contains(trigger)) return;
     event.preventDefault();
@@ -9242,19 +9671,73 @@ function initOrderCallPage() {
   if (!section) return;
 
   const pageNameInput = section.querySelector('[data-order-call-page-name-input]');
-  if (!(pageNameInput instanceof HTMLInputElement)) return;
-
+  const languageInput = section.querySelector('[data-order-call-language-input]');
+  const enabledInput = section.querySelector('[data-order-call-enabled-input]');
+  const submitButton = section.querySelector('[data-order-call-submit]');
+  const settingsFieldset = section.querySelector('[data-order-call-settings-fields]');
+  const billingButtons = Array.from(section.querySelectorAll('[data-order-call-billing-button]'));
   const saveStatusNode = section.querySelector('[data-order-call-save-status]');
+  const modeHeadingNode = section.querySelector('[data-order-call-mode-heading]');
+  const modeCopyNode = section.querySelector('[data-order-call-mode-copy]');
+  const accessBadgeNode = section.querySelector('[data-order-call-access-badge]');
+  const configBadgeNode = section.querySelector('[data-order-call-config-badge]');
+  const lockBannerNode = section.querySelector('[data-order-call-lock-banner]');
+  const liveChipNode = section.querySelector('[data-order-call-live-chip]');
+  const heroPackageNode = section.querySelector('[data-order-call-hero-package]');
+  const heroStatusNode = section.querySelector('[data-order-call-hero-status]');
+  const heroLanguageNode = section.querySelector('[data-order-call-hero-language]');
+  const enabledLabelNode = section.querySelector('[data-order-call-enabled-label]');
+  const beforePanel = section.querySelector('[data-order-call-before-panel]');
+  const afterPanel = section.querySelector('[data-order-call-after-panel]');
+  const sideStatusNode = section.querySelector('[data-order-call-side-status]');
+  const sidePageNode = section.querySelector('[data-order-call-side-page]');
+  const sideLanguageNode = section.querySelector('[data-order-call-side-language]');
   const previewPageNameNode = section.querySelector('[data-order-call-preview-page-name]');
   const previewProductTitleNode = section.querySelector('[data-order-call-preview-product-title]');
+  const previewModeChipNode = section.querySelector('[data-order-call-preview-mode-chip]');
+  const previewLanguageChipNode = section.querySelector('[data-order-call-preview-language-chip]');
+  const previewLanguageMetaNode = section.querySelector('[data-order-call-preview-language-meta]');
+  const previewLiveChipNode = section.querySelector('[data-order-call-preview-live-chip]');
+  const previewBannerNode = section.querySelector('[data-order-call-preview-banner]');
+  const priceValueNode = section.querySelector('[data-order-call-price-value]');
+  const priceTermNode = section.querySelector('[data-order-call-price-term]');
+  const priceSaveNode = section.querySelector('[data-order-call-price-save]');
+  const priceNoteNode = section.querySelector('[data-order-call-price-note]');
+  const activeBillingNode = section.querySelector('[data-order-call-active-billing]');
+  const expiryLabelNode = section.querySelector('[data-order-call-expiry-label]');
+  const countdownNoteNode = section.querySelector('[data-order-call-countdown-note]');
+  const countdownDaysNode = section.querySelector('[data-order-call-countdown-days]');
+  const countdownHoursNode = section.querySelector('[data-order-call-countdown-hours]');
+  const countdownMinutesNode = section.querySelector('[data-order-call-countdown-minutes]');
+  const countdownSecondsNode = section.querySelector('[data-order-call-countdown-seconds]');
+  const overviewModeNode = section.querySelector('[data-order-call-overview-mode]');
+  const overviewAccessNode = section.querySelector('[data-order-call-overview-access]');
+  const primaryLanguageChipNode = section.querySelector('[data-order-call-primary-language-chip]');
+  const modeButtons = Array.from(section.querySelectorAll('[data-order-call-mode-button]'));
   const banglaNode = section.querySelector('[data-order-call-script-bn]');
   const englishNode = section.querySelector('[data-order-call-script-en]');
+  if (
+    !(pageNameInput instanceof HTMLInputElement) ||
+    !(languageInput instanceof HTMLSelectElement) ||
+    !(enabledInput instanceof HTMLInputElement)
+  ) return;
 
   const text = (value) => String(value ?? '').trim();
   const defaultPageName = text(section.dataset.defaultPageName || 'A Metafy');
+  const defaultLanguage = text(section.dataset.defaultLanguage || 'Bangla');
+  const defaultBilling = text(section.dataset.defaultBilling || 'monthly') === 'yearly' ? 'yearly' : 'monthly';
   const sampleProductTitle = text(section.dataset.sampleProductTitle || 'Premium Cotton T-Shirt');
+  const monthlyPrice = Number(section.dataset.monthlyPrice || 500) || 500;
+  const yearlyPrice = Number(section.dataset.yearlyPrice || Math.round(monthlyPrice * 12 * 0.9)) || Math.round(monthlyPrice * 12 * 0.9);
+  const yearlyDiscount = Number.parseInt(section.dataset.yearlyDiscount || '10', 10) || 10;
+  const packageExpiresAt = text(section.dataset.packageExpiresAt || '');
+  const packageExpiresLabel = text(section.dataset.packageExpiresLabel || '');
+  const initialMode = text(section.dataset.subscriptionMode || (text(section.dataset.featureLocked) === '1' ? 'before' : 'after')) === 'after'
+    ? 'after'
+    : 'before';
 
   let statusTimer = 0;
+  let countdownTimer = 0;
 
   const readStoredPageName = () => {
     try {
@@ -9263,12 +9746,116 @@ function initOrderCallPage() {
       return defaultPageName;
     }
   };
-
-  const writeStoredPageName = (value) => {
+  const readStoredLanguage = () => {
     try {
-      window.localStorage.setItem(ORDER_CALL_PAGE_NAME_STORAGE_KEY, value);
+      return text(window.localStorage.getItem(ORDER_CALL_LANGUAGE_STORAGE_KEY)) || defaultLanguage;
+    } catch {
+      return defaultLanguage;
+    }
+  };
+  const readStoredEnabled = () => {
+    try {
+      return text(window.localStorage.getItem(ORDER_CALL_ENABLED_STORAGE_KEY)) === '1';
+    } catch {
+      return false;
+    }
+  };
+  const readStoredBilling = () => {
+    try {
+      return text(window.localStorage.getItem(ORDER_CALL_BILLING_STORAGE_KEY)) === 'yearly' ? 'yearly' : defaultBilling;
+    } catch {
+      return defaultBilling;
+    }
+  };
+  const readStoredMode = () => {
+    try {
+      const storedMode = text(window.localStorage.getItem(ORDER_CALL_PREVIEW_MODE_STORAGE_KEY));
+      return storedMode === 'after' ? 'after' : (storedMode === 'before' ? 'before' : initialMode);
+    } catch {
+      return initialMode;
+    }
+  };
+  const writeStoredState = (state) => {
+    try {
+      window.localStorage.setItem(ORDER_CALL_PAGE_NAME_STORAGE_KEY, state.pageName);
+      window.localStorage.setItem(ORDER_CALL_LANGUAGE_STORAGE_KEY, state.language);
+      window.localStorage.setItem(ORDER_CALL_ENABLED_STORAGE_KEY, state.enabled ? '1' : '0');
+      window.localStorage.setItem(ORDER_CALL_BILLING_STORAGE_KEY, state.billing);
+      window.localStorage.setItem(ORDER_CALL_PREVIEW_MODE_STORAGE_KEY, state.mode);
     } catch {
       // Ignore storage failures and keep UI responsive.
+    }
+  };
+  const modeMetaOf = (mode) => (mode === 'after'
+    ? {
+        label: 'After Upgrade',
+        access: 'Subscribed',
+        accessTone: 'success',
+        configState: 'Ready to Edit',
+        configTone: 'is-success',
+        copy: 'Subscribed mode unlocks editing for On/Off, page name, and primary language on this same page.',
+      }
+    : {
+        label: 'Before Upgrade',
+        access: 'Locked',
+        accessTone: 'warning',
+        configState: 'Upgrade Required',
+        configTone: 'is-warning',
+        copy: 'Locked mode disables editing and presents the subscription-first version of the screen.',
+      });
+  const setBadge = (node, tone, label) => {
+    if (!(node instanceof HTMLElement)) return;
+    node.classList.remove('badge-success', 'badge-warning', 'badge-danger', 'badge-info', 'badge-primary');
+    node.classList.add(`badge-${tone}`);
+    node.textContent = label;
+  };
+  const setStatusTone = (message, tone = 'info') => {
+    if (!(saveStatusNode instanceof HTMLElement)) return;
+    saveStatusNode.textContent = text(message);
+    saveStatusNode.classList.remove('is-info', 'is-success', 'is-warning');
+    saveStatusNode.classList.add(`is-${tone}`);
+  };
+  const formatInt = (value) => Math.max(0, Number.parseInt(String(value ?? 0), 10) || 0).toLocaleString('en-US');
+  const renderBilling = (billing) => {
+    const resolvedBilling = billing === 'yearly' ? 'yearly' : 'monthly';
+    const isYearly = resolvedBilling === 'yearly';
+
+    billingButtons.forEach((button) => {
+      button.classList.toggle('is-active', button.dataset.orderCallBillingButton === resolvedBilling);
+    });
+
+    if (priceValueNode) priceValueNode.textContent = formatInt(isYearly ? yearlyPrice : monthlyPrice);
+    if (priceTermNode) priceTermNode.textContent = isYearly ? '/year' : '/month';
+    if (priceSaveNode) priceSaveNode.textContent = isYearly ? `Save ${yearlyDiscount}%` : 'Pay monthly';
+    if (priceNoteNode) {
+      priceNoteNode.textContent = isYearly
+        ? `BDT ${formatInt(yearlyPrice)} billed yearly. You save ${yearlyDiscount}% compared with paying monthly for 12 months.`
+        : 'Flexible monthly billing for stores getting started with AI voice confirmation.';
+    }
+    if (activeBillingNode) activeBillingNode.textContent = isYearly ? 'Yearly Plan' : 'Monthly Plan';
+  };
+  const renderCountdown = () => {
+    if (!packageExpiresAt) return;
+
+    const targetTime = Date.parse(packageExpiresAt);
+    if (!Number.isFinite(targetTime)) return;
+
+    const diffMs = Math.max(0, targetTime - Date.now());
+    const totalSeconds = Math.floor(diffMs / 1000);
+    const days = Math.floor(totalSeconds / 86400);
+    const hours = Math.floor((totalSeconds % 86400) / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    const seconds = totalSeconds % 60;
+
+    if (countdownDaysNode) countdownDaysNode.textContent = String(days).padStart(2, '0');
+    if (countdownHoursNode) countdownHoursNode.textContent = String(hours).padStart(2, '0');
+    if (countdownMinutesNode) countdownMinutesNode.textContent = String(minutes).padStart(2, '0');
+    if (countdownSecondsNode) countdownSecondsNode.textContent = String(seconds).padStart(2, '0');
+    if (expiryLabelNode) expiryLabelNode.textContent = packageExpiresLabel || new Date(targetTime).toLocaleString();
+    if (countdownNoteNode) {
+      countdownNoteNode.textContent = diffMs > 0
+        ? 'Renew before expiry to keep automated calls active.'
+        : 'Package expired. Renew to restore automated calls.';
     }
   };
 
@@ -9283,40 +9870,197 @@ function initOrderCallPage() {
     `You placed an order for ${productTitle} from ${pageName}. ` +
     'Press 1 to confirm your order, or press 2 to cancel it.'
   );
-
-  const render = (pageName, statusText = 'Saved. This page name will be used in product voice previews on this browser.') => {
-    const resolvedPageName = text(pageName) || defaultPageName;
-
-    pageNameInput.value = resolvedPageName;
-    if (previewPageNameNode) previewPageNameNode.textContent = resolvedPageName;
-    if (previewProductTitleNode) previewProductTitleNode.textContent = sampleProductTitle;
-    if (banglaNode) banglaNode.textContent = buildBanglaScript(resolvedPageName, sampleProductTitle);
-    if (englishNode) englishNode.textContent = buildEnglishScript(resolvedPageName, sampleProductTitle);
-    if (saveStatusNode) saveStatusNode.textContent = statusText;
-  };
-
-  const persistAndRender = () => {
-    const resolvedPageName = text(pageNameInput.value) || defaultPageName;
-    writeStoredPageName(resolvedPageName);
-    render(resolvedPageName, 'Saved. Product create/edit previews now use this page name automatically.');
-
+  const applyTimersReset = (message = 'Preview updated. Save when you are ready.', tone = 'info') => {
     window.clearTimeout(statusTimer);
+    setStatusTone(message, tone);
     statusTimer = window.setTimeout(() => {
-      if (saveStatusNode) {
-        saveStatusNode.textContent = 'Only {PAGE_NAME} changes here. {PRODUCT_TITLE} always comes from product create/edit.';
-      }
+      const idleMessage = draftState.mode === 'after'
+        ? 'Edit the settings and click Save Settings to keep them on this browser.'
+        : 'Preview switch is active. Upgrade mode unlocks editing for these controls.';
+      setStatusTone(idleMessage, draftState.mode === 'after' ? 'info' : 'warning');
     }, 2400);
   };
+  const render = (state) => {
+    const resolvedPageName = text(state.pageName) || defaultPageName;
+    const resolvedLanguage = text(state.language) || defaultLanguage;
+    const resolvedBilling = state.billing === 'yearly' ? 'yearly' : 'monthly';
+    const normalizedMode = state.mode === 'after' ? 'after' : 'before';
+    const savedEnabled = Boolean(state.enabled);
+    const effectiveEnabled = normalizedMode === 'after' && savedEnabled;
+    const meta = modeMetaOf(normalizedMode);
+    const liveLabel = normalizedMode === 'before' ? 'Locked' : (effectiveEnabled ? 'On' : 'Off');
+    const liveChipLabel = normalizedMode === 'before' ? 'Upgrade Required' : (effectiveEnabled ? 'Calls On' : 'Calls Off');
+    const previewBanner = normalizedMode === 'before'
+      ? 'Package preview is locked. Upgrade to unlock editing and turn the live call flow on.'
+      : (effectiveEnabled
+          ? `Calls are live for ${resolvedLanguage}. Customers hear ${resolvedPageName} as the store name and can press 1 or 2.`
+          : 'Subscription is active, but calls are currently turned off. Turn the switch on and save when you are ready.');
 
-  pageNameInput.addEventListener('input', persistAndRender);
-  pageNameInput.addEventListener('change', persistAndRender);
+    section.dataset.subscriptionMode = normalizedMode;
+    section.dataset.callEnabled = effectiveEnabled ? '1' : '0';
 
-  window.addEventListener('storage', (event) => {
-    if (event.key !== ORDER_CALL_PAGE_NAME_STORAGE_KEY) return;
-    render(readStoredPageName(), 'Updated from another tab.');
+    pageNameInput.value = resolvedPageName;
+    languageInput.value = resolvedLanguage;
+    enabledInput.checked = effectiveEnabled;
+    if (settingsFieldset instanceof HTMLFieldSetElement) {
+      settingsFieldset.disabled = normalizedMode === 'before';
+    }
+
+    modeButtons.forEach((button) => {
+      button.classList.toggle('is-active', button.dataset.orderCallModeButton === normalizedMode);
+    });
+
+    if (modeHeadingNode) modeHeadingNode.textContent = meta.label;
+    if (modeCopyNode) modeCopyNode.textContent = meta.copy;
+    if (heroPackageNode) heroPackageNode.textContent = meta.label;
+    if (heroStatusNode) heroStatusNode.textContent = liveLabel;
+    if (heroLanguageNode) heroLanguageNode.textContent = resolvedLanguage;
+    if (enabledLabelNode) enabledLabelNode.textContent = effectiveEnabled ? 'On' : 'Off';
+    if (primaryLanguageChipNode) primaryLanguageChipNode.textContent = resolvedLanguage;
+    if (configBadgeNode instanceof HTMLElement) {
+      configBadgeNode.textContent = meta.configState;
+      configBadgeNode.classList.remove('is-warning', 'is-success');
+      configBadgeNode.classList.add(meta.configTone);
+    }
+    if (lockBannerNode instanceof HTMLElement) {
+      lockBannerNode.hidden = normalizedMode !== 'before';
+    }
+    if (beforePanel instanceof HTMLElement) {
+      beforePanel.hidden = normalizedMode !== 'before';
+    }
+    if (afterPanel instanceof HTMLElement) {
+      afterPanel.hidden = normalizedMode !== 'after';
+    }
+    if (sideStatusNode) sideStatusNode.textContent = effectiveEnabled ? 'On' : 'Off';
+    if (sidePageNode) sidePageNode.textContent = resolvedPageName;
+    if (sideLanguageNode) sideLanguageNode.textContent = resolvedLanguage;
+    if (previewPageNameNode) previewPageNameNode.textContent = resolvedPageName;
+    if (previewProductTitleNode) previewProductTitleNode.textContent = sampleProductTitle;
+    if (previewLanguageMetaNode) previewLanguageMetaNode.textContent = resolvedLanguage;
+    if (overviewModeNode) overviewModeNode.textContent = meta.label;
+    if (overviewAccessNode) overviewAccessNode.textContent = meta.access;
+    if (banglaNode) banglaNode.textContent = buildBanglaScript(resolvedPageName, sampleProductTitle);
+    if (englishNode) englishNode.textContent = buildEnglishScript(resolvedPageName, sampleProductTitle);
+    if (previewBannerNode) previewBannerNode.textContent = previewBanner;
+
+    setBadge(accessBadgeNode, meta.accessTone, meta.access);
+    setBadge(previewModeChipNode, meta.accessTone, meta.label);
+    setBadge(liveChipNode, normalizedMode === 'before' ? 'warning' : (effectiveEnabled ? 'success' : 'primary'), liveChipLabel);
+    setBadge(previewLiveChipNode, normalizedMode === 'before' ? 'warning' : (effectiveEnabled ? 'success' : 'primary'), liveChipLabel);
+    setBadge(previewLanguageChipNode, 'info', resolvedLanguage);
+    renderBilling(resolvedBilling);
+    renderCountdown();
+  };
+
+  let savedState = {
+    pageName: readStoredPageName(),
+    language: readStoredLanguage(),
+    enabled: readStoredEnabled(),
+    billing: readStoredBilling(),
+    mode: readStoredMode(),
+  };
+  let draftState = {...savedState};
+
+  const syncDraftFromInputs = () => {
+    draftState = {
+      ...draftState,
+      pageName: text(pageNameInput.value) || defaultPageName,
+      language: text(languageInput.value) || defaultLanguage,
+      enabled: Boolean(enabledInput.checked),
+    };
+  };
+  const renderPreviewUpdate = () => {
+    syncDraftFromInputs();
+    render(draftState);
+    applyTimersReset('Preview updated. Save when you are ready.', 'info');
+  };
+  const setMode = (nextMode, announce = true) => {
+    draftState = {...draftState, mode: nextMode === 'after' ? 'after' : 'before'};
+    render(draftState);
+    try {
+      window.localStorage.setItem(ORDER_CALL_PREVIEW_MODE_STORAGE_KEY, draftState.mode);
+    } catch {
+      // Ignore storage failures for this UI-only toggle.
+    }
+    if (announce) {
+      applyTimersReset(
+        draftState.mode === 'after'
+          ? 'After-upgrade preview is active. Settings are now editable.'
+          : 'Before-upgrade preview is active. Settings are locked for package upsell view.',
+        draftState.mode === 'after' ? 'success' : 'warning'
+      );
+    }
+  };
+
+  pageNameInput.addEventListener('input', renderPreviewUpdate);
+  pageNameInput.addEventListener('change', renderPreviewUpdate);
+  languageInput.addEventListener('change', renderPreviewUpdate);
+  enabledInput.addEventListener('change', renderPreviewUpdate);
+
+  billingButtons.forEach((button) => {
+    button.addEventListener('click', () => {
+      const nextBilling = text(button.dataset.orderCallBillingButton || 'monthly') === 'yearly' ? 'yearly' : 'monthly';
+      draftState = {...draftState, billing: nextBilling};
+      render(draftState);
+      applyTimersReset(
+        nextBilling === 'yearly'
+          ? `Yearly billing selected. ${yearlyDiscount}% discount preview applied.`
+          : 'Monthly billing selected.',
+        'info'
+      );
+    });
   });
 
-  render(readStoredPageName(), 'Only {PAGE_NAME} changes here. {PRODUCT_TITLE} always comes from product create/edit.');
+  modeButtons.forEach((button) => {
+    button.addEventListener('click', () => {
+      const nextMode = text(button.dataset.orderCallModeButton || 'before');
+      setMode(nextMode);
+    });
+  });
+
+  if (submitButton instanceof HTMLButtonElement) {
+    submitButton.addEventListener('click', () => {
+      syncDraftFromInputs();
+      savedState = {...draftState};
+      writeStoredState(savedState);
+      render(savedState);
+      applyTimersReset('Saved. These settings now drive the order-call preview on this browser.', 'success');
+      if (typeof window.showSuccess === 'function') {
+        window.showSuccess('Order call settings saved in this browser.');
+      }
+    });
+  }
+
+  window.addEventListener('storage', (event) => {
+    if (![
+      ORDER_CALL_PAGE_NAME_STORAGE_KEY,
+      ORDER_CALL_LANGUAGE_STORAGE_KEY,
+      ORDER_CALL_ENABLED_STORAGE_KEY,
+      ORDER_CALL_BILLING_STORAGE_KEY,
+      ORDER_CALL_PREVIEW_MODE_STORAGE_KEY,
+    ].includes(event.key || '')) return;
+
+    savedState = {
+      pageName: readStoredPageName(),
+      language: readStoredLanguage(),
+      enabled: readStoredEnabled(),
+      billing: readStoredBilling(),
+      mode: readStoredMode(),
+    };
+    draftState = {...savedState};
+    render(draftState);
+    setStatusTone('Updated from another tab.', 'info');
+  });
+
+  render(draftState);
+  window.clearInterval(countdownTimer);
+  countdownTimer = window.setInterval(renderCountdown, 1000);
+  setStatusTone(
+    draftState.mode === 'after'
+      ? 'Edit the settings and click Save Settings to keep them on this browser.'
+      : 'Preview switch is active. Upgrade mode unlocks editing for these controls.',
+    draftState.mode === 'after' ? 'info' : 'warning'
+  );
 }
 
 function initProductCallVoicePreview() {
