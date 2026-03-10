@@ -66,7 +66,7 @@
     </div>
   @endif
 
-  <div class="orders-detail-grid">
+  <div class="orders-detail-grid mt-xl">
     <section class="card orders-customer-card">
       <div class="card-header">
         <h3 class="card-title">Customer Details</h3>

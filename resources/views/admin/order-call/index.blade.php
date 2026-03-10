@@ -13,12 +13,6 @@
         <h1 class="page-title">{{ $title }}</h1>
         <p class="page-subtitle">{{ $subtitle }}</p>
       </div>
-
-      <div class="order-call-status-card">
-        <span class="badge badge-warning">{{ $featureLocked ? 'Feature Locked' : 'Feature Active' }}</span>
-        <strong>Locked Script Engine</strong>
-        <p>Users never edit the script body. They only set <code>{PAGE_NAME}</code> here, while <code>{PRODUCT_TITLE}</code> comes from product create/edit.</p>
-      </div>
     </div>
 
     <section class="order-call-stats-grid">
