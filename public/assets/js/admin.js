@@ -284,8 +284,6 @@ window.AdminCkeditor = AdminCkeditor;
 const ORDER_CALL_PAGE_NAME_STORAGE_KEY = 'admin_order_call_page_name';
 const ORDER_CALL_LANGUAGE_STORAGE_KEY = 'admin_order_call_language';
 const ORDER_CALL_ENABLED_STORAGE_KEY = 'admin_order_call_enabled';
-const ORDER_CALL_BILLING_STORAGE_KEY = 'admin_order_call_billing';
-const ORDER_CALL_PREVIEW_MODE_STORAGE_KEY = 'admin_order_call_preview_mode';
 
 // ── Initialize on DOM load ──
 document.addEventListener('DOMContentLoaded', () => {
@@ -9674,48 +9672,12 @@ function initOrderCallPage() {
   const languageInput = section.querySelector('[data-order-call-language-input]');
   const enabledInput = section.querySelector('[data-order-call-enabled-input]');
   const submitButton = section.querySelector('[data-order-call-submit]');
-  const settingsFieldset = section.querySelector('[data-order-call-settings-fields]');
-  const billingButtons = Array.from(section.querySelectorAll('[data-order-call-billing-button]'));
   const saveStatusNode = section.querySelector('[data-order-call-save-status]');
-  const modeHeadingNode = section.querySelector('[data-order-call-mode-heading]');
-  const modeCopyNode = section.querySelector('[data-order-call-mode-copy]');
-  const accessBadgeNode = section.querySelector('[data-order-call-access-badge]');
   const configBadgeNode = section.querySelector('[data-order-call-config-badge]');
-  const lockBannerNode = section.querySelector('[data-order-call-lock-banner]');
-  const liveChipNode = section.querySelector('[data-order-call-live-chip]');
-  const heroPackageNode = section.querySelector('[data-order-call-hero-package]');
-  const heroStatusNode = section.querySelector('[data-order-call-hero-status]');
-  const heroLanguageNode = section.querySelector('[data-order-call-hero-language]');
   const enabledLabelNode = section.querySelector('[data-order-call-enabled-label]');
-  const beforePanel = section.querySelector('[data-order-call-before-panel]');
-  const afterPanel = section.querySelector('[data-order-call-after-panel]');
   const sideStatusNode = section.querySelector('[data-order-call-side-status]');
   const sidePageNode = section.querySelector('[data-order-call-side-page]');
   const sideLanguageNode = section.querySelector('[data-order-call-side-language]');
-  const previewPageNameNode = section.querySelector('[data-order-call-preview-page-name]');
-  const previewProductTitleNode = section.querySelector('[data-order-call-preview-product-title]');
-  const previewModeChipNode = section.querySelector('[data-order-call-preview-mode-chip]');
-  const previewLanguageChipNode = section.querySelector('[data-order-call-preview-language-chip]');
-  const previewLanguageMetaNode = section.querySelector('[data-order-call-preview-language-meta]');
-  const previewLiveChipNode = section.querySelector('[data-order-call-preview-live-chip]');
-  const previewBannerNode = section.querySelector('[data-order-call-preview-banner]');
-  const priceValueNode = section.querySelector('[data-order-call-price-value]');
-  const priceTermNode = section.querySelector('[data-order-call-price-term]');
-  const priceSaveNode = section.querySelector('[data-order-call-price-save]');
-  const priceNoteNode = section.querySelector('[data-order-call-price-note]');
-  const activeBillingNode = section.querySelector('[data-order-call-active-billing]');
-  const expiryLabelNode = section.querySelector('[data-order-call-expiry-label]');
-  const countdownNoteNode = section.querySelector('[data-order-call-countdown-note]');
-  const countdownDaysNode = section.querySelector('[data-order-call-countdown-days]');
-  const countdownHoursNode = section.querySelector('[data-order-call-countdown-hours]');
-  const countdownMinutesNode = section.querySelector('[data-order-call-countdown-minutes]');
-  const countdownSecondsNode = section.querySelector('[data-order-call-countdown-seconds]');
-  const overviewModeNode = section.querySelector('[data-order-call-overview-mode]');
-  const overviewAccessNode = section.querySelector('[data-order-call-overview-access]');
-  const primaryLanguageChipNode = section.querySelector('[data-order-call-primary-language-chip]');
-  const modeButtons = Array.from(section.querySelectorAll('[data-order-call-mode-button]'));
-  const banglaNode = section.querySelector('[data-order-call-script-bn]');
-  const englishNode = section.querySelector('[data-order-call-script-en]');
   if (
     !(pageNameInput instanceof HTMLInputElement) ||
     !(languageInput instanceof HTMLSelectElement) ||
@@ -9725,19 +9687,8 @@ function initOrderCallPage() {
   const text = (value) => String(value ?? '').trim();
   const defaultPageName = text(section.dataset.defaultPageName || 'A Metafy');
   const defaultLanguage = text(section.dataset.defaultLanguage || 'Bangla');
-  const defaultBilling = text(section.dataset.defaultBilling || 'monthly') === 'yearly' ? 'yearly' : 'monthly';
-  const sampleProductTitle = text(section.dataset.sampleProductTitle || 'Premium Cotton T-Shirt');
-  const monthlyPrice = Number(section.dataset.monthlyPrice || 500) || 500;
-  const yearlyPrice = Number(section.dataset.yearlyPrice || Math.round(monthlyPrice * 12 * 0.9)) || Math.round(monthlyPrice * 12 * 0.9);
-  const yearlyDiscount = Number.parseInt(section.dataset.yearlyDiscount || '10', 10) || 10;
-  const packageExpiresAt = text(section.dataset.packageExpiresAt || '');
-  const packageExpiresLabel = text(section.dataset.packageExpiresLabel || '');
-  const initialMode = text(section.dataset.subscriptionMode || (text(section.dataset.featureLocked) === '1' ? 'before' : 'after')) === 'after'
-    ? 'after'
-    : 'before';
 
   let statusTimer = 0;
-  let countdownTimer = 0;
 
   const readStoredPageName = () => {
     try {
@@ -9760,54 +9711,14 @@ function initOrderCallPage() {
       return false;
     }
   };
-  const readStoredBilling = () => {
-    try {
-      return text(window.localStorage.getItem(ORDER_CALL_BILLING_STORAGE_KEY)) === 'yearly' ? 'yearly' : defaultBilling;
-    } catch {
-      return defaultBilling;
-    }
-  };
-  const readStoredMode = () => {
-    try {
-      const storedMode = text(window.localStorage.getItem(ORDER_CALL_PREVIEW_MODE_STORAGE_KEY));
-      return storedMode === 'after' ? 'after' : (storedMode === 'before' ? 'before' : initialMode);
-    } catch {
-      return initialMode;
-    }
-  };
   const writeStoredState = (state) => {
     try {
       window.localStorage.setItem(ORDER_CALL_PAGE_NAME_STORAGE_KEY, state.pageName);
       window.localStorage.setItem(ORDER_CALL_LANGUAGE_STORAGE_KEY, state.language);
       window.localStorage.setItem(ORDER_CALL_ENABLED_STORAGE_KEY, state.enabled ? '1' : '0');
-      window.localStorage.setItem(ORDER_CALL_BILLING_STORAGE_KEY, state.billing);
-      window.localStorage.setItem(ORDER_CALL_PREVIEW_MODE_STORAGE_KEY, state.mode);
     } catch {
       // Ignore storage failures and keep UI responsive.
     }
-  };
-  const modeMetaOf = (mode) => (mode === 'after'
-    ? {
-        label: 'After Upgrade',
-        access: 'Subscribed',
-        accessTone: 'success',
-        configState: 'Ready to Edit',
-        configTone: 'is-success',
-        copy: 'Subscribed mode unlocks editing for On/Off, page name, and primary language on this same page.',
-      }
-    : {
-        label: 'Before Upgrade',
-        access: 'Locked',
-        accessTone: 'warning',
-        configState: 'Upgrade Required',
-        configTone: 'is-warning',
-        copy: 'Locked mode disables editing and presents the subscription-first version of the screen.',
-      });
-  const setBadge = (node, tone, label) => {
-    if (!(node instanceof HTMLElement)) return;
-    node.classList.remove('badge-success', 'badge-warning', 'badge-danger', 'badge-info', 'badge-primary');
-    node.classList.add(`badge-${tone}`);
-    node.textContent = label;
   };
   const setStatusTone = (message, tone = 'info') => {
     if (!(saveStatusNode instanceof HTMLElement)) return;
@@ -9815,149 +9726,40 @@ function initOrderCallPage() {
     saveStatusNode.classList.remove('is-info', 'is-success', 'is-warning');
     saveStatusNode.classList.add(`is-${tone}`);
   };
-  const formatInt = (value) => Math.max(0, Number.parseInt(String(value ?? 0), 10) || 0).toLocaleString('en-US');
-  const renderBilling = (billing) => {
-    const resolvedBilling = billing === 'yearly' ? 'yearly' : 'monthly';
-    const isYearly = resolvedBilling === 'yearly';
-
-    billingButtons.forEach((button) => {
-      button.classList.toggle('is-active', button.dataset.orderCallBillingButton === resolvedBilling);
-    });
-
-    if (priceValueNode) priceValueNode.textContent = formatInt(isYearly ? yearlyPrice : monthlyPrice);
-    if (priceTermNode) priceTermNode.textContent = isYearly ? '/year' : '/month';
-    if (priceSaveNode) priceSaveNode.textContent = isYearly ? `Save ${yearlyDiscount}%` : 'Pay monthly';
-    if (priceNoteNode) {
-      priceNoteNode.textContent = isYearly
-        ? `BDT ${formatInt(yearlyPrice)} billed yearly. You save ${yearlyDiscount}% compared with paying monthly for 12 months.`
-        : 'Flexible monthly billing for stores getting started with AI voice confirmation.';
-    }
-    if (activeBillingNode) activeBillingNode.textContent = isYearly ? 'Yearly Plan' : 'Monthly Plan';
-  };
-  const renderCountdown = () => {
-    if (!packageExpiresAt) return;
-
-    const targetTime = Date.parse(packageExpiresAt);
-    if (!Number.isFinite(targetTime)) return;
-
-    const diffMs = Math.max(0, targetTime - Date.now());
-    const totalSeconds = Math.floor(diffMs / 1000);
-    const days = Math.floor(totalSeconds / 86400);
-    const hours = Math.floor((totalSeconds % 86400) / 3600);
-    const minutes = Math.floor((totalSeconds % 3600) / 60);
-    const seconds = totalSeconds % 60;
-
-    if (countdownDaysNode) countdownDaysNode.textContent = String(days).padStart(2, '0');
-    if (countdownHoursNode) countdownHoursNode.textContent = String(hours).padStart(2, '0');
-    if (countdownMinutesNode) countdownMinutesNode.textContent = String(minutes).padStart(2, '0');
-    if (countdownSecondsNode) countdownSecondsNode.textContent = String(seconds).padStart(2, '0');
-    if (expiryLabelNode) expiryLabelNode.textContent = packageExpiresLabel || new Date(targetTime).toLocaleString();
-    if (countdownNoteNode) {
-      countdownNoteNode.textContent = diffMs > 0
-        ? 'Renew before expiry to keep automated calls active.'
-        : 'Package expired. Renew to restore automated calls.';
-    }
-  };
-
-  const buildBanglaScript = (pageName, productTitle) => (
-    `Assalamu alaikum. ${pageName}-e apnake shagotom. ` +
-    `Apni amader ${pageName} theke ${productTitle} order korechen. ` +
-    'Apnar order ti confirm korte 1 chapun, cancel korte 2 chapun.'
-  );
-
-  const buildEnglishScript = (pageName, productTitle) => (
-    `Assalamu alaikum. Welcome to ${pageName}. ` +
-    `You placed an order for ${productTitle} from ${pageName}. ` +
-    'Press 1 to confirm your order, or press 2 to cancel it.'
-  );
   const applyTimersReset = (message = 'Preview updated. Save when you are ready.', tone = 'info') => {
     window.clearTimeout(statusTimer);
     setStatusTone(message, tone);
     statusTimer = window.setTimeout(() => {
-      const idleMessage = draftState.mode === 'after'
-        ? 'Edit the settings and click Save Settings to keep them on this browser.'
-        : 'Preview switch is active. Upgrade mode unlocks editing for these controls.';
-      setStatusTone(idleMessage, draftState.mode === 'after' ? 'info' : 'warning');
+      setStatusTone('Edit the settings and click Save Settings to keep them on this browser.', 'info');
     }, 2400);
   };
   const render = (state) => {
     const resolvedPageName = text(state.pageName) || defaultPageName;
     const resolvedLanguage = text(state.language) || defaultLanguage;
-    const resolvedBilling = state.billing === 'yearly' ? 'yearly' : 'monthly';
-    const normalizedMode = state.mode === 'after' ? 'after' : 'before';
-    const savedEnabled = Boolean(state.enabled);
-    const effectiveEnabled = normalizedMode === 'after' && savedEnabled;
-    const meta = modeMetaOf(normalizedMode);
-    const liveLabel = normalizedMode === 'before' ? 'Locked' : (effectiveEnabled ? 'On' : 'Off');
-    const liveChipLabel = normalizedMode === 'before' ? 'Upgrade Required' : (effectiveEnabled ? 'Calls On' : 'Calls Off');
-    const previewBanner = normalizedMode === 'before'
-      ? 'Package preview is locked. Upgrade to unlock editing and turn the live call flow on.'
-      : (effectiveEnabled
-          ? `Calls are live for ${resolvedLanguage}. Customers hear ${resolvedPageName} as the store name and can press 1 or 2.`
-          : 'Subscription is active, but calls are currently turned off. Turn the switch on and save when you are ready.');
+    const resolvedEnabled = Boolean(state.enabled);
 
-    section.dataset.subscriptionMode = normalizedMode;
-    section.dataset.callEnabled = effectiveEnabled ? '1' : '0';
+    section.dataset.callEnabled = resolvedEnabled ? '1' : '0';
 
     pageNameInput.value = resolvedPageName;
-    languageInput.value = resolvedLanguage;
-    enabledInput.checked = effectiveEnabled;
-    if (settingsFieldset instanceof HTMLFieldSetElement) {
-      settingsFieldset.disabled = normalizedMode === 'before';
+    if (Array.from(languageInput.options).some((option) => text(option.value) === resolvedLanguage)) {
+      languageInput.value = resolvedLanguage;
     }
-
-    modeButtons.forEach((button) => {
-      button.classList.toggle('is-active', button.dataset.orderCallModeButton === normalizedMode);
-    });
-
-    if (modeHeadingNode) modeHeadingNode.textContent = meta.label;
-    if (modeCopyNode) modeCopyNode.textContent = meta.copy;
-    if (heroPackageNode) heroPackageNode.textContent = meta.label;
-    if (heroStatusNode) heroStatusNode.textContent = liveLabel;
-    if (heroLanguageNode) heroLanguageNode.textContent = resolvedLanguage;
-    if (enabledLabelNode) enabledLabelNode.textContent = effectiveEnabled ? 'On' : 'Off';
-    if (primaryLanguageChipNode) primaryLanguageChipNode.textContent = resolvedLanguage;
+    enabledInput.checked = resolvedEnabled;
+    if (enabledLabelNode) enabledLabelNode.textContent = resolvedEnabled ? 'On' : 'Off';
     if (configBadgeNode instanceof HTMLElement) {
-      configBadgeNode.textContent = meta.configState;
+      configBadgeNode.textContent = 'Ready to Edit';
       configBadgeNode.classList.remove('is-warning', 'is-success');
-      configBadgeNode.classList.add(meta.configTone);
+      configBadgeNode.classList.add('is-success');
     }
-    if (lockBannerNode instanceof HTMLElement) {
-      lockBannerNode.hidden = normalizedMode !== 'before';
-    }
-    if (beforePanel instanceof HTMLElement) {
-      beforePanel.hidden = normalizedMode !== 'before';
-    }
-    if (afterPanel instanceof HTMLElement) {
-      afterPanel.hidden = normalizedMode !== 'after';
-    }
-    if (sideStatusNode) sideStatusNode.textContent = effectiveEnabled ? 'On' : 'Off';
+    if (sideStatusNode) sideStatusNode.textContent = resolvedEnabled ? 'On' : 'Off';
     if (sidePageNode) sidePageNode.textContent = resolvedPageName;
     if (sideLanguageNode) sideLanguageNode.textContent = resolvedLanguage;
-    if (previewPageNameNode) previewPageNameNode.textContent = resolvedPageName;
-    if (previewProductTitleNode) previewProductTitleNode.textContent = sampleProductTitle;
-    if (previewLanguageMetaNode) previewLanguageMetaNode.textContent = resolvedLanguage;
-    if (overviewModeNode) overviewModeNode.textContent = meta.label;
-    if (overviewAccessNode) overviewAccessNode.textContent = meta.access;
-    if (banglaNode) banglaNode.textContent = buildBanglaScript(resolvedPageName, sampleProductTitle);
-    if (englishNode) englishNode.textContent = buildEnglishScript(resolvedPageName, sampleProductTitle);
-    if (previewBannerNode) previewBannerNode.textContent = previewBanner;
-
-    setBadge(accessBadgeNode, meta.accessTone, meta.access);
-    setBadge(previewModeChipNode, meta.accessTone, meta.label);
-    setBadge(liveChipNode, normalizedMode === 'before' ? 'warning' : (effectiveEnabled ? 'success' : 'primary'), liveChipLabel);
-    setBadge(previewLiveChipNode, normalizedMode === 'before' ? 'warning' : (effectiveEnabled ? 'success' : 'primary'), liveChipLabel);
-    setBadge(previewLanguageChipNode, 'info', resolvedLanguage);
-    renderBilling(resolvedBilling);
-    renderCountdown();
   };
 
   let savedState = {
     pageName: readStoredPageName(),
     language: readStoredLanguage(),
     enabled: readStoredEnabled(),
-    billing: readStoredBilling(),
-    mode: readStoredMode(),
   };
   let draftState = {...savedState};
 
@@ -9974,49 +9776,11 @@ function initOrderCallPage() {
     render(draftState);
     applyTimersReset('Preview updated. Save when you are ready.', 'info');
   };
-  const setMode = (nextMode, announce = true) => {
-    draftState = {...draftState, mode: nextMode === 'after' ? 'after' : 'before'};
-    render(draftState);
-    try {
-      window.localStorage.setItem(ORDER_CALL_PREVIEW_MODE_STORAGE_KEY, draftState.mode);
-    } catch {
-      // Ignore storage failures for this UI-only toggle.
-    }
-    if (announce) {
-      applyTimersReset(
-        draftState.mode === 'after'
-          ? 'After-upgrade preview is active. Settings are now editable.'
-          : 'Before-upgrade preview is active. Settings are locked for package upsell view.',
-        draftState.mode === 'after' ? 'success' : 'warning'
-      );
-    }
-  };
 
   pageNameInput.addEventListener('input', renderPreviewUpdate);
   pageNameInput.addEventListener('change', renderPreviewUpdate);
   languageInput.addEventListener('change', renderPreviewUpdate);
   enabledInput.addEventListener('change', renderPreviewUpdate);
-
-  billingButtons.forEach((button) => {
-    button.addEventListener('click', () => {
-      const nextBilling = text(button.dataset.orderCallBillingButton || 'monthly') === 'yearly' ? 'yearly' : 'monthly';
-      draftState = {...draftState, billing: nextBilling};
-      render(draftState);
-      applyTimersReset(
-        nextBilling === 'yearly'
-          ? `Yearly billing selected. ${yearlyDiscount}% discount preview applied.`
-          : 'Monthly billing selected.',
-        'info'
-      );
-    });
-  });
-
-  modeButtons.forEach((button) => {
-    button.addEventListener('click', () => {
-      const nextMode = text(button.dataset.orderCallModeButton || 'before');
-      setMode(nextMode);
-    });
-  });
 
   if (submitButton instanceof HTMLButtonElement) {
     submitButton.addEventListener('click', () => {
@@ -10032,20 +9796,12 @@ function initOrderCallPage() {
   }
 
   window.addEventListener('storage', (event) => {
-    if (![
-      ORDER_CALL_PAGE_NAME_STORAGE_KEY,
-      ORDER_CALL_LANGUAGE_STORAGE_KEY,
-      ORDER_CALL_ENABLED_STORAGE_KEY,
-      ORDER_CALL_BILLING_STORAGE_KEY,
-      ORDER_CALL_PREVIEW_MODE_STORAGE_KEY,
-    ].includes(event.key || '')) return;
+    if (![ORDER_CALL_PAGE_NAME_STORAGE_KEY, ORDER_CALL_LANGUAGE_STORAGE_KEY, ORDER_CALL_ENABLED_STORAGE_KEY].includes(event.key || '')) return;
 
     savedState = {
       pageName: readStoredPageName(),
       language: readStoredLanguage(),
       enabled: readStoredEnabled(),
-      billing: readStoredBilling(),
-      mode: readStoredMode(),
     };
     draftState = {...savedState};
     render(draftState);
@@ -10053,14 +9809,7 @@ function initOrderCallPage() {
   });
 
   render(draftState);
-  window.clearInterval(countdownTimer);
-  countdownTimer = window.setInterval(renderCountdown, 1000);
-  setStatusTone(
-    draftState.mode === 'after'
-      ? 'Edit the settings and click Save Settings to keep them on this browser.'
-      : 'Preview switch is active. Upgrade mode unlocks editing for these controls.',
-    draftState.mode === 'after' ? 'info' : 'warning'
-  );
+  setStatusTone('Edit the settings and click Save Settings to keep them on this browser.', 'info');
 }
 
 function initProductCallVoicePreview() {
