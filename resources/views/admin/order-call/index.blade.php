@@ -8,6 +8,7 @@
     data-order-call-page
     data-default-page-name="{{ $pageName }}"
     data-default-language="{{ $defaultLanguage }}"
+    data-default-call-scope="{{ $defaultCallScope }}"
   >
     <div class="page-header order-call-page-header">
       <div>
@@ -89,6 +90,10 @@
               <span>Language</span>
               <strong data-order-call-side-language>{{ $defaultLanguage }}</strong>
             </div>
+            <div>
+              <span>Buyer Scope</span>
+              <strong data-order-call-side-scope>{{ $defaultCallScope === 'all_buyers' ? 'All Buyers' : 'Cash on Delivery Buyers' }}</strong>
+            </div>
           </div>
 
           <div class="order-call-active-note">
@@ -149,6 +154,44 @@
                 </select>
                 <small class="form-help">The engine still supports automatic fallback. This sets the main language shown in setup.</small>
               </div>
+            </div>
+
+            <div class="order-call-scope-block">
+              <div class="order-call-scope-head">
+                <label class="form-label">Call Buyer Scope</label>
+                <p class="order-call-setting-copy">Choose which buyers should receive the automated order confirmation call.</p>
+              </div>
+
+              <div class="order-call-scope-grid">
+                <label class="order-call-scope-card{{ $defaultCallScope === 'all_buyers' ? ' is-active' : '' }}" data-order-call-scope-card>
+                  <input
+                    type="radio"
+                    name="orderCallScope"
+                    value="all_buyers"
+                    data-order-call-scope-input
+                    {{ $defaultCallScope === 'all_buyers' ? 'checked' : '' }}
+                  >
+                  <span class="order-call-scope-title">Call All Buyers</span>
+                  <small>Use the call flow for every eligible buyer order.</small>
+                </label>
+
+                <label class="order-call-scope-card{{ $defaultCallScope === 'cash_on_delivery' ? ' is-active' : '' }}" data-order-call-scope-card>
+                  <input
+                    type="radio"
+                    name="orderCallScope"
+                    value="cash_on_delivery"
+                    data-order-call-scope-input
+                    {{ $defaultCallScope === 'cash_on_delivery' ? 'checked' : '' }}
+                  >
+                  <span class="order-call-scope-title">Call Cash on Delivery Buyers</span>
+                  <small>Limit the call flow to COD orders that need confirmation.</small>
+                </label>
+              </div>
+            </div>
+
+            <div class="order-call-eligibility-note">
+              <strong>Physical products only</strong>
+              <p>Calling system is available only for physical products. Digital, subscription, and package products will not trigger automated calls.</p>
             </div>
 
             <div class="order-call-submit-row">

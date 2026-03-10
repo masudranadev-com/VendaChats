@@ -11,6 +11,7 @@ class OrderCallController extends Controller
     {
         $pageName = 'A Metafy';
         $defaultLanguage = 'Bangla';
+        $defaultCallScope = 'cash_on_delivery';
         $packageLabel = 'Main Package';
         $totalCalls = 100;
         $remainingCalls = 64;
@@ -27,6 +28,7 @@ class OrderCallController extends Controller
             'remainingCallPercent' => $remainingCallPercent,
             'pageName' => $pageName,
             'defaultLanguage' => $defaultLanguage,
+            'defaultCallScope' => $defaultCallScope,
             'supportedLanguages' => [
                 'English',
                 'Hindi',

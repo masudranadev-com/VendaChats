@@ -19,7 +19,8 @@
       </div>
     </div>
   <div class="page-header orders-page-header">
-    @php($orderActionsEnabled = (bool) ($invoiceEnabled ?? false))
+    @php($orderActionsEnabled = (bool) ($orderActionsEnabled ?? false))
+    @php($confirmActionEnabled = (bool) ($confirmActionEnabled ?? false))
     <div>
       <h1 class="page-title" data-order-details-order-title>Order {{ $orderId }}</h1>
       <p class="page-subtitle">{{ $subtitle }}</p>
@@ -35,7 +36,7 @@
           data-order-details-confirm-form
           action="{{ route('admin.orders.confirm', ['orderId' => $orderId]) }}"
           method="POST"
-          {{ $orderActionsEnabled ? '' : 'hidden' }}
+          {{ $confirmActionEnabled ? '' : 'hidden' }}
         >
           @csrf
           <button type="submit" class="btn btn-success">{{ $confirmButtonLabel ?? 'Confirm' }}</button>

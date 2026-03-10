@@ -284,6 +284,7 @@ window.AdminCkeditor = AdminCkeditor;
 const ORDER_CALL_PAGE_NAME_STORAGE_KEY = 'admin_order_call_page_name';
 const ORDER_CALL_LANGUAGE_STORAGE_KEY = 'admin_order_call_language';
 const ORDER_CALL_ENABLED_STORAGE_KEY = 'admin_order_call_enabled';
+const ORDER_CALL_SCOPE_STORAGE_KEY = 'admin_order_call_scope';
 
 // ── Initialize on DOM load ──
 document.addEventListener('DOMContentLoaded', () => {
@@ -1920,6 +1921,10 @@ function initOrderDetailsPage() {
     'waiting_for_confirmation',
     'ready_to_dispatch',
   ]);
+  const confirmOrderActionStatuses = new Set([
+    'waiting_for_call',
+    'waiting_for_confirmation',
+  ]);
   const orderActionStatusHint = 'Waiting For Call, Waiting For Confirmation, or Ready To Dispatch';
   let orderActionsAllowed = false;
   let currentOrderStatus = '';
@@ -2030,10 +2035,11 @@ function initOrderDetailsPage() {
     const normalized = normalizeStatus(statusValue);
     currentOrderStatus = normalized;
     orderActionsAllowed = allowedOrderActionStatuses.has(normalized);
+    const confirmActionAllowed = confirmOrderActionStatuses.has(normalized);
     syncConfirmButtonLabel(normalized);
 
     if (confirmActionForm instanceof HTMLFormElement) {
-      confirmActionForm.hidden = !orderActionsAllowed;
+      confirmActionForm.hidden = !confirmActionAllowed;
     }
     if (discountSection instanceof HTMLElement) {
       discountSection.hidden = !orderActionsAllowed;
@@ -9671,6 +9677,8 @@ function initOrderCallPage() {
   const pageNameInput = section.querySelector('[data-order-call-page-name-input]');
   const languageInput = section.querySelector('[data-order-call-language-input]');
   const enabledInput = section.querySelector('[data-order-call-enabled-input]');
+  const scopeInputs = Array.from(section.querySelectorAll('[data-order-call-scope-input]'));
+  const scopeCards = Array.from(section.querySelectorAll('[data-order-call-scope-card]'));
   const submitButton = section.querySelector('[data-order-call-submit]');
   const saveStatusNode = section.querySelector('[data-order-call-save-status]');
   const configBadgeNode = section.querySelector('[data-order-call-config-badge]');
@@ -9678,17 +9686,26 @@ function initOrderCallPage() {
   const sideStatusNode = section.querySelector('[data-order-call-side-status]');
   const sidePageNode = section.querySelector('[data-order-call-side-page]');
   const sideLanguageNode = section.querySelector('[data-order-call-side-language]');
+  const sideScopeNode = section.querySelector('[data-order-call-side-scope]');
   if (
     !(pageNameInput instanceof HTMLInputElement) ||
     !(languageInput instanceof HTMLSelectElement) ||
-    !(enabledInput instanceof HTMLInputElement)
+    !(enabledInput instanceof HTMLInputElement) ||
+    !scopeInputs.length
   ) return;
 
   const text = (value) => String(value ?? '').trim();
   const defaultPageName = text(section.dataset.defaultPageName || 'A Metafy');
   const defaultLanguage = text(section.dataset.defaultLanguage || 'Bangla');
+  const defaultCallScope = text(section.dataset.defaultCallScope || 'cash_on_delivery') === 'all_buyers'
+    ? 'all_buyers'
+    : 'cash_on_delivery';
 
   let statusTimer = 0;
+  const normalizeCallScope = (value) => text(value) === 'all_buyers' ? 'all_buyers' : 'cash_on_delivery';
+  const callScopeLabel = (value) => normalizeCallScope(value) === 'all_buyers'
+    ? 'All Buyers'
+    : 'Cash on Delivery Buyers';
 
   const readStoredPageName = () => {
     try {
@@ -9711,11 +9728,19 @@ function initOrderCallPage() {
       return false;
     }
   };
+  const readStoredScope = () => {
+    try {
+      return normalizeCallScope(window.localStorage.getItem(ORDER_CALL_SCOPE_STORAGE_KEY) || defaultCallScope);
+    } catch {
+      return defaultCallScope;
+    }
+  };
   const writeStoredState = (state) => {
     try {
       window.localStorage.setItem(ORDER_CALL_PAGE_NAME_STORAGE_KEY, state.pageName);
       window.localStorage.setItem(ORDER_CALL_LANGUAGE_STORAGE_KEY, state.language);
       window.localStorage.setItem(ORDER_CALL_ENABLED_STORAGE_KEY, state.enabled ? '1' : '0');
+      window.localStorage.setItem(ORDER_CALL_SCOPE_STORAGE_KEY, normalizeCallScope(state.scope));
     } catch {
       // Ignore storage failures and keep UI responsive.
     }
@@ -9737,6 +9762,7 @@ function initOrderCallPage() {
     const resolvedPageName = text(state.pageName) || defaultPageName;
     const resolvedLanguage = text(state.language) || defaultLanguage;
     const resolvedEnabled = Boolean(state.enabled);
+    const resolvedScope = normalizeCallScope(state.scope);
 
     section.dataset.callEnabled = resolvedEnabled ? '1' : '0';
 
@@ -9745,6 +9771,15 @@ function initOrderCallPage() {
       languageInput.value = resolvedLanguage;
     }
     enabledInput.checked = resolvedEnabled;
+    scopeInputs.forEach((input) => {
+      if (!(input instanceof HTMLInputElement)) return;
+      input.checked = normalizeCallScope(input.value) === resolvedScope;
+    });
+    scopeCards.forEach((card) => {
+      const input = card.querySelector('[data-order-call-scope-input]');
+      const isActive = input instanceof HTMLInputElement && input.checked;
+      card.classList.toggle('is-active', isActive);
+    });
     if (enabledLabelNode) enabledLabelNode.textContent = resolvedEnabled ? 'On' : 'Off';
     if (configBadgeNode instanceof HTMLElement) {
       configBadgeNode.textContent = 'Ready to Edit';
@@ -9754,21 +9789,25 @@ function initOrderCallPage() {
     if (sideStatusNode) sideStatusNode.textContent = resolvedEnabled ? 'On' : 'Off';
     if (sidePageNode) sidePageNode.textContent = resolvedPageName;
     if (sideLanguageNode) sideLanguageNode.textContent = resolvedLanguage;
+    if (sideScopeNode) sideScopeNode.textContent = callScopeLabel(resolvedScope);
   };
 
   let savedState = {
     pageName: readStoredPageName(),
     language: readStoredLanguage(),
     enabled: readStoredEnabled(),
+    scope: readStoredScope(),
   };
   let draftState = {...savedState};
 
   const syncDraftFromInputs = () => {
+    const selectedScopeInput = scopeInputs.find((input) => input instanceof HTMLInputElement && input.checked);
     draftState = {
       ...draftState,
       pageName: text(pageNameInput.value) || defaultPageName,
       language: text(languageInput.value) || defaultLanguage,
       enabled: Boolean(enabledInput.checked),
+      scope: normalizeCallScope(selectedScopeInput?.value || defaultCallScope),
     };
   };
   const renderPreviewUpdate = () => {
@@ -9781,6 +9820,10 @@ function initOrderCallPage() {
   pageNameInput.addEventListener('change', renderPreviewUpdate);
   languageInput.addEventListener('change', renderPreviewUpdate);
   enabledInput.addEventListener('change', renderPreviewUpdate);
+  scopeInputs.forEach((input) => {
+    if (!(input instanceof HTMLInputElement)) return;
+    input.addEventListener('change', renderPreviewUpdate);
+  });
 
   if (submitButton instanceof HTMLButtonElement) {
     submitButton.addEventListener('click', () => {
@@ -9796,12 +9839,13 @@ function initOrderCallPage() {
   }
 
   window.addEventListener('storage', (event) => {
-    if (![ORDER_CALL_PAGE_NAME_STORAGE_KEY, ORDER_CALL_LANGUAGE_STORAGE_KEY, ORDER_CALL_ENABLED_STORAGE_KEY].includes(event.key || '')) return;
+    if (![ORDER_CALL_PAGE_NAME_STORAGE_KEY, ORDER_CALL_LANGUAGE_STORAGE_KEY, ORDER_CALL_ENABLED_STORAGE_KEY, ORDER_CALL_SCOPE_STORAGE_KEY].includes(event.key || '')) return;
 
     savedState = {
       pageName: readStoredPageName(),
       language: readStoredLanguage(),
       enabled: readStoredEnabled(),
+      scope: readStoredScope(),
     };
     draftState = {...savedState};
     render(draftState);

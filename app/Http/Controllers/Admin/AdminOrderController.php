@@ -98,8 +98,11 @@ class AdminOrderController extends Controller
             ?? ''
         );
         $order = $this->findOrderById($orderId, false);
-        $invoiceEnabled = is_array($order)
+        $orderActionsEnabled = is_array($order)
             ? $this->isInvoiceAllowedForStatus((string) ($order['status'] ?? ''))
+            : false;
+        $confirmActionEnabled = is_array($order)
+            ? $this->isConfirmAllowedForStatus((string) ($order['status'] ?? ''))
             : false;
         $confirmButtonLabel = is_array($order) && $this->shouldGenerateInvoiceOnConfirm((string) ($order['status'] ?? ''))
             ? 'Confirm + Invoice'
@@ -108,7 +111,8 @@ class AdminOrderController extends Controller
         return view('admin.orders.view', [
             'title' => 'Order Details',
             'subtitle' => 'Review customer profile, fraud risk, product line items, and fulfillment trail.',
-            'invoiceEnabled' => $invoiceEnabled,
+            'orderActionsEnabled' => $orderActionsEnabled,
+            'confirmActionEnabled' => $confirmActionEnabled,
             'confirmButtonLabel' => $confirmButtonLabel,
             'ordersApiBaseUrl' => rtrim((string) config('services.backend.url', 'http://localhost:8082'), '/'),
             'ordersRefreshToken' => $refreshToken,
@@ -273,6 +277,15 @@ class AdminOrderController extends Controller
     private function shouldGenerateInvoiceOnConfirm(string $status): bool
     {
         return $this->normalizeStatus($status) === 'waiting_for_confirmation';
+    }
+
+    private function isConfirmAllowedForStatus(string $status): bool
+    {
+        return in_array(
+            $this->normalizeStatus($status),
+            ['waiting_for_call', 'waiting_for_confirmation'],
+            true
+        );
     }
 
     private function normalizeStatus(string $status): string
