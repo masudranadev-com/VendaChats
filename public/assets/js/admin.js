@@ -1880,6 +1880,7 @@ function initOrderDetailsPage() {
   const loaderNode = section.querySelector('[data-ui-loader]');
   const titleNode = section.querySelector('[data-order-details-order-title]');
   const userProfileLinkNode = section.querySelector('[data-order-details-user-profile-link]');
+  const statusPillNode = section.querySelector('[data-order-details-status-pill]');
   const customerIdNode = section.querySelector('[data-order-details-customer-id]');
   const avatarWrap = section.querySelector('[data-order-details-avatar-wrap]');
   const nameNode = section.querySelector('[data-order-details-name]');
@@ -1927,10 +1928,29 @@ function initOrderDetailsPage() {
     messageNode.hidden = false;
     messageNode.innerHTML = `<span class="badge badge-${escapeHtml(tone)}">${escapeHtml(message)}</span>`;
   };
+  const statusMetaOf = (statusValue) => {
+    const normalized = normalizeStatus(statusValue);
+    if (normalized === 'success') return {label: 'Success', css: 'badge-success'};
+    if (normalized === 'in_transit') return {label: 'In Transit', css: 'badge-primary'};
+    if (normalized === 'ready_to_dispatch') return {label: 'Ready to Dispatch', css: 'badge-info'};
+    if (normalized === 'waiting_for_call' || normalized === 'waiting_for_confirmation') {
+      return {label: titleCase(normalized), css: 'badge-warning'};
+    }
+    if (normalized.startsWith('cancel_')) return {label: titleCase(normalized), css: 'badge-danger'};
+    return {label: titleCase(normalized || 'unknown'), css: 'badge-info'};
+  };
   const clearMessage = () => {
     if (!(messageNode instanceof HTMLElement)) return;
     messageNode.hidden = true;
     messageNode.innerHTML = '';
+  };
+  const renderCurrentStatus = (statusValue) => {
+    if (!(statusPillNode instanceof HTMLElement)) return;
+
+    const statusMeta = statusMetaOf(statusValue);
+    statusPillNode.classList.remove('badge-success', 'badge-primary', 'badge-info', 'badge-warning', 'badge-danger');
+    statusPillNode.classList.add(statusMeta.css);
+    statusPillNode.textContent = statusMeta.label;
   };
   const setLoading = (loading) => {
     if (loaderNode instanceof HTMLElement) {
@@ -1965,21 +1985,50 @@ function initOrderDetailsPage() {
     if (normalized === 'in_transit') return 'success';
     return '';
   };
-  const buildInvoiceUrl = (nextOrderId = '') => {
-    const resolvedId = text(nextOrderId || currentResolvedOrderId || orderId);
-    if (invoiceUrlTemplate.includes('__ORDER_ID__')) {
-      return invoiceUrlTemplate.replace('__ORDER_ID__', encodeURIComponent(resolvedId));
+  const shouldGenerateInvoiceOnConfirm = (statusValue) => normalizeStatus(statusValue) === 'waiting_for_confirmation';
+  const confirmButtonLabelForStatus = (statusValue) => shouldGenerateInvoiceOnConfirm(statusValue)
+    ? 'Confirm + Invoice'
+    : 'Confirm';
+  const syncConfirmButtonLabel = (statusValue) => {
+    if (!(confirmSubmitButton instanceof HTMLButtonElement)) return;
+
+    const nextLabel = confirmButtonLabelForStatus(statusValue);
+    confirmSubmitButton.dataset.idleLabel = nextLabel;
+    if (!confirmSubmitButton.disabled) {
+      confirmSubmitButton.textContent = nextLabel;
     }
-    if (invoiceUrlTemplate) {
-      return invoiceUrlTemplate;
+  };
+  const buildInvoiceUrl = (nextOrderId = '', statusValue = '') => {
+    const resolvedId = text(nextOrderId || currentResolvedOrderId || orderId);
+    const normalizedStatusHint = normalizeStatus(statusValue);
+    let invoiceUrl = '';
+
+    if (invoiceUrlTemplate.includes('__ORDER_ID__')) {
+      invoiceUrl = invoiceUrlTemplate.replace('__ORDER_ID__', encodeURIComponent(resolvedId));
+    } else if (invoiceUrlTemplate) {
+      invoiceUrl = invoiceUrlTemplate;
+    } else {
+      invoiceUrl = `${window.location.pathname.replace(/\/+$/, '')}/invoice`;
     }
 
-    return `${window.location.pathname.replace(/\/+$/, '')}/invoice`;
+    if (!normalizedStatusHint) {
+      return invoiceUrl;
+    }
+
+    try {
+      const parsedUrl = new URL(invoiceUrl, window.location.origin);
+      parsedUrl.searchParams.set('status', normalizedStatusHint);
+      return parsedUrl.toString();
+    } catch {
+      const separator = invoiceUrl.includes('?') ? '&' : '?';
+      return `${invoiceUrl}${separator}status=${encodeURIComponent(normalizedStatusHint)}`;
+    }
   };
   const setOrderActionsAvailability = (statusValue) => {
     const normalized = normalizeStatus(statusValue);
     currentOrderStatus = normalized;
     orderActionsAllowed = allowedOrderActionStatuses.has(normalized);
+    syncConfirmButtonLabel(normalized);
 
     if (confirmActionForm instanceof HTMLFormElement) {
       confirmActionForm.hidden = !orderActionsAllowed;
@@ -2011,6 +2060,12 @@ function initOrderDetailsPage() {
   };
   const resetUiForLoading = () => {
     if (titleNode) titleNode.textContent = `Order ${orderId || '--'}`;
+    syncConfirmButtonLabel('');
+    if (statusPillNode instanceof HTMLElement) {
+      statusPillNode.classList.remove('badge-success', 'badge-primary', 'badge-warning', 'badge-danger');
+      statusPillNode.classList.add('badge-info');
+      statusPillNode.textContent = 'Loading...';
+    }
     if (customerIdNode) customerIdNode.textContent = '--';
     if (avatarWrap instanceof HTMLElement) avatarWrap.textContent = '-';
     if (nameNode) nameNode.textContent = '--';
@@ -2302,6 +2357,7 @@ function initOrderDetailsPage() {
     if (addressNode) addressNode.textContent = address;
     if (methodNode) methodNode.textContent = `Payment: ${method}`;
     if (channelNode) channelNode.textContent = `Channel: ${channel}`;
+    renderCurrentStatus(status);
     setOrderActionsAvailability(status);
 
     if (productsCountNode) productsCountNode.textContent = `${products.length} products`;
@@ -2416,23 +2472,26 @@ function initOrderDetailsPage() {
       event.preventDefault();
 
       if (!orderActionsAllowed) {
-        setMessage(`Confirm + Invoice is available only for ${orderActionStatusHint}.`, 'danger');
         return;
       }
 
       const sourceStatus = currentOrderStatus;
       const targetStatus = transitionStatusForConfirm(sourceStatus);
+      const shouldGenerateInvoice = shouldGenerateInvoiceOnConfirm(sourceStatus);
       if (!targetStatus) {
         setMessage('This order cannot be confirmed from its current status.', 'danger');
         return;
       }
 
-      if (typeof window.confirm === 'function' && !window.confirm('Confirm this order and generate invoice now?')) {
+      const confirmPrompt = shouldGenerateInvoice
+        ? 'Confirm this order and generate invoice now?'
+        : 'Confirm this order now?';
+      if (typeof window.confirm === 'function' && !window.confirm(confirmPrompt)) {
         return;
       }
 
-      setButtonLoading(confirmSubmitButton, true, 'Confirming...');
-      setMessage('Confirming order and preparing invoice...', 'info');
+      setButtonLoading(confirmSubmitButton, true, shouldGenerateInvoice ? 'Confirming + Invoice...' : 'Confirming...');
+      setMessage(shouldGenerateInvoice ? 'Confirming order and preparing invoice...' : 'Confirming order...', 'info');
 
       try {
         const payload = await mutateOrderHistory(
@@ -2466,7 +2525,15 @@ function initOrderDetailsPage() {
           window.showSuccess(`Order ${currentResolvedOrderId}: ${titleCase(sourceStatus)} -> ${titleCase(responseStatus)}.`);
         }
 
-        window.location.assign(buildInvoiceUrl(currentResolvedOrderId));
+        renderCurrentStatus(responseStatus);
+        setOrderActionsAvailability(responseStatus);
+
+        if (shouldGenerateInvoice) {
+          window.location.assign(buildInvoiceUrl(currentResolvedOrderId, sourceStatus || responseStatus));
+          return;
+        }
+
+        clearMessage();
       } catch (error) {
         const message = resolveErrorMessage(error, 'Failed to confirm order.');
         setMessage(message, 'danger');

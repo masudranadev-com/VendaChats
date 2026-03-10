@@ -38,11 +38,16 @@
           {{ $orderActionsEnabled ? '' : 'hidden' }}
         >
           @csrf
-          <button type="submit" class="btn btn-success">Confirm + Invoice</button>
+          <button type="submit" class="btn btn-success">{{ $confirmButtonLabel ?? 'Confirm' }}</button>
         </form>
       </div>
     </div>
   </div>
+
+  <section class="card orders-current-status-card" aria-live="polite">
+    <span class="orders-current-status-label">Current Status</span>
+    <span class="badge badge-info orders-current-status-pill" data-order-details-status-pill>Loading...</span>
+  </section>
 
   <div class="orders-confirm-message" data-order-details-fetch-message hidden></div>
 
@@ -52,9 +57,10 @@
     </div>
   @endif
 
-  @if ($errors->any())
+  @php($visibleErrors = collect($errors->getBag('default')->getMessages())->except(['invoice'])->flatten())
+  @if ($visibleErrors->isNotEmpty())
     <div class="orders-confirm-message">
-      @foreach ($errors->all() as $error)
+      @foreach ($visibleErrors as $error)
         <span class="badge badge-danger">{{ $error }}</span>
       @endforeach
     </div>

@@ -10095,6 +10095,36 @@ body.products-attention-open {
   gap: 8px;
 }
 
+.orders-current-status-card {
+  margin-top: var(--spacing-md);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-md);
+  padding: 18px 20px;
+  border-color: rgba(19,82,220,0.18);
+  background:
+    radial-gradient(circle at top right, rgba(19,82,220,0.12), transparent 56%),
+    linear-gradient(135deg, rgba(19,82,220,0.04), rgba(255,255,255,0.96));
+}
+
+.orders-current-status-label {
+  display: block;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+}
+
+.orders-current-status-pill {
+  padding: 10px 16px;
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+}
+
 .orders-detail-grid {
   display: grid;
   grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
@@ -10467,6 +10497,11 @@ body.products-attention-open {
   .orders-header-actions {
     flex-direction: column;
     align-items: stretch;
+  }
+
+  .orders-current-status-card {
+    flex-direction: column;
+    align-items: flex-start;
   }
 
   .orders-totals {

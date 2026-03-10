@@ -101,11 +101,15 @@ class AdminOrderController extends Controller
         $invoiceEnabled = is_array($order)
             ? $this->isInvoiceAllowedForStatus((string) ($order['status'] ?? ''))
             : false;
+        $confirmButtonLabel = is_array($order) && $this->shouldGenerateInvoiceOnConfirm((string) ($order['status'] ?? ''))
+            ? 'Confirm + Invoice'
+            : 'Confirm';
 
         return view('admin.orders.view', [
             'title' => 'Order Details',
             'subtitle' => 'Review customer profile, fraud risk, product line items, and fulfillment trail.',
             'invoiceEnabled' => $invoiceEnabled,
+            'confirmButtonLabel' => $confirmButtonLabel,
             'ordersApiBaseUrl' => rtrim((string) config('services.backend.url', 'http://localhost:8082'), '/'),
             'ordersRefreshToken' => $refreshToken,
             'orderId' => $orderId,
@@ -182,8 +186,17 @@ class AdminOrderController extends Controller
                 ->withErrors(['invoice' => 'Confirm + Invoice is available only for Waiting For Call, Waiting For Confirmation, or Ready To Dispatch.']);
         }
 
+        if (! $this->shouldGenerateInvoiceOnConfirm((string) ($order['status'] ?? ''))) {
+            return redirect()
+                ->route('admin.orders.view', ['orderId' => $order['id']])
+                ->with('success', "Order {$order['id']} confirmed.");
+        }
+
         return redirect()
-            ->route('admin.orders.invoice', ['orderId' => $order['id']])
+            ->route('admin.orders.invoice', [
+                'orderId' => $order['id'],
+                'status' => (string) ($order['status'] ?? ''),
+            ])
             ->with('success', "Order {$order['id']} confirmed. Invoice generated with demo data.");
     }
 
@@ -255,6 +268,11 @@ class AdminOrderController extends Controller
             ['waiting_for_call', 'waiting_for_confirmation', 'ready_to_dispatch'],
             true
         );
+    }
+
+    private function shouldGenerateInvoiceOnConfirm(string $status): bool
+    {
+        return $this->normalizeStatus($status) === 'waiting_for_confirmation';
     }
 
     private function normalizeStatus(string $status): string
