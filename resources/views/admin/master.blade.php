@@ -3,6 +3,11 @@
   $adminGlobalConfig = session('admin.global_config', []);
   $websiteName = trim((string) ($adminGlobalConfig['website_name'] ?? 'A Metafy')) ?: 'A Metafy';
   $websiteLogo = trim((string) ($adminGlobalConfig['website_logo'] ?? '⚡')) ?: '⚡';
+  $supportWhatsappNumber = trim((string) ($adminGlobalConfig['support_whatsapp_number'] ?? ''));
+  $supportWhatsappDigits = preg_replace('/\D+/', '', $supportWhatsappNumber);
+  $supportWhatsappHref = $supportWhatsappDigits !== ''
+    ? 'https://wa.me/'.$supportWhatsappDigits.'?text='.rawurlencode('Hello, I need help with my account.')
+    : null;
   $routeToPage = [
     'admin.dashboard' => 'dashboard',
     'admin.profile' => 'profile',
@@ -129,6 +134,10 @@
             <span class="nav-icon">⚙️</span>
             <span class="nav-label">Shop Settings</span>
           </a>
+          <a href="{{ route('admin.billing') }}" class="nav-item {{ $currentPage === 'billing' ? 'active' : '' }}">
+            <span class="nav-icon">$</span>
+            <span class="nav-label">Billing</span>
+          </a>
         </div>
       </nav>
     </aside>
@@ -198,6 +207,24 @@
       </main>
     </div>
   </div>
+
+  @if ($supportWhatsappHref)
+    <a
+      href="{{ $supportWhatsappHref }}"
+      class="support-help-fab"
+      target="_blank"
+      rel="noopener noreferrer"
+      aria-label="Open WhatsApp support chat"
+      title="Chat on WhatsApp: {{ $supportWhatsappNumber }}"
+    >
+      <span class="support-help-fab-bubble is-visible" data-support-help-bubble aria-hidden="false">Need help?</span>
+      <span class="support-help-fab-button" aria-hidden="true">
+        <svg viewBox="0 0 32 32" role="presentation" focusable="false">
+          <path d="M16 5.333c-5.891 0-10.667 4.62-10.667 10.32 0 2.011.601 3.882 1.64 5.456L5.333 26.667l5.783-1.512A10.92 10.92 0 0 0 16 26c5.891 0 10.667-4.62 10.667-10.347C26.667 9.954 21.891 5.333 16 5.333Zm0 19.014a9.082 9.082 0 0 1-4.641-1.273l-.332-.2-3.432.898.92-3.332-.227-.347a8.714 8.714 0 0 1-1.387-4.44c0-4.747 4.078-8.613 9.099-8.613 5.014 0 9.099 3.866 9.099 8.613 0 4.761-4.085 8.694-9.099 8.694Zm4.987-6.567c-.273-.133-1.613-.78-1.867-.867-.254-.087-.44-.133-.627.133-.187.267-.72.867-.88 1.04-.16.174-.32.2-.594.067-.273-.133-1.16-.42-2.214-1.34-.82-.707-1.374-1.58-1.534-1.846-.16-.267-.02-.414.12-.547.126-.12.273-.313.407-.467.133-.153.18-.266.273-.446.093-.18.047-.333-.02-.467-.067-.133-.626-1.493-.86-2.046-.226-.54-.46-.467-.627-.474l-.534-.007c-.187 0-.494.067-.754.333-.26.267-.993.967-.993 2.36 0 1.392 1.02 2.738 1.16 2.924.14.187 2 3.14 4.947 4.273.7.3 1.247.48 1.674.614.707.22 1.353.187 1.86.113.567-.087 1.613-.66 1.84-1.307.226-.646.226-1.2.16-1.306-.067-.107-.247-.174-.52-.307Z" />
+        </svg>
+      </span>
+    </a>
+  @endif
 
   <script>
     window.__ADMIN_PAGE = @json($currentPage);

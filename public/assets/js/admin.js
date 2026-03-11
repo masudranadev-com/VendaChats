@@ -291,6 +291,7 @@ document.addEventListener('DOMContentLoaded', () => {
   initTheme();
   initCkEditors();
   initSidebar();
+  initSupportHelpFab();
   initDropdowns();
   initModals();
   initToasts();
@@ -387,6 +388,67 @@ function initSidebar() {
   if (localStorage.getItem('sidebar-collapsed') === 'true') {
     sidebar?.classList.add('collapsed');
   }
+}
+
+function initSupportHelpFab() {
+  const fab = document.querySelector('.support-help-fab');
+  const bubble = fab?.querySelector('[data-support-help-bubble]');
+
+  if (!(fab instanceof HTMLElement) || !(bubble instanceof HTMLElement)) {
+    return;
+  }
+
+  const visibleDurationMs = 5000;
+  const hiddenDurationMs = 20000;
+  let showTimerId = 0;
+  let hideTimerId = 0;
+
+  const clearTimers = () => {
+    window.clearTimeout(showTimerId);
+    window.clearTimeout(hideTimerId);
+  };
+
+  const scheduleShow = () => {
+    window.clearTimeout(showTimerId);
+    showTimerId = window.setTimeout(showBubble, hiddenDurationMs);
+  };
+
+  const scheduleHide = () => {
+    window.clearTimeout(hideTimerId);
+    hideTimerId = window.setTimeout(hideBubble, visibleDurationMs);
+  };
+
+  const showBubble = () => {
+    window.clearTimeout(showTimerId);
+    bubble.classList.remove('is-hidden');
+    bubble.classList.add('is-visible');
+    bubble.setAttribute('aria-hidden', 'false');
+    scheduleHide();
+  };
+
+  const hideBubble = () => {
+    window.clearTimeout(hideTimerId);
+    bubble.classList.remove('is-visible');
+    bubble.classList.add('is-hidden');
+    bubble.setAttribute('aria-hidden', 'true');
+    scheduleShow();
+  };
+
+  fab.addEventListener('mouseenter', showBubble);
+  fab.addEventListener('focusin', showBubble);
+
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) {
+      clearTimers();
+      return;
+    }
+
+    showBubble();
+  });
+
+  window.addEventListener('beforeunload', clearTimers, { once: true });
+
+  showBubble();
 }
 
 function setActivePage() {

@@ -167,6 +167,7 @@ Route::prefix('admin')->name('admin.')->middleware('admin.auth')->group(function
     Route::get('/competition/{competitor}/view', [CompetitionController::class, 'view'])->name('competition.view');
     Route::get('/coach', [CoachController::class, 'index'])->name('coach');
     Route::get('/courier', [CourierController::class, 'index'])->name('courier');
+    Route::get('/billing', [DashboardController::class, 'billing'])->name('billing');
 
     // Shop Settings 
     Route::get('/shop-settings', [ShopSettingsController::class, 'index'])->name('shop-settings');
