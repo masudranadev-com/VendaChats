@@ -202,7 +202,9 @@
           <span class="products-voice-modal-kicker">Voice Ready</span>
           <h3 class="modal-title" id="productsVoiceReadyTitle" data-products-voice-ready-product>Product Voice Preview</h3>
         </div>
-        <button type="button" class="modal-close" data-modal-close aria-label="Close">x</button>
+        <button type="button" class="modal-close products-voice-modal-close" data-modal-close aria-label="Close">
+          <span class="products-voice-modal-close-icon" aria-hidden="true"></span>
+        </button>
       </div>
       <div class="modal-body products-voice-modal-body">
         <div class="products-voice-modal-topline">
@@ -254,7 +256,9 @@
           <span class="products-voice-modal-kicker">Voice Queue</span>
           <h3 class="modal-title" id="productsVoiceQueueTitle" data-products-voice-queue-product>Voice is being prepared</h3>
         </div>
-        <button type="button" class="modal-close" data-modal-close aria-label="Close">x</button>
+        <button type="button" class="modal-close products-voice-modal-close" data-modal-close aria-label="Close">
+          <span class="products-voice-modal-close-icon" aria-hidden="true"></span>
+        </button>
       </div>
       <div class="modal-body products-voice-modal-body">
         <div class="products-voice-modal-topline">

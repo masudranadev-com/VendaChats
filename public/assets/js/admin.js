@@ -1223,7 +1223,8 @@ function initOrdersCatalogPage() {
     const isCancelOnCalled = normalizedStatus === 'cancel_on_called';
     const isCancelOnConfirmation = normalizedStatus === 'cancel_on_confirmation';
     const shouldShowInvoice = !isWaitingForCall && !isWaitingForConfirmation && !isCancelOnCalled && !isCancelOnConfirmation;
-    const shouldShowConfirmControls = isWaitingForCall || isWaitingForConfirmation || isReadyToDispatch;
+    const shouldShowCancelControl = isWaitingForCall || isWaitingForConfirmation || isReadyToDispatch;
+    const shouldShowConfirmControl = isWaitingForCall || isWaitingForConfirmation;
 
     const actions = [
       actionMenuItem(orderId, 'details', 'Details', 'info'),
@@ -1231,8 +1232,10 @@ function initOrdersCatalogPage() {
     if (shouldShowInvoice) {
       actions.push(actionMenuItem(orderId, 'invoice', 'Invoice'));
     }
-    if (shouldShowConfirmControls) {
+    if (shouldShowCancelControl) {
       actions.push(actionMenuItem(orderId, 'cancelld', 'Cancelled', 'danger'));
+    }
+    if (shouldShowConfirmControl) {
       actions.push(actionMenuItem(orderId, 'confirm', 'Confirm', 'success'));
     }
 
