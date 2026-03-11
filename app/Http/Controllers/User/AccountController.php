@@ -7,6 +7,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
 use Illuminate\View\View;
+use Throwable;
 
 class AccountController extends Controller
 {
@@ -41,7 +42,10 @@ class AccountController extends Controller
                 ->withInput($request->only('email'));
         }
 
-        $request->session()->put('auth.refresh_token', $response->json('refresh_token'));
+        $refreshToken = (string) $response->json('refresh_token', '');
+
+        $request->session()->put('auth.refresh_token', $refreshToken);
+        $this->storeAdminGlobalConfig($request, $refreshToken);
 
         return redirect()->route('admin.dashboard');
     }
@@ -75,5 +79,35 @@ class AccountController extends Controller
         $request->session()->flush();
 
         return redirect()->route('login.index');
+    }
+
+    private function storeAdminGlobalConfig(Request $request, string $refreshToken): void
+    {
+        if ($refreshToken === '') {
+            $request->session()->forget('admin.global_config');
+
+            return;
+        }
+
+        $apiUrl = rtrim((string) config('services.backend.url', 'http://localhost:8082'), '/');
+
+        try {
+            $response = Http::acceptJson()
+                ->withHeaders([
+                    'user-refres-token' => $refreshToken,
+                ])
+                ->timeout(12)
+                ->get("{$apiUrl}/api/admin/user/global/config/info");
+
+            if (! $response->ok() || ! is_array($response->json())) {
+                $request->session()->forget('admin.global_config');
+
+                return;
+            }
+
+            $request->session()->put('admin.global_config', $response->json());
+        } catch (Throwable) {
+            $request->session()->forget('admin.global_config');
+        }
     }
 }
