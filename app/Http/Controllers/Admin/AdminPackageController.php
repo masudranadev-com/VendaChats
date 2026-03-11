@@ -10,14 +10,14 @@ class AdminPackageController extends Controller
     public function packages()
     {
         return view('admin.packages.index', [
-            'title' => 'Billing & Packages',
-            'subtitle' => 'Track subscription health, payment status, and upgrade paths from one place.',
+            'title' => 'Packages',
+            'subtitle' => 'Manage your current package, renewal details, and upgrade options from one place.',
             'billingStatus' => [
                 'is_paid' => true,
                 'plan_name' => 'Growth',
-                'plan_label' => 'Growth Plan',
+                'plan_label' => 'Growth Package',
                 'price' => 'BDT 4,900',
-                'billing_cycle' => 'Monthly billing',
+                'billing_cycle' => 'Billed monthly',
                 'status_label' => 'Paid',
                 'renews_on' => '28 Mar 2026',
                 'last_charge' => '01 Mar 2026',

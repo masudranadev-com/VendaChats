@@ -8,7 +8,7 @@
       <h1 class="page-title">{{ $title }}</h1>
       <p class="page-subtitle">{{ $subtitle }}</p>
     </div>
-    <a href="#billingPackages" class="btn btn-primary billing-header-cta">Upgrade Package</a>
+    <a href="#packagesCatalog" class="btn btn-primary billing-header-cta">Upgrade Package</a>
   </div>
 
   <section class="billing-hero">
@@ -32,14 +32,14 @@
         </div>
 
         <div class="billing-status-actions">
-          <a href="#billingPackages" class="btn btn-primary">Upgrade Package</a>
-          <button type="button" class="btn btn-secondary">Billing History</button>
+          <a href="#packagesCatalog" class="btn btn-primary">Upgrade Package</a>
+          <button type="button" class="btn btn-secondary">Package History</button>
         </div>
       </div>
 
       <div class="billing-status-meta">
         <article>
-          <span>Current Plan</span>
+          <span>Current Package</span>
           <strong>{{ $billingStatus['plan_name'] }}</strong>
         </article>
         <article>
@@ -79,11 +79,11 @@
     </aside>
   </section>
 
-  <section class="billing-package-section mt-xl" id="billingPackages">
+  <section class="billing-package-section mt-xl" id="packagesCatalog">
     <div class="billing-package-intro">
       <div>
         <span class="billing-eyebrow">Packages</span>
-        <h2>Choose the right plan for the next stage</h2>
+        <h2>Choose the right package for the next stage</h2>
         <p>Static UI for now. Later this section can be filled with live plans and features from API data.</p>
       </div>
     </div>

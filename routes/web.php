@@ -8,6 +8,7 @@ use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\AdminUsersController;
 use App\Http\Controllers\Admin\AdminPostController;
 use App\Http\Controllers\Admin\AdminOrderController;
+use App\Http\Controllers\Admin\AdminPackageController;
 use App\Http\Controllers\Admin\CompetitionController;
 use App\Http\Controllers\Admin\CoachController;
 use App\Http\Controllers\Admin\CourierController;
@@ -168,7 +169,7 @@ Route::prefix('admin')->name('admin.')->middleware('admin.auth')->group(function
     Route::get('/coach', [CoachController::class, 'index'])->name('coach');
     Route::get('/courier', [CourierController::class, 'index'])->name('courier');
 
-    // package
+    // packages
     Route::get('/packages', [AdminPackageController::class, 'packages'])->name('packages');
 
     // Shop Settings

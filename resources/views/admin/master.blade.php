@@ -40,9 +40,28 @@
     'admin.shop-settings.theme' => 'settings',
     'admin.shop-settings.offers' => 'settings',
     'admin.shop-settings.content' => 'settings',
-    'admin.billing' => 'billing',
+    'admin.packages' => 'packages',
   ];
   $currentPage = $routeToPage[$routeName] ?? 'dashboard';
+  $navIcon = static function (string $name): \Illuminate\Support\HtmlString {
+    $svg = match ($name) {
+      'dashboard' => '<svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1.5"></rect><rect x="14" y="3" width="7" height="7" rx="1.5"></rect><rect x="3" y="14" width="7" height="7" rx="1.5"></rect><rect x="14" y="14" width="7" height="7" rx="1.5"></rect></svg>',
+      'orders' => '<svg viewBox="0 0 24 24"><path d="M8 7V6a4 4 0 1 1 8 0v1"></path><path d="M6 8h12l-1 11H7L6 8Z"></path></svg>',
+      'products' => '<svg viewBox="0 0 24 24"><path d="m12 3 7 4v10l-7 4-7-4V7l7-4Z"></path><path d="m12 12 7-5"></path><path d="m12 12-7-5"></path><path d="M12 12v9"></path></svg>',
+      'customers' => '<svg viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v2"></path><circle cx="9.5" cy="7" r="3"></circle><path d="M21 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16.5 4.13a3 3 0 0 1 0 5.74"></path></svg>',
+      'posts' => '<svg viewBox="0 0 24 24"><path d="M7 10h10"></path><path d="M7 14h6"></path><path d="M5 5h14a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H9l-4 3v-3H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2Z"></path></svg>',
+      'bot-settings' => '<svg viewBox="0 0 24 24"><path d="M12 5v3"></path><rect x="7" y="8" width="10" height="8" rx="2"></rect><path d="M9 12h.01"></path><path d="M15 12h.01"></path><path d="M8 18h8"></path><path d="M5 10h2"></path><path d="M17 10h2"></path></svg>',
+      'order-call' => '<svg viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.86 19.86 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6A19.86 19.86 0 0 1 2.12 4.18 2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.12.9.33 1.78.63 2.62a2 2 0 0 1-.45 2.11L8 9.89a16 16 0 0 0 6.11 6.11l1.44-1.29a2 2 0 0 1 2.11-.45c.84.3 1.72.51 2.62.63A2 2 0 0 1 22 16.92Z"></path></svg>',
+      'campaigns' => '<svg viewBox="0 0 24 24"><path d="m3 11 11-5v12L3 13v-2Z"></path><path d="M14 8c3.5 0 5.5-1 7-3v14c-1.5-2-3.5-3-7-3"></path><path d="M6 14v4a2 2 0 0 0 2 2h1"></path></svg>',
+      'competition' => '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"></circle><circle cx="12" cy="12" r="3"></circle><path d="M12 2v3"></path><path d="M12 19v3"></path><path d="M2 12h3"></path><path d="M19 12h3"></path></svg>',
+      'courier' => '<svg viewBox="0 0 24 24"><path d="M10 17H5V7h10v10"></path><path d="M15 11h3l3 3v3h-6v-6Z"></path><circle cx="7.5" cy="18.5" r="1.5"></circle><circle cx="17.5" cy="18.5" r="1.5"></circle></svg>',
+      'settings' => '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06A1.65 1.65 0 0 0 15 19.4a1.65 1.65 0 0 0-1 .6 1.65 1.65 0 0 1-2 0 1.65 1.65 0 0 0-1-.6 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.6 15a1.65 1.65 0 0 0-.6-1 1.65 1.65 0 0 1 0-2 1.65 1.65 0 0 0 .6-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6a1.65 1.65 0 0 0 1-.6 1.65 1.65 0 0 1 2 0 1.65 1.65 0 0 0 1 .6 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9c0 .38.14.74.4 1a1.65 1.65 0 0 1 0 2c-.26.26-.4.62-.4 1Z"></path></svg>',
+      'packages' => '<svg viewBox="0 0 24 24"><path d="m12 3 8 4-8 4-8-4 8-4Z"></path><path d="m4 13 8 4 8-4"></path><path d="m4 17 8 4 8-4"></path></svg>',
+      default => '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"></circle></svg>',
+    };
+
+    return new \Illuminate\Support\HtmlString($svg);
+  };
 @endphp
 <!DOCTYPE html>
 <html lang="en">
@@ -69,7 +88,7 @@
         <div class="nav-group">
           <div class="nav-group-title">Overview</div>
           <a href="{{ route('admin.dashboard') }}" class="nav-item {{ $currentPage === 'dashboard' ? 'active' : '' }}">
-            <span class="nav-icon">📊</span>
+            <span class="nav-icon" aria-hidden="true">{{ $navIcon('dashboard') }}</span>
             <span class="nav-label">Dashboard</span>
           </a>
         </div>
@@ -77,15 +96,15 @@
         <div class="nav-group">
           <div class="nav-group-title">Sales</div>
           <a href="{{ route('admin.orders') }}" class="nav-item {{ $currentPage === 'orders' ? 'active' : '' }}">
-            <span class="nav-icon">🛒</span>
+            <span class="nav-icon" aria-hidden="true">{{ $navIcon('orders') }}</span>
             <span class="nav-label">Orders</span>
           </a>
           <a href="{{ route('admin.products') }}" class="nav-item {{ $currentPage === 'products' ? 'active' : '' }}">
-            <span class="nav-icon">📦</span>
+            <span class="nav-icon" aria-hidden="true">{{ $navIcon('products') }}</span>
             <span class="nav-label">Products</span>
           </a>
            <a href="{{ route('admin.users') }}" class="nav-item {{ $currentPage === 'users' ? 'active' : '' }}">
-            <span class="nav-icon">👥</span>
+            <span class="nav-icon" aria-hidden="true">{{ $navIcon('customers') }}</span>
             <span class="nav-label">Customers</span>
           </a>
         </div>
@@ -93,19 +112,19 @@
         <div class="nav-group">
           <div class="nav-group-title">Automation</div>
           <a href="{{ route('admin.posts') }}" class="nav-item {{ $currentPage === 'posts' ? 'active' : '' }}">
-            <span class="nav-icon">💬</span>
+            <span class="nav-icon" aria-hidden="true">{{ $navIcon('posts') }}</span>
             <span class="nav-label">Posts</span>
           </a>
           <a href="{{ route('admin.bot-settings') }}" class="nav-item {{ $currentPage === 'bot-settings' ? 'active' : '' }}">
-            <span class="nav-icon">🤖</span>
+            <span class="nav-icon" aria-hidden="true">{{ $navIcon('bot-settings') }}</span>
             <span class="nav-label">Bot Settings</span>
           </a>
           <a href="{{ route('admin.order-call') }}" class="nav-item {{ $currentPage === 'order-call' ? 'active' : '' }}">
-            <span class="nav-icon">📞</span>
+            <span class="nav-icon" aria-hidden="true">{{ $navIcon('order-call') }}</span>
             <span class="nav-label">Call Confirm</span>
           </a>
           <a href="{{ route('admin.campaigns') }}" class="nav-item {{ $currentPage === 'campaigns' ? 'active' : '' }}">
-            <span class="nav-icon">🚀</span>
+            <span class="nav-icon" aria-hidden="true">{{ $navIcon('campaigns') }}</span>
             <span class="nav-label">Campaigns</span>
           </a>
         </div>
@@ -113,7 +132,7 @@
         <div class="nav-group">
           <div class="nav-group-title">Intelligence</div>
           <a href="{{ route('admin.competition') }}" class="nav-item {{ $currentPage === 'competition' ? 'active' : '' }}">
-            <span class="nav-icon">🔍</span>
+            <span class="nav-icon" aria-hidden="true">{{ $navIcon('competition') }}</span>
             <span class="nav-label">Competition Monitor</span>
           </a>
           {{-- <a href="{{ route('admin.coach') }}" class="nav-item {{ $currentPage === 'coach' ? 'active' : '' }}">
@@ -126,17 +145,17 @@
         <div class="nav-group">
           <div class="nav-group-title">Settings</div>
           <a href="{{ route('admin.courier') }}" class="nav-item {{ $currentPage === 'courier' ? 'active' : '' }}">
-            <span class="nav-icon">🚚</span>
+            <span class="nav-icon" aria-hidden="true">{{ $navIcon('courier') }}</span>
             <span class="nav-label">Courier Manager</span>
           </a>
 
           <a href="{{ route('admin.shop-settings') }}" class="nav-item {{ $currentPage === 'settings' ? 'active' : '' }}">
-            <span class="nav-icon">⚙️</span>
+            <span class="nav-icon" aria-hidden="true">{{ $navIcon('settings') }}</span>
             <span class="nav-label">Shop Settings</span>
           </a>
-          <a href="{{ route('admin.billing') }}" class="nav-item {{ $currentPage === 'billing' ? 'active' : '' }}">
-            <span class="nav-icon">$</span>
-            <span class="nav-label">Billing</span>
+          <a href="{{ route('admin.packages') }}" class="nav-item {{ $currentPage === 'packages' ? 'active' : '' }}">
+            <span class="nav-icon" aria-hidden="true">{{ $navIcon('packages') }}</span>
+            <span class="nav-label">Packages</span>
           </a>
         </div>
       </nav>
