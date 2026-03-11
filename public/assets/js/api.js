@@ -186,6 +186,45 @@
           });
         },
       },
+      OrderCall: {
+        getConfig({apiBaseUrl, refreshToken, timeoutMs = 12000} = {}) {
+          const tokenText = toText(refreshToken || getToken());
+          if (!tokenText) {
+            throw new ApiError('Missing refresh token. Please login again.');
+          }
+
+          return request({
+            baseUrl: normalizeBaseUrl(apiBaseUrl),
+            path: '/api/admin/user/config/calling-info',
+            method: 'GET',
+            token: tokenText,
+            headers: {
+              'user-refres-token': tokenText,
+            },
+            includeRefreshToken: false,
+            timeoutMs,
+          });
+        },
+        saveConfig({apiBaseUrl, refreshToken, payload, timeoutMs = 12000} = {}) {
+          const tokenText = toText(refreshToken || getToken());
+          if (!tokenText) {
+            throw new ApiError('Missing refresh token. Please login again.');
+          }
+
+          return request({
+            baseUrl: normalizeBaseUrl(apiBaseUrl),
+            path: '/api/admin/user/config/calling-submit',
+            method: 'POST',
+            token: tokenText,
+            headers: {
+              'user-refres-token': tokenText,
+            },
+            body: payload,
+            includeRefreshToken: false,
+            timeoutMs,
+          });
+        },
+      },
       Products: {
         list({
           apiBaseUrl,

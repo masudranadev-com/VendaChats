@@ -9677,6 +9677,8 @@ function initOrderCallPage() {
   const section = document.querySelector('[data-order-call-page]');
   if (!section) return;
 
+  const apiBaseUrl = String(section.dataset.apiBaseUrl || '').replace(/\/+$/, '');
+  const settingsFieldset = section.querySelector('[data-order-call-settings-fields]');
   const pageNameInput = section.querySelector('[data-order-call-page-name-input]');
   const languageInput = section.querySelector('[data-order-call-language-input]');
   const enabledInput = section.querySelector('[data-order-call-enabled-input]');
@@ -9690,6 +9692,16 @@ function initOrderCallPage() {
   const sidePageNode = section.querySelector('[data-order-call-side-page]');
   const sideLanguageNode = section.querySelector('[data-order-call-side-language]');
   const sideScopeNode = section.querySelector('[data-order-call-side-scope]');
+  const liveBadgeNode = section.querySelector('[data-order-call-live-badge]');
+  const availableCountNode = section.querySelector('[data-order-call-available-count]');
+  const availableCopyNode = section.querySelector('[data-order-call-available-copy]');
+  const usageRingNode = section.querySelector('[data-order-call-usage-ring]');
+  const usageRingValueNode = section.querySelector('[data-order-call-usage-ring-value]');
+  const usageRingLabelNode = section.querySelector('[data-order-call-usage-ring-label]');
+  const usageProgressFillNode = section.querySelector('[data-order-call-usage-progress-fill]');
+  const availableMetaNode = section.querySelector('[data-order-call-available-meta]');
+  const languageMetaNode = section.querySelector('[data-order-call-language-meta]');
+  const scopeMetaNode = section.querySelector('[data-order-call-scope-meta]');
   if (
     !(pageNameInput instanceof HTMLInputElement) ||
     !(languageInput instanceof HTMLSelectElement) ||
@@ -9698,165 +9710,390 @@ function initOrderCallPage() {
   ) return;
 
   const text = (value) => String(value ?? '').trim();
+  const titleCase = (value) => text(value)
+    .toLowerCase()
+    .split(/[\s_-]+/g)
+    .filter(Boolean)
+    .map((chunk) => chunk.charAt(0).toUpperCase() + chunk.slice(1))
+    .join(' ');
   const defaultPageName = text(section.dataset.defaultPageName || 'A Metafy');
-  const defaultLanguage = text(section.dataset.defaultLanguage || 'Bangla');
-  const defaultCallScope = text(section.dataset.defaultCallScope || 'cash_on_delivery') === 'all_buyers'
-    ? 'all_buyers'
-    : 'cash_on_delivery';
-
-  let statusTimer = 0;
-  const normalizeCallScope = (value) => text(value) === 'all_buyers' ? 'all_buyers' : 'cash_on_delivery';
-  const callScopeLabel = (value) => normalizeCallScope(value) === 'all_buyers'
+  const languageOptions = Array.from(languageInput.options).map((option) => ({
+    value: text(option.value).toLowerCase(),
+    label: text(option.textContent) || titleCase(option.value),
+  }));
+  const defaultLanguage = languageOptions.some((option) => option.value === text(section.dataset.defaultLanguage).toLowerCase())
+    ? text(section.dataset.defaultLanguage).toLowerCase()
+    : (languageOptions[0]?.value || 'english');
+  const normalizeCallScope = (value) => {
+    const normalized = text(value).toLowerCase();
+    if (normalized === 'all' || normalized === 'all_buyers') return 'all';
+    return 'cod';
+  };
+  const defaultCallScope = normalizeCallScope(section.dataset.defaultCallScope || 'cod');
+  const callScopeLabel = (value) => normalizeCallScope(value) === 'all'
     ? 'All Buyers'
     : 'Cash on Delivery Buyers';
+  const normalizeLanguage = (value) => {
+    const normalized = text(value).toLowerCase();
+    if (languageOptions.some((option) => option.value === normalized)) {
+      return normalized;
+    }
+    return defaultLanguage;
+  };
+  const languageLabel = (value) => {
+    const normalized = normalizeLanguage(value);
+    const matchedOption = languageOptions.find((option) => option.value === normalized);
+    return matchedOption?.label || titleCase(normalized) || 'Unknown';
+  };
+  const normalizeAvailableCalling = (value) => {
+    const parsed = Number(value);
+    if (!Number.isFinite(parsed) || parsed < 0) return 0;
+    return Math.floor(parsed);
+  };
+  const sanitizeState = (state = {}) => ({
+    pageName: text(state.pageName) || defaultPageName,
+    language: normalizeLanguage(state.language || defaultLanguage),
+    enabled: Boolean(state.enabled),
+    scope: normalizeCallScope(state.scope || defaultCallScope),
+    availableCalling: normalizeAvailableCalling(state.availableCalling),
+  });
+  const stateFromApi = (payload = {}) => sanitizeState({
+    pageName: payload?.recording_page_name,
+    language: payload?.recording_language,
+    enabled: payload?.is_calling,
+    scope: payload?.calling_scope,
+    availableCalling: payload?.available_calling,
+  });
+  const statesEqual = (left, right) => {
+    const resolvedLeft = sanitizeState(left);
+    const resolvedRight = sanitizeState(right);
 
-  const readStoredPageName = () => {
-    try {
-      return text(window.localStorage.getItem(ORDER_CALL_PAGE_NAME_STORAGE_KEY)) || defaultPageName;
-    } catch {
-      return defaultPageName;
-    }
-  };
-  const readStoredLanguage = () => {
-    try {
-      return text(window.localStorage.getItem(ORDER_CALL_LANGUAGE_STORAGE_KEY)) || defaultLanguage;
-    } catch {
-      return defaultLanguage;
-    }
-  };
-  const readStoredEnabled = () => {
-    try {
-      return text(window.localStorage.getItem(ORDER_CALL_ENABLED_STORAGE_KEY)) === '1';
-    } catch {
-      return false;
-    }
-  };
-  const readStoredScope = () => {
-    try {
-      return normalizeCallScope(window.localStorage.getItem(ORDER_CALL_SCOPE_STORAGE_KEY) || defaultCallScope);
-    } catch {
-      return defaultCallScope;
-    }
+    return resolvedLeft.pageName === resolvedRight.pageName
+      && resolvedLeft.language === resolvedRight.language
+      && resolvedLeft.enabled === resolvedRight.enabled
+      && resolvedLeft.scope === resolvedRight.scope
+      && resolvedLeft.availableCalling === resolvedRight.availableCalling;
   };
   const writeStoredState = (state) => {
+    const resolvedState = sanitizeState(state);
     try {
-      window.localStorage.setItem(ORDER_CALL_PAGE_NAME_STORAGE_KEY, state.pageName);
-      window.localStorage.setItem(ORDER_CALL_LANGUAGE_STORAGE_KEY, state.language);
-      window.localStorage.setItem(ORDER_CALL_ENABLED_STORAGE_KEY, state.enabled ? '1' : '0');
-      window.localStorage.setItem(ORDER_CALL_SCOPE_STORAGE_KEY, normalizeCallScope(state.scope));
+      window.localStorage.setItem(ORDER_CALL_PAGE_NAME_STORAGE_KEY, resolvedState.pageName);
+      window.localStorage.setItem(ORDER_CALL_LANGUAGE_STORAGE_KEY, resolvedState.language);
+      window.localStorage.setItem(ORDER_CALL_ENABLED_STORAGE_KEY, resolvedState.enabled ? '1' : '0');
+      window.localStorage.setItem(ORDER_CALL_SCOPE_STORAGE_KEY, resolvedState.scope);
     } catch {
       // Ignore storage failures and keep UI responsive.
     }
   };
-  const setStatusTone = (message, tone = 'info') => {
+  const setSaveStatus = (message, tone = 'info') => {
     if (!(saveStatusNode instanceof HTMLElement)) return;
     saveStatusNode.textContent = text(message);
-    saveStatusNode.classList.remove('is-info', 'is-success', 'is-warning');
-    saveStatusNode.classList.add(`is-${tone}`);
-  };
-  const applyTimersReset = (message = 'Preview updated. Save when you are ready.', tone = 'info') => {
-    window.clearTimeout(statusTimer);
-    setStatusTone(message, tone);
-    statusTimer = window.setTimeout(() => {
-      setStatusTone('Edit the settings and click Save Settings to keep them on this browser.', 'info');
-    }, 2400);
-  };
-  const render = (state) => {
-    const resolvedPageName = text(state.pageName) || defaultPageName;
-    const resolvedLanguage = text(state.language) || defaultLanguage;
-    const resolvedEnabled = Boolean(state.enabled);
-    const resolvedScope = normalizeCallScope(state.scope);
-
-    section.dataset.callEnabled = resolvedEnabled ? '1' : '0';
-
-    pageNameInput.value = resolvedPageName;
-    if (Array.from(languageInput.options).some((option) => text(option.value) === resolvedLanguage)) {
-      languageInput.value = resolvedLanguage;
+    saveStatusNode.classList.remove('is-success', 'is-warning', 'is-danger');
+    if (tone === 'success' || tone === 'warning' || tone === 'danger') {
+      saveStatusNode.classList.add(`is-${tone}`);
     }
-    enabledInput.checked = resolvedEnabled;
+  };
+  const setConfigBadge = (message, tone = 'info') => {
+    if (!(configBadgeNode instanceof HTMLElement)) return;
+    configBadgeNode.textContent = text(message);
+    configBadgeNode.classList.remove('is-info', 'is-warning', 'is-success', 'is-danger');
+    configBadgeNode.classList.add(`is-${tone}`);
+  };
+  const setLiveBadge = (label, tone = 'info') => {
+    if (!(liveBadgeNode instanceof HTMLElement)) return;
+    liveBadgeNode.textContent = text(label);
+    liveBadgeNode.classList.remove('badge-success', 'badge-warning', 'badge-info', 'badge-danger');
+    liveBadgeNode.classList.add(
+      tone === 'success'
+        ? 'badge-success'
+        : tone === 'warning'
+          ? 'badge-warning'
+          : tone === 'danger'
+            ? 'badge-danger'
+            : 'badge-info'
+    );
+  };
+  const setControlsDisabled = (disabled) => {
+    if (settingsFieldset instanceof HTMLElement) {
+      settingsFieldset.classList.toggle('is-disabled', Boolean(disabled));
+    }
+    pageNameInput.disabled = Boolean(disabled);
+    languageInput.disabled = Boolean(disabled);
+    enabledInput.disabled = Boolean(disabled);
     scopeInputs.forEach((input) => {
-      if (!(input instanceof HTMLInputElement)) return;
-      input.checked = normalizeCallScope(input.value) === resolvedScope;
+      if (input instanceof HTMLInputElement) input.disabled = Boolean(disabled);
     });
+  };
+  const setSubmitState = (label, disabled = false, mode = 'save') => {
+    if (!(submitButton instanceof HTMLButtonElement)) return;
+    submitButton.textContent = text(label) || 'Save Settings';
+    submitButton.disabled = disabled;
+    submitButton.dataset.mode = mode;
+  };
+  const syncScopeCards = () => {
     scopeCards.forEach((card) => {
       const input = card.querySelector('[data-order-call-scope-input]');
       const isActive = input instanceof HTMLInputElement && input.checked;
       card.classList.toggle('is-active', isActive);
     });
-    if (enabledLabelNode) enabledLabelNode.textContent = resolvedEnabled ? 'On' : 'Off';
-    if (configBadgeNode instanceof HTMLElement) {
-      configBadgeNode.textContent = 'Ready to Edit';
-      configBadgeNode.classList.remove('is-warning', 'is-success');
-      configBadgeNode.classList.add('is-success');
+  };
+  const render = (state, options = {}) => {
+    const resolvedState = sanitizeState(state);
+    const syncFormControls = options.syncFormControls !== false;
+    const progressValue = Math.max(0, Math.min(100, resolvedState.availableCalling));
+    const resolvedLanguageLabel = languageLabel(resolvedState.language);
+    const resolvedScopeLabel = callScopeLabel(resolvedState.scope);
+
+    section.dataset.callEnabled = resolvedState.enabled ? '1' : '0';
+
+    if (syncFormControls) {
+      pageNameInput.value = resolvedState.pageName;
+      if (languageOptions.some((option) => option.value === resolvedState.language)) {
+        languageInput.value = resolvedState.language;
+      }
+      enabledInput.checked = resolvedState.enabled;
+      scopeInputs.forEach((input) => {
+        if (!(input instanceof HTMLInputElement)) return;
+        input.checked = normalizeCallScope(input.value) === resolvedState.scope;
+      });
     }
-    if (sideStatusNode) sideStatusNode.textContent = resolvedEnabled ? 'On' : 'Off';
-    if (sidePageNode) sidePageNode.textContent = resolvedPageName;
-    if (sideLanguageNode) sideLanguageNode.textContent = resolvedLanguage;
-    if (sideScopeNode) sideScopeNode.textContent = callScopeLabel(resolvedScope);
-  };
 
-  let savedState = {
-    pageName: readStoredPageName(),
-    language: readStoredLanguage(),
-    enabled: readStoredEnabled(),
-    scope: readStoredScope(),
-  };
-  let draftState = {...savedState};
+    syncScopeCards();
 
+    if (enabledLabelNode) enabledLabelNode.textContent = resolvedState.enabled ? 'On' : 'Off';
+    if (sideStatusNode) sideStatusNode.textContent = resolvedState.enabled ? 'On' : 'Off';
+    if (sidePageNode) sidePageNode.textContent = resolvedState.pageName;
+    if (sideLanguageNode) sideLanguageNode.textContent = resolvedLanguageLabel;
+    if (sideScopeNode) sideScopeNode.textContent = resolvedScopeLabel;
+    if (availableCountNode) availableCountNode.textContent = String(resolvedState.availableCalling);
+    if (availableCopyNode) {
+      availableCopyNode.textContent = resolvedState.availableCalling === 1
+        ? '1 call available for automated confirmation.'
+        : `${resolvedState.availableCalling} calls available for automated confirmation.`;
+    }
+    if (usageRingNode instanceof HTMLElement) {
+      usageRingNode.style.setProperty('--usage-progress', String(progressValue));
+    }
+    if (usageRingValueNode) usageRingValueNode.textContent = String(resolvedState.availableCalling);
+    if (usageRingLabelNode) {
+      usageRingLabelNode.textContent = resolvedState.availableCalling === 1 ? 'Call Left' : 'Calls Left';
+    }
+    if (usageProgressFillNode instanceof HTMLElement) {
+      usageProgressFillNode.style.width = `${progressValue}%`;
+    }
+    if (availableMetaNode) {
+      availableMetaNode.textContent = `${resolvedState.availableCalling} ${resolvedState.availableCalling === 1 ? 'Call' : 'Calls'}`;
+    }
+    if (languageMetaNode) languageMetaNode.textContent = resolvedLanguageLabel;
+    if (scopeMetaNode) scopeMetaNode.textContent = resolvedScopeLabel;
+
+    setLiveBadge(
+      resolvedState.enabled ? 'Calling On' : 'Calling Off',
+      resolvedState.enabled ? 'success' : 'warning'
+    );
+  };
   const syncDraftFromInputs = () => {
     const selectedScopeInput = scopeInputs.find((input) => input instanceof HTMLInputElement && input.checked);
-    draftState = {
+    draftState = sanitizeState({
       ...draftState,
       pageName: text(pageNameInput.value) || defaultPageName,
       language: text(languageInput.value) || defaultLanguage,
       enabled: Boolean(enabledInput.checked),
-      scope: normalizeCallScope(selectedScopeInput?.value || defaultCallScope),
+      scope: selectedScopeInput?.value || defaultCallScope,
+    });
+  };
+  const refreshDirtyState = (cleanMessage = 'Live settings loaded from API.', cleanTone = 'info') => {
+    if (statesEqual(draftState, savedState)) {
+      setConfigBadge('Ready to Edit', 'success');
+      setSaveStatus(cleanMessage, cleanTone);
+      return;
+    }
+
+    setConfigBadge('Unsaved Changes', 'warning');
+    setSaveStatus('Preview updated. Click Save Settings to send changes to the API.', 'warning');
+  };
+  const resolveRefreshToken = () => text(
+    window.API?.getToken?.()
+    || (typeof window.getToken === 'function' ? window.getToken() : '')
+  );
+  const resolveRequestError = (error, fallbackMessage) => {
+    if (error?.isTimeout) return 'Request timed out. Please try again.';
+    if (error?.status === 401) {
+      return 'Unauthorized (401). Server-provided refresh token is invalid or expired. Please re-login.';
+    }
+    return text(error?.message) || fallbackMessage;
+  };
+  const buildSavePayload = (state) => {
+    const resolvedState = sanitizeState(state);
+    return {
+      is_calling: resolvedState.enabled,
+      calling_scope: resolvedState.scope,
+      recording_page_name: resolvedState.pageName,
+      recording_language: resolvedState.language,
     };
   };
-  const renderPreviewUpdate = () => {
-    syncDraftFromInputs();
-    render(draftState);
-    applyTimersReset('Preview updated. Save when you are ready.', 'info');
+  const setLoadFailureState = (message) => {
+    hasLoaded = false;
+    render(savedState);
+    setControlsDisabled(true);
+    setSubmitState('Retry Load', false, 'retry');
+    setConfigBadge('Load Failed', 'danger');
+    setSaveStatus(message, 'danger');
+    setLiveBadge('Load Failed', 'danger');
   };
 
-  pageNameInput.addEventListener('input', renderPreviewUpdate);
-  pageNameInput.addEventListener('change', renderPreviewUpdate);
-  languageInput.addEventListener('change', renderPreviewUpdate);
-  enabledInput.addEventListener('change', renderPreviewUpdate);
+  let savedState = sanitizeState({
+    pageName: defaultPageName,
+    language: defaultLanguage,
+    enabled: false,
+    scope: defaultCallScope,
+    availableCalling: 0,
+  });
+  let draftState = {...savedState};
+  let hasLoaded = false;
+
+  const loadConfig = async () => {
+    if (!apiBaseUrl) {
+      const message = 'Missing backend API URL.';
+      setLoadFailureState(message);
+      if (typeof window.showError === 'function') window.showError(message);
+      return;
+    }
+
+    if (!window.API?.Admin?.OrderCall?.getConfig) {
+      const message = 'Order call API client is unavailable.';
+      setLoadFailureState(message);
+      if (typeof window.showError === 'function') window.showError(message);
+      return;
+    }
+
+    const refreshToken = resolveRefreshToken();
+    if (!refreshToken) {
+      const message = 'Missing refresh token. Please login again.';
+      setLoadFailureState(message);
+      if (typeof window.showError === 'function') window.showError(message);
+      return;
+    }
+
+    setControlsDisabled(true);
+    setSubmitState('Loading...', true, 'loading');
+    setConfigBadge('Loading', 'info');
+    setSaveStatus('Loading call settings...', 'info');
+    setLiveBadge('Loading', 'info');
+
+    try {
+      const payload = await window.API.Admin.OrderCall.getConfig({
+        apiBaseUrl,
+        refreshToken,
+        timeoutMs: 12000,
+      });
+
+      savedState = stateFromApi(payload);
+      draftState = {...savedState};
+      hasLoaded = true;
+
+      render(savedState);
+      writeStoredState(savedState);
+      setControlsDisabled(false);
+      setSubmitState('Save Settings', false, 'save');
+      setConfigBadge('Ready to Edit', 'success');
+      setSaveStatus('Live settings loaded from API.', 'success');
+    } catch (error) {
+      hasLoaded = false;
+      const message = resolveRequestError(error, 'Unable to load order call settings.');
+      setLoadFailureState(message);
+      if (typeof window.showError === 'function') window.showError(message);
+    }
+  };
+
+  const handleDraftChange = () => {
+    if (!hasLoaded) return;
+    syncDraftFromInputs();
+    render(draftState, {syncFormControls: false});
+    refreshDirtyState();
+  };
+
+  pageNameInput.addEventListener('input', handleDraftChange);
+  pageNameInput.addEventListener('change', handleDraftChange);
+  languageInput.addEventListener('change', handleDraftChange);
+  enabledInput.addEventListener('change', handleDraftChange);
   scopeInputs.forEach((input) => {
     if (!(input instanceof HTMLInputElement)) return;
-    input.addEventListener('change', renderPreviewUpdate);
+    input.addEventListener('change', handleDraftChange);
   });
 
   if (submitButton instanceof HTMLButtonElement) {
-    submitButton.addEventListener('click', () => {
+    submitButton.addEventListener('click', async () => {
+      if (submitButton.dataset.mode === 'retry' || !hasLoaded) {
+        await loadConfig();
+        return;
+      }
+
       syncDraftFromInputs();
-      savedState = {...draftState};
-      writeStoredState(savedState);
-      render(savedState);
-      applyTimersReset('Saved. These settings now drive the order-call preview on this browser.', 'success');
-      if (typeof window.showSuccess === 'function') {
-        window.showSuccess('Order call settings saved in this browser.');
+
+      if (statesEqual(draftState, savedState)) {
+        setSaveStatus('No changes to save.', 'info');
+        if (typeof window.showInfo === 'function') window.showInfo('No changes to save.');
+        return;
+      }
+
+      const refreshToken = resolveRefreshToken();
+      if (!refreshToken) {
+        const message = 'Missing refresh token. Please login again.';
+        setSaveStatus(message, 'danger');
+        setConfigBadge('Save Failed', 'danger');
+        if (typeof window.showError === 'function') window.showError(message);
+        return;
+      }
+
+      setControlsDisabled(true);
+      setSubmitState('Saving...', true, 'save');
+      setConfigBadge('Saving', 'info');
+      setSaveStatus('Sending changes to calling API...', 'info');
+
+      try {
+        const payload = await window.API.Admin.OrderCall.saveConfig({
+          apiBaseUrl,
+          refreshToken,
+          payload: buildSavePayload(draftState),
+          timeoutMs: 12000,
+        });
+
+        if (text(payload?.message).toLowerCase() !== 'updated') {
+          throw new Error(text(payload?.message) || 'Update response was not recognized.');
+        }
+
+        savedState = sanitizeState(draftState);
+        draftState = {...savedState};
+
+        render(savedState);
+        writeStoredState(savedState);
+        setControlsDisabled(false);
+        setSubmitState('Save Settings', false, 'save');
+        setConfigBadge('Ready to Edit', 'success');
+        setSaveStatus('Settings saved to live calling config.', 'success');
+        if (typeof window.showSuccess === 'function') {
+          window.showSuccess('Order call settings updated.');
+        }
+      } catch (error) {
+        const message = resolveRequestError(error, 'Unable to save order call settings.');
+        setControlsDisabled(false);
+        setSubmitState('Save Settings', false, 'save');
+        render(draftState);
+        setConfigBadge('Save Failed', 'danger');
+        setSaveStatus(message, 'danger');
+        if (typeof window.showError === 'function') window.showError(message);
       }
     });
   }
 
-  window.addEventListener('storage', (event) => {
-    if (![ORDER_CALL_PAGE_NAME_STORAGE_KEY, ORDER_CALL_LANGUAGE_STORAGE_KEY, ORDER_CALL_ENABLED_STORAGE_KEY, ORDER_CALL_SCOPE_STORAGE_KEY].includes(event.key || '')) return;
-
-    savedState = {
-      pageName: readStoredPageName(),
-      language: readStoredLanguage(),
-      enabled: readStoredEnabled(),
-      scope: readStoredScope(),
-    };
-    draftState = {...savedState};
-    render(draftState);
-    setStatusTone('Updated from another tab.', 'info');
-  });
-
-  render(draftState);
-  setStatusTone('Edit the settings and click Save Settings to keep them on this browser.', 'info');
+  render(savedState);
+  setControlsDisabled(true);
+  setSubmitState('Loading...', true, 'loading');
+  setConfigBadge('Loading', 'info');
+  setSaveStatus('Loading call settings...', 'info');
+  setLiveBadge('Loading', 'info');
+  void loadConfig();
 }
 
 function initProductCallVoicePreview() {

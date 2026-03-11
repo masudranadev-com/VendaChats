@@ -6,6 +6,7 @@
   <div
     class="order-call-shell"
     data-order-call-page
+    data-api-base-url="{{ $orderCallApiBaseUrl }}"
     data-default-page-name="{{ $pageName }}"
     data-default-language="{{ $defaultLanguage }}"
     data-default-call-scope="{{ $defaultCallScope }}"
@@ -25,11 +26,11 @@
             <div>
               <span class="order-call-card-kicker">Call Balance</span>
               <h3 class="card-title">Remaining Calls Available</h3>
-              <p>Show the remaining call balance from your main package here. This is static demo data for now and can be wired dynamically later.</p>
+              <p>Live call balance and active call settings are loaded directly from the calling configuration API.</p>
             </div>
 
             <div class="order-call-active-badges">
-              <span class="badge badge-success">Active</span>
+              <span class="badge badge-info" data-order-call-live-badge>Loading</span>
               <span class="badge badge-info">{{ $packageLabel }}</span>
             </div>
           </div>
@@ -37,33 +38,33 @@
           <div class="order-call-usage-hero">
             <div>
               <span class="order-call-usage-label">Available Now</span>
-              <strong>{{ $remainingCalls }}</strong>
-              <small>Out of {{ $totalCalls }} calls included</small>
+              <strong data-order-call-available-count>--</strong>
+              <small data-order-call-available-copy>Loading current call balance...</small>
             </div>
-            <div class="order-call-usage-ring" style="--usage-progress: {{ $remainingCallPercent }};">
+            <div class="order-call-usage-ring" data-order-call-usage-ring style="--usage-progress: 0;">
               <span>
-                <strong>{{ $remainingCallPercent }}%</strong>
-                <small>Left</small>
+                <strong data-order-call-usage-ring-value>--</strong>
+                <small data-order-call-usage-ring-label>Calls Left</small>
               </span>
             </div>
           </div>
 
           <div class="order-call-usage-progress" aria-hidden="true">
-            <span class="order-call-usage-progress-fill" style="width: {{ $remainingCallPercent }}%;"></span>
+            <span class="order-call-usage-progress-fill" data-order-call-usage-progress-fill style="width: 0%;"></span>
           </div>
 
           <div class="order-call-usage-meta">
             <article>
-              <span>Remaining</span>
-              <strong>{{ $remainingCalls }} Calls</strong>
+              <span>Available</span>
+              <strong data-order-call-available-meta>-- Calls</strong>
             </article>
             <article>
-              <span>Used</span>
-              <strong>{{ $usedCalls }} Calls</strong>
+              <span>Language</span>
+              <strong data-order-call-language-meta>{{ $supportedLanguages[$defaultLanguage] ?? ucfirst($defaultLanguage) }}</strong>
             </article>
             <article>
-              <span>Total Limit</span>
-              <strong>{{ $totalCalls }} Calls</strong>
+              <span>Scope</span>
+              <strong data-order-call-scope-meta>{{ $defaultCallScope === 'all' ? 'All Buyers' : 'Cash on Delivery Buyers' }}</strong>
             </article>
           </div>
         </article>
@@ -80,7 +81,7 @@
           <div class="order-call-live-summary">
             <div>
               <span>Call Status</span>
-              <strong data-order-call-side-status>Off</strong>
+              <strong data-order-call-side-status>Loading...</strong>
             </div>
             <div>
               <span>Page Name</span>
@@ -88,11 +89,11 @@
             </div>
             <div>
               <span>Language</span>
-              <strong data-order-call-side-language>{{ $defaultLanguage }}</strong>
+              <strong data-order-call-side-language>{{ $supportedLanguages[$defaultLanguage] ?? ucfirst($defaultLanguage) }}</strong>
             </div>
             <div>
               <span>Buyer Scope</span>
-              <strong data-order-call-side-scope>{{ $defaultCallScope === 'all_buyers' ? 'All Buyers' : 'Cash on Delivery Buyers' }}</strong>
+              <strong data-order-call-side-scope>{{ $defaultCallScope === 'all' ? 'All Buyers' : 'Cash on Delivery Buyers' }}</strong>
             </div>
           </div>
 
@@ -111,7 +112,7 @@
               <h3 class="card-title">Live Call Configuration</h3>
               <p>Edit On/Off, page name, and primary language directly from the active package screen.</p>
             </div>
-            <span class="order-call-config-state is-success" data-order-call-config-badge>Ready to Edit</span>
+            <span class="order-call-config-state is-info" data-order-call-config-badge>Loading</span>
           </div>
 
           <fieldset class="order-call-settings-fieldset" data-order-call-settings-fields>
@@ -148,8 +149,8 @@
               <div class="form-group">
                 <label class="form-label" for="orderCallLanguage">Primary Language</label>
                 <select id="orderCallLanguage" class="form-select" data-order-call-language-input>
-                  @foreach ($supportedLanguages as $language)
-                    <option value="{{ $language }}" {{ $language === $defaultLanguage ? 'selected' : '' }}>{{ $language }}</option>
+                  @foreach ($supportedLanguages as $languageValue => $languageLabel)
+                    <option value="{{ $languageValue }}" {{ $languageValue === $defaultLanguage ? 'selected' : '' }}>{{ $languageLabel }}</option>
                   @endforeach
                 </select>
                 <small class="form-help">The engine still supports automatic fallback. This sets the main language shown in setup.</small>
@@ -163,25 +164,25 @@
               </div>
 
               <div class="order-call-scope-grid">
-                <label class="order-call-scope-card{{ $defaultCallScope === 'all_buyers' ? ' is-active' : '' }}" data-order-call-scope-card>
+                <label class="order-call-scope-card{{ $defaultCallScope === 'all' ? ' is-active' : '' }}" data-order-call-scope-card>
                   <input
                     type="radio"
                     name="orderCallScope"
-                    value="all_buyers"
+                    value="all"
                     data-order-call-scope-input
-                    {{ $defaultCallScope === 'all_buyers' ? 'checked' : '' }}
+                    {{ $defaultCallScope === 'all' ? 'checked' : '' }}
                   >
                   <span class="order-call-scope-title">Call All Buyers</span>
                   <small>Use the call flow for every eligible buyer order.</small>
                 </label>
 
-                <label class="order-call-scope-card{{ $defaultCallScope === 'cash_on_delivery' ? ' is-active' : '' }}" data-order-call-scope-card>
+                <label class="order-call-scope-card{{ $defaultCallScope === 'cod' ? ' is-active' : '' }}" data-order-call-scope-card>
                   <input
                     type="radio"
                     name="orderCallScope"
-                    value="cash_on_delivery"
+                    value="cod"
                     data-order-call-scope-input
-                    {{ $defaultCallScope === 'cash_on_delivery' ? 'checked' : '' }}
+                    {{ $defaultCallScope === 'cod' ? 'checked' : '' }}
                   >
                   <span class="order-call-scope-title">Call Cash on Delivery Buyers</span>
                   <small>Limit the call flow to COD orders that need confirmation.</small>
@@ -195,8 +196,8 @@
             </div>
 
             <div class="order-call-submit-row">
-              <button type="button" class="btn btn-primary btn-lg" data-order-call-submit>Save Settings</button>
-              <div class="order-call-save-pill" data-order-call-save-status>Preview updated. Save when you are ready.</div>
+              <button type="button" class="btn btn-primary btn-lg" data-order-call-submit disabled>Loading...</button>
+              <div class="order-call-save-pill" data-order-call-save-status>Loading call settings...</div>
             </div>
           </fieldset>
         </article>

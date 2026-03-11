@@ -11508,6 +11508,12 @@ body.products-attention-open {
   border: 1px solid transparent;
 }
 
+.order-call-config-state.is-info {
+  color: var(--brand-primary);
+  background: rgba(19,82,220,0.08);
+  border-color: rgba(19,82,220,0.18);
+}
+
 .order-call-config-state.is-warning {
   color: var(--brand-warning);
   background: rgba(245,166,35,0.12);
@@ -11518,6 +11524,12 @@ body.products-attention-open {
   color: var(--brand-success);
   background: rgba(16,185,129,0.1);
   border-color: rgba(16,185,129,0.22);
+}
+
+.order-call-config-state.is-danger {
+  color: var(--brand-danger);
+  background: rgba(229,62,62,0.1);
+  border-color: rgba(229,62,62,0.18);
 }
 
 .order-call-lock-banner {
@@ -11544,6 +11556,11 @@ body.products-attention-open {
 }
 
 .order-call-settings-fieldset[disabled] {
+  opacity: 0.72;
+  filter: saturate(0.85);
+}
+
+.order-call-settings-fieldset.is-disabled {
   opacity: 0.72;
   filter: saturate(0.85);
 }
@@ -11705,6 +11722,12 @@ body.products-attention-open {
   color: var(--brand-warning);
   border-color: rgba(245,166,35,0.2);
   background: rgba(245,166,35,0.12);
+}
+
+.order-call-save-pill.is-danger {
+  color: var(--brand-danger);
+  border-color: rgba(229,62,62,0.2);
+  background: rgba(229,62,62,0.1);
 }
 
 .order-call-settings-note-grid,
