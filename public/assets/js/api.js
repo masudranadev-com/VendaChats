@@ -225,6 +225,44 @@
           });
         },
       },
+      Packages: {
+        listAll({apiBaseUrl, refreshToken, timeoutMs = 12000} = {}) {
+          const tokenText = toText(refreshToken || getToken());
+          if (!tokenText) {
+            throw new ApiError('Missing refresh token. Please login again.');
+          }
+
+          return request({
+            baseUrl: normalizeBaseUrl(apiBaseUrl),
+            path: '/api/admin/user/package/all',
+            method: 'GET',
+            token: tokenText,
+            headers: {
+              'user-refres-token': tokenText,
+            },
+            includeRefreshToken: false,
+            timeoutMs,
+          });
+        },
+        getInfo({apiBaseUrl, refreshToken, timeoutMs = 12000} = {}) {
+          const tokenText = toText(refreshToken || getToken());
+          if (!tokenText) {
+            throw new ApiError('Missing refresh token. Please login again.');
+          }
+
+          return request({
+            baseUrl: normalizeBaseUrl(apiBaseUrl),
+            path: '/api/admin/user/package/get-info',
+            method: 'GET',
+            token: tokenText,
+            headers: {
+              'user-refres-token': tokenText,
+            },
+            includeRefreshToken: false,
+            timeoutMs,
+          });
+        },
+      },
       Products: {
         list({
           apiBaseUrl,

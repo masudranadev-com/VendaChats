@@ -305,6 +305,7 @@ document.addEventListener('DOMContentLoaded', () => {
   initBotSettings();
   initOrderCallPage();
   initDashboardPage();
+  initPackagesPage();
   initProductsCatalogPage();
   initUsersCatalogPage();
   initProductsAttentionPanel();
@@ -4390,6 +4391,661 @@ function initDashboardPage() {
   });
 
   loadDashboardOrders(state.page);
+}
+
+function initPackagesPage() {
+  const section = document.querySelector('[data-packages-page]');
+  if (!section) return;
+
+  const apiBaseUrl = String(section.dataset.apiBaseUrl || '').replace(/\/+$/, '');
+  const reloadButtons = Array.from(section.querySelectorAll('[data-packages-reload]'));
+  const cycleButtons = Array.from(section.querySelectorAll('[data-package-cycle-tab]'));
+  const gridNode = section.querySelector('[data-packages-grid]');
+  const introCopyNode = section.querySelector('[data-packages-intro-copy]');
+
+  const summaryCard = section.querySelector('[data-packages-summary-card]');
+  const currentTitleNode = section.querySelector('[data-packages-current-title]');
+  const currentDescriptionNode = section.querySelector('[data-packages-current-description]');
+  const currentStatusNode = section.querySelector('[data-packages-current-status]');
+  const currentPriceNode = section.querySelector('[data-packages-current-price]');
+  const currentCycleNode = section.querySelector('[data-packages-current-cycle]');
+  const currentPriceNoteNode = section.querySelector('[data-packages-current-price-note]');
+  const summaryMessageNode = section.querySelector('[data-packages-summary-message]');
+  const metaNameNode = section.querySelector('[data-packages-meta-name]');
+  const metaActivatedNode = section.querySelector('[data-packages-meta-activated]');
+  const metaExpiresNode = section.querySelector('[data-packages-meta-expires]');
+  const metaCycleNode = section.querySelector('[data-packages-meta-cycle]');
+
+  const insightsCard = section.querySelector('[data-packages-insights-card]');
+  const insightsTitleNode = section.querySelector('[data-packages-insights-title]');
+  const insightsCopyNode = section.querySelector('[data-packages-insights-copy]');
+  const insightsProductsNode = section.querySelector('[data-packages-insight-products]');
+  const insightsCallsNode = section.querySelector('[data-packages-insight-calls]');
+  const insightsSmsNode = section.querySelector('[data-packages-insight-sms]');
+  const insightsModulesNode = section.querySelector('[data-packages-insight-modules]');
+  const insightsMessageNode = section.querySelector('[data-packages-insights-message]');
+
+  if (
+    !gridNode ||
+    !introCopyNode ||
+    !currentTitleNode ||
+    !currentDescriptionNode ||
+    !currentStatusNode ||
+    !currentPriceNode ||
+    !currentCycleNode ||
+    !currentPriceNoteNode ||
+    !summaryMessageNode ||
+    !metaNameNode ||
+    !metaActivatedNode ||
+    !metaExpiresNode ||
+    !metaCycleNode ||
+    !insightsTitleNode ||
+    !insightsCopyNode ||
+    !insightsProductsNode ||
+    !insightsCallsNode ||
+    !insightsSmsNode ||
+    !insightsModulesNode ||
+    !insightsMessageNode
+  ) {
+    return;
+  }
+
+  const text = (value) => String(value ?? '').trim();
+  const escapeHtml = (value) => text(value)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+  const formatCount = (value) => {
+    const parsed = Number(value);
+    const normalized = Number.isFinite(parsed) ? Math.max(0, Math.round(parsed)) : 0;
+    return normalized.toLocaleString('en-BD');
+  };
+  const toDate = (value) => {
+    const date = new Date(value);
+    return Number.isNaN(date.getTime()) ? null : date;
+  };
+  const formatDateSafe = (value) => {
+    const date = toDate(value);
+    return date ? formatDate(date) : '--';
+  };
+  const titleCase = (value) => text(value)
+    .toLowerCase()
+    .split(/[\s_-]+/g)
+    .filter(Boolean)
+    .map((chunk) => chunk.charAt(0).toUpperCase() + chunk.slice(1))
+    .join(' ');
+  const normalizeCycle = (value) => {
+    const normalized = text(value).toLowerCase();
+    if (normalized === 'yearly' || normalized === 'annual') return 'yearly';
+    if (normalized === 'quarterly' || normalized === 'quarter') return 'quarterly';
+    return 'monthly';
+  };
+  const cycleMonths = {
+    monthly: 1,
+    quarterly: 3,
+    yearly: 12,
+  };
+  const cycleLabel = (value) => {
+    const normalized = normalizeCycle(value);
+    if (normalized === 'yearly') return 'Yearly';
+    if (normalized === 'quarterly') return 'Quarterly';
+    return 'Monthly';
+  };
+  const cycleBillingLabel = (value) => {
+    const normalized = normalizeCycle(value);
+    if (normalized === 'yearly') return 'Billed yearly';
+    if (normalized === 'quarterly') return 'Billed quarterly';
+    return 'Billed monthly';
+  };
+  const cycleUnitLabel = (value) => {
+    const normalized = normalizeCycle(value);
+    if (normalized === 'yearly') return '/year';
+    if (normalized === 'quarterly') return '/quarter';
+    return '/month';
+  };
+  const accentForPackage = (pkg, index = 0) => {
+    const normalizedName = text(pkg?.package_name).toLowerCase();
+    if (normalizedName.includes('starter')) return 'starter';
+    if (normalizedName.includes('growth')) return 'growth';
+    if (normalizedName.includes('scale')) return 'scale';
+    return ['starter', 'growth', 'scale'][index % 3];
+  };
+  const resolveRefreshToken = () => text(
+    window.API?.getToken?.()
+    || (typeof window.getToken === 'function' ? window.getToken() : '')
+  );
+  const resolveRequestError = (error, fallbackMessage) => {
+    if (error?.isTimeout) return 'Request timed out. Please try again.';
+    if (error?.status === 401) {
+      return 'Unauthorized (401). Server-provided refresh token is invalid or expired. Please re-login.';
+    }
+    return text(error?.message) || fallbackMessage;
+  };
+  const setBadgeState = (node, label, tone = 'info') => {
+    if (!(node instanceof HTMLElement)) return;
+    node.textContent = text(label);
+    node.classList.remove('is-paid', 'is-unpaid', 'is-warning', 'is-info');
+    node.classList.add(
+      tone === 'paid'
+        ? 'is-paid'
+        : tone === 'unpaid'
+          ? 'is-unpaid'
+          : tone === 'warning'
+            ? 'is-warning'
+            : 'is-info'
+    );
+  };
+  const setMessageState = (node, message, tone = 'info') => {
+    if (!(node instanceof HTMLElement)) return;
+    node.textContent = text(message);
+    node.classList.remove('is-info', 'is-success', 'is-warning', 'is-danger');
+    node.classList.add(
+      tone === 'success'
+        ? 'is-success'
+        : tone === 'warning'
+          ? 'is-warning'
+          : tone === 'danger'
+            ? 'is-danger'
+            : 'is-info'
+    );
+  };
+  const getVariant = (pkg, cycle) => {
+    const variants = Array.isArray(pkg?.variant_prices) ? pkg.variant_prices : [];
+    const normalizedCycle = normalizeCycle(cycle);
+    return variants.find((variant) => normalizeCycle(variant?.validity) === normalizedCycle) || variants[0] || null;
+  };
+  const resolvePricing = (pkg, cycle) => {
+    const variant = getVariant(pkg, cycle);
+    const normalizedCycle = normalizeCycle(cycle);
+    const basePrice = Number(variant?.price);
+    const discountType = text(variant?.discount_type).toLowerCase();
+    const discountValue = Number(variant?.discount_value);
+    const hasBasePrice = Number.isFinite(basePrice) && basePrice >= 0;
+    let finalPrice = hasBasePrice ? basePrice : NaN;
+    let savings = 0;
+    let discountLabel = '';
+
+    if (hasBasePrice && Number.isFinite(discountValue) && discountValue > 0) {
+      if (discountType === 'fixed') {
+        savings = Math.min(basePrice, discountValue);
+        finalPrice = Math.max(0, basePrice - savings);
+        discountLabel = `Save ${formatCurrency(savings)}`;
+      } else if (discountType === 'percentage') {
+        savings = Math.max(0, (basePrice * discountValue) / 100);
+        finalPrice = Math.max(0, basePrice - savings);
+        discountLabel = `Save ${discountValue}%`;
+      }
+    }
+
+    const averagePerMonth = Number.isFinite(finalPrice)
+      ? finalPrice / (cycleMonths[normalizedCycle] || 1)
+      : NaN;
+    const noteParts = [];
+    if (discountLabel && hasBasePrice) {
+      noteParts.push(`Regular ${formatCurrency(basePrice)}`);
+      noteParts.push(discountLabel);
+    }
+    if (Number.isFinite(averagePerMonth) && (cycleMonths[normalizedCycle] || 1) > 1) {
+      noteParts.push(`Avg ${formatCurrency(averagePerMonth)}/mo`);
+    }
+
+    return {
+      basePrice,
+      finalPrice,
+      hasPrice: Number.isFinite(finalPrice),
+      note: noteParts.join(' • '),
+      unitLabel: cycleUnitLabel(normalizedCycle),
+      billingLabel: cycleBillingLabel(normalizedCycle),
+    };
+  };
+  const capabilityLabels = [
+    ['is_bargain', 'Bargaining'],
+    ['is_campaign', 'Campaigns'],
+    ['is_courier', 'Courier'],
+    ['is_process_voice', 'Voice'],
+    ['is_process_image', 'Image'],
+    ['is_live_compititor', 'Competitor'],
+    ['is_custom_getway', 'Custom Gateway'],
+    ['is_domain', 'Domain'],
+    ['is_wordpress', 'WordPress'],
+  ];
+  const enabledCapabilities = (pkg) => capabilityLabels
+    .filter(([key]) => Boolean(pkg?.[key]))
+    .map(([, label]) => label);
+  const resolvePackageStatus = (pkg) => {
+    const expiresAt = toDate(pkg?.expired_in);
+    if (!expiresAt) {
+      return {
+        label: 'Active',
+        tone: 'paid',
+        copy: 'Package info loaded successfully.',
+      };
+    }
+
+    const diffMs = expiresAt.getTime() - Date.now();
+    const daysLeft = Math.ceil(diffMs / 86400000);
+    if (daysLeft < 0) {
+      return {
+        label: 'Expired',
+        tone: 'unpaid',
+        copy: `Expired on ${formatDate(expiresAt)}.`,
+      };
+    }
+
+    if (daysLeft <= 7) {
+      return {
+        label: 'Renew Soon',
+        tone: 'warning',
+        copy: `${daysLeft} day${daysLeft === 1 ? '' : 's'} left before expiry.`,
+      };
+    }
+
+    return {
+      label: 'Active',
+      tone: 'paid',
+      copy: `${daysLeft} day${daysLeft === 1 ? '' : 's'} remaining in the current cycle.`,
+    };
+  };
+  const buildIntroCopy = () => {
+    const packageCount = Array.isArray(allPackages) ? allPackages.length : 0;
+    const parts = [`Showing ${cycleLabel(activeCycle).toLowerCase()} pricing for ${packageCount} available package${packageCount === 1 ? '' : 's'}.`];
+    if (currentPackage) {
+      parts.push(`Your active package runs on a ${cycleLabel(currentPackage.package_type).toLowerCase()} cycle.`);
+    }
+    return parts.join(' ');
+  };
+  const syncCycleButtons = () => {
+    cycleButtons.forEach((button) => {
+      if (!(button instanceof HTMLButtonElement)) return;
+      const isActive = normalizeCycle(button.dataset.packageCycleTab) === activeCycle;
+      button.classList.toggle('is-active', isActive);
+      button.setAttribute('aria-pressed', isActive ? 'true' : 'false');
+    });
+  };
+  const setCycleButtonsDisabled = (disabled) => {
+    cycleButtons.forEach((button) => {
+      if (!(button instanceof HTMLButtonElement)) return;
+      button.disabled = disabled;
+    });
+  };
+  const setReloadState = (loading) => {
+    reloadButtons.forEach((button) => {
+      if (!(button instanceof HTMLButtonElement)) return;
+      if (!button.dataset.defaultLabel) {
+        button.dataset.defaultLabel = text(button.textContent) || 'Refresh Data';
+      }
+      button.disabled = loading;
+      button.textContent = loading ? 'Refreshing...' : button.dataset.defaultLabel;
+    });
+  };
+  const buildSkeletonCardsHtml = (count = 3) => Array.from({length: count}).map(() => `
+    <article class="billing-package-card is-skeleton" aria-hidden="true">
+      <div class="billing-package-head">
+        <span class="billing-package-badge billing-skeleton billing-skeleton-block"></span>
+        <div class="billing-skeleton billing-skeleton-block is-title"></div>
+        <div class="billing-skeleton billing-skeleton-block is-copy"></div>
+        <div class="billing-skeleton billing-skeleton-block is-copy"></div>
+      </div>
+      <div class="billing-package-price-stack">
+        <div class="billing-package-price">
+          <strong class="billing-skeleton billing-skeleton-block is-price"></strong>
+          <span class="billing-skeleton billing-skeleton-block is-inline"></span>
+        </div>
+        <div class="billing-skeleton billing-skeleton-block is-copy"></div>
+      </div>
+      <div class="billing-package-credit-grid">
+        <article class="billing-package-credit">
+          <span class="billing-skeleton billing-skeleton-block is-copy"></span>
+          <strong class="billing-skeleton billing-skeleton-block is-copy"></strong>
+        </article>
+        <article class="billing-package-credit">
+          <span class="billing-skeleton billing-skeleton-block is-copy"></span>
+          <strong class="billing-skeleton billing-skeleton-block is-copy"></strong>
+        </article>
+        <article class="billing-package-credit">
+          <span class="billing-skeleton billing-skeleton-block is-copy"></span>
+          <strong class="billing-skeleton billing-skeleton-block is-copy"></strong>
+        </article>
+      </div>
+      <div class="billing-package-capabilities">
+        <span class="billing-package-capability billing-skeleton billing-skeleton-block is-chip"></span>
+        <span class="billing-package-capability billing-skeleton billing-skeleton-block is-chip"></span>
+        <span class="billing-package-capability billing-skeleton billing-skeleton-block is-chip"></span>
+      </div>
+      <ul class="billing-package-features">
+        <li><span class="billing-skeleton billing-skeleton-block is-copy"></span></li>
+        <li><span class="billing-skeleton billing-skeleton-block is-copy"></span></li>
+        <li><span class="billing-skeleton billing-skeleton-block is-copy"></span></li>
+        <li><span class="billing-skeleton billing-skeleton-block is-copy"></span></li>
+      </ul>
+      <div class="billing-package-footer">
+        <span class="billing-skeleton billing-skeleton-block is-button"></span>
+      </div>
+    </article>
+  `).join('');
+  const buildEmptyStateHtml = (title, copy, tone = 'info') => `
+    <div class="billing-empty-state billing-empty-state-${escapeHtml(tone)}">
+      <strong>${escapeHtml(title)}</strong>
+      <p>${escapeHtml(copy)}</p>
+    </div>
+  `;
+  const renderSummaryLoading = () => {
+    if (summaryCard instanceof HTMLElement) summaryCard.setAttribute('aria-busy', 'true');
+    if (insightsCard instanceof HTMLElement) insightsCard.setAttribute('aria-busy', 'true');
+    currentTitleNode.textContent = 'Loading current package...';
+    currentDescriptionNode.textContent = 'Fetching your active package details from the live package API.';
+    currentPriceNode.textContent = '--';
+    currentCycleNode.textContent = 'Checking active billing cycle...';
+    currentPriceNoteNode.textContent = 'Preparing live pricing details...';
+    metaNameNode.textContent = '--';
+    metaActivatedNode.textContent = '--';
+    metaExpiresNode.textContent = '--';
+    metaCycleNode.textContent = '--';
+    insightsTitleNode.textContent = 'Loading package snapshot...';
+    insightsCopyNode.textContent = 'Reading credits, enabled modules, and validity information.';
+    insightsProductsNode.textContent = '--';
+    insightsCallsNode.textContent = '--';
+    insightsSmsNode.textContent = '--';
+    insightsModulesNode.textContent = '--';
+    setBadgeState(currentStatusNode, 'Loading', 'info');
+    setMessageState(summaryMessageNode, 'Live package details will appear here after the API response arrives.', 'info');
+    setMessageState(insightsMessageNode, 'Waiting for the active package snapshot.', 'info');
+  };
+  const renderSummaryError = (message) => {
+    if (summaryCard instanceof HTMLElement) summaryCard.setAttribute('aria-busy', 'false');
+    if (insightsCard instanceof HTMLElement) insightsCard.setAttribute('aria-busy', 'false');
+    currentTitleNode.textContent = 'Package info unavailable';
+    currentDescriptionNode.textContent = text(message);
+    currentPriceNode.textContent = '--';
+    currentCycleNode.textContent = 'Unable to load active billing cycle';
+    currentPriceNoteNode.textContent = 'Check the API connection and refresh token.';
+    metaNameNode.textContent = '--';
+    metaActivatedNode.textContent = '--';
+    metaExpiresNode.textContent = '--';
+    metaCycleNode.textContent = '--';
+    insightsTitleNode.textContent = 'Current snapshot unavailable';
+    insightsCopyNode.textContent = 'The package info endpoint did not return the active package details.';
+    insightsProductsNode.textContent = '--';
+    insightsCallsNode.textContent = '--';
+    insightsSmsNode.textContent = '--';
+    insightsModulesNode.textContent = '--';
+    setBadgeState(currentStatusNode, 'Load Failed', 'unpaid');
+    setMessageState(summaryMessageNode, message, 'danger');
+    setMessageState(insightsMessageNode, message, 'danger');
+  };
+  const renderCurrentPackage = (pkg) => {
+    if (!pkg || typeof pkg !== 'object') {
+      renderSummaryError('Active package data is not available.');
+      return;
+    }
+
+    const normalizedCycle = normalizeCycle(pkg.package_type);
+    const pricing = resolvePricing(pkg, normalizedCycle);
+    const status = resolvePackageStatus(pkg);
+    const activeModules = enabledCapabilities(pkg);
+    const activatedText = formatDateSafe(pkg.activated_in);
+    const expiresText = formatDateSafe(pkg.expired_in);
+
+    if (summaryCard instanceof HTMLElement) summaryCard.setAttribute('aria-busy', 'false');
+    if (insightsCard instanceof HTMLElement) insightsCard.setAttribute('aria-busy', 'false');
+
+    currentTitleNode.textContent = `${text(pkg.package_name) || 'Unknown'} Package`;
+    currentDescriptionNode.textContent = text(pkg.short_description) || 'No package description provided by the API.';
+    currentPriceNode.textContent = pricing.hasPrice ? formatCurrency(pricing.finalPrice) : '--';
+    currentCycleNode.textContent = pricing.billingLabel;
+    currentPriceNoteNode.textContent = pricing.note || 'Live pricing is based on your current active billing cycle.';
+    metaNameNode.textContent = text(pkg.package_name) || '--';
+    metaActivatedNode.textContent = activatedText;
+    metaExpiresNode.textContent = expiresText;
+    metaCycleNode.textContent = cycleLabel(normalizedCycle);
+
+    insightsTitleNode.textContent = `${text(pkg.package_name) || 'Current'} package snapshot`;
+    insightsCopyNode.textContent = `${status.copy} Activated on ${activatedText} and valid until ${expiresText}.`;
+    insightsProductsNode.textContent = `${formatCount(pkg.products_credits)} products`;
+    insightsCallsNode.textContent = `${formatCount(pkg.calling_credits)} calls`;
+    insightsSmsNode.textContent = `${formatCount(pkg.sms_credits)} SMS`;
+    insightsModulesNode.textContent = `${activeModules.length} module${activeModules.length === 1 ? '' : 's'}`;
+
+    setBadgeState(currentStatusNode, status.label, status.tone);
+    setMessageState(
+      summaryMessageNode,
+      `${status.copy} Current billing cycle: ${cycleLabel(normalizedCycle)}.`,
+      status.tone === 'paid' ? 'success' : status.tone === 'warning' ? 'warning' : 'danger'
+    );
+    setMessageState(
+      insightsMessageNode,
+      activeModules.length
+        ? `Enabled modules: ${activeModules.join(', ')}.`
+        : 'This package currently exposes only the base toolkit modules.',
+      'info'
+    );
+  };
+  const renderCatalogLoading = () => {
+    gridNode.setAttribute('aria-busy', 'true');
+    gridNode.innerHTML = buildSkeletonCardsHtml(3);
+    introCopyNode.textContent = 'Loading package catalog and billing-cycle pricing...';
+  };
+  const renderCatalogError = (message) => {
+    gridNode.setAttribute('aria-busy', 'false');
+    gridNode.innerHTML = buildEmptyStateHtml('Unable to load packages', message, 'danger');
+    introCopyNode.textContent = 'Package catalog could not be loaded from the API.';
+  };
+  const buildPackageCardHtml = (pkg, index) => {
+    const isCurrent = Number(pkg?.package_id) === Number(currentPackage?.package_id);
+    const pricing = resolvePricing(pkg, activeCycle);
+    const features = Array.isArray(pkg?.features) ? pkg.features.filter((feature) => text(feature)) : [];
+    const activeModules = enabledCapabilities(pkg);
+    const badgeLabel = isCurrent
+      ? 'Current package'
+      : index === 0
+        ? 'Start here'
+        : index === 1
+          ? 'Popular'
+          : 'Advanced';
+    const buttonLabel = isCurrent
+      ? 'Current Package'
+      : `Upgrade to ${text(pkg?.package_name) || 'Package'}`;
+
+    return `
+      <article class="billing-package-card ${isCurrent ? 'is-featured is-current' : ''} billing-package-card-${escapeHtml(accentForPackage(pkg, index))}">
+        <div class="billing-package-head">
+          <span class="billing-package-badge">${escapeHtml(badgeLabel)}</span>
+          <h3>${escapeHtml(text(pkg?.package_name) || 'Unnamed Package')}</h3>
+          <p>${escapeHtml(text(pkg?.short_description) || 'No description available.')}</p>
+        </div>
+
+        <div class="billing-package-price-stack">
+          <div class="billing-package-price">
+            <strong>${pricing.hasPrice ? escapeHtml(formatCurrency(pricing.finalPrice)) : '--'}</strong>
+            <span>${escapeHtml(pricing.unitLabel)}</span>
+          </div>
+          <div class="billing-package-price-note">
+            ${escapeHtml(pricing.note || `${cycleBillingLabel(activeCycle)} pricing loaded from API.`)}
+          </div>
+        </div>
+
+        <div class="billing-package-credit-grid">
+          <article class="billing-package-credit">
+            <span>Products</span>
+            <strong>${escapeHtml(formatCount(pkg?.products_credits))}</strong>
+          </article>
+          <article class="billing-package-credit">
+            <span>Calls</span>
+            <strong>${escapeHtml(formatCount(pkg?.calling_credits))}</strong>
+          </article>
+          <article class="billing-package-credit">
+            <span>SMS</span>
+            <strong>${escapeHtml(formatCount(pkg?.sms_credits))}</strong>
+          </article>
+        </div>
+
+        <div class="billing-package-capabilities">
+          ${
+            activeModules.length
+              ? activeModules.map((label) => `<span class="billing-package-capability">${escapeHtml(label)}</span>`).join('')
+              : '<span class="billing-package-capability is-empty">Base toolkit</span>'
+          }
+        </div>
+
+        <ul class="billing-package-features">
+          ${
+            features.length
+              ? features.map((feature) => `<li>${escapeHtml(feature)}</li>`).join('')
+              : '<li>No features were returned by the API.</li>'
+          }
+        </ul>
+
+        <div class="billing-package-footer">
+          <button
+            type="button"
+            class="btn ${isCurrent ? 'btn-secondary' : 'btn-primary'}"
+            ${isCurrent ? 'disabled' : ''}
+            data-package-upgrade="${escapeHtml(text(pkg?.package_name) || '')}"
+          >
+            ${escapeHtml(buttonLabel)}
+          </button>
+        </div>
+      </article>
+    `;
+  };
+  const renderCatalog = () => {
+    gridNode.setAttribute('aria-busy', 'false');
+
+    if (!Array.isArray(allPackages) || !allPackages.length) {
+      gridNode.innerHTML = buildEmptyStateHtml('No packages available', 'The package catalog API returned an empty list.', 'info');
+      introCopyNode.textContent = 'No package plans were returned from the catalog API.';
+      return;
+    }
+
+    introCopyNode.textContent = buildIntroCopy();
+    gridNode.innerHTML = allPackages.map((pkg, index) => buildPackageCardHtml(pkg, index)).join('');
+  };
+
+  let allPackages = [];
+  let currentPackage = null;
+  let activeCycle = 'monthly';
+
+  const loadPackages = async () => {
+    if (!apiBaseUrl) {
+      const message = 'Missing backend API URL.';
+      renderSummaryError(message);
+      renderCatalogError(message);
+      if (typeof window.showError === 'function') window.showError(message);
+      return;
+    }
+
+    if (!window.API?.Admin?.Packages?.listAll || !window.API?.Admin?.Packages?.getInfo) {
+      const message = 'Package API client is unavailable.';
+      renderSummaryError(message);
+      renderCatalogError(message);
+      if (typeof window.showError === 'function') window.showError(message);
+      return;
+    }
+
+    const refreshToken = resolveRefreshToken();
+    if (!refreshToken) {
+      const message = 'Missing refresh token. Please login again.';
+      renderSummaryError(message);
+      renderCatalogError(message);
+      if (typeof window.showError === 'function') window.showError(message);
+      return;
+    }
+
+    renderSummaryLoading();
+    renderCatalogLoading();
+    setReloadState(true);
+    setCycleButtonsDisabled(true);
+
+    const [catalogResult, currentResult] = await Promise.allSettled([
+      window.API.Admin.Packages.listAll({
+        apiBaseUrl,
+        refreshToken,
+        timeoutMs: 12000,
+      }),
+      window.API.Admin.Packages.getInfo({
+        apiBaseUrl,
+        refreshToken,
+        timeoutMs: 12000,
+      }),
+    ]);
+
+    setReloadState(false);
+    setCycleButtonsDisabled(false);
+
+    const errors = [];
+
+    if (currentResult.status === 'fulfilled' && currentResult.value && typeof currentResult.value === 'object') {
+      currentPackage = currentResult.value;
+      activeCycle = normalizeCycle(currentPackage.package_type || activeCycle);
+      syncCycleButtons();
+      renderCurrentPackage(currentPackage);
+    } else {
+      currentPackage = null;
+      const message = resolveRequestError(
+        currentResult.reason,
+        'Unable to load active package details.'
+      );
+      renderSummaryError(message);
+      errors.push(message);
+    }
+
+    if (catalogResult.status === 'fulfilled' && Array.isArray(catalogResult.value)) {
+      allPackages = catalogResult.value;
+      renderCatalog();
+    } else {
+      allPackages = [];
+      const message = resolveRequestError(
+        catalogResult.reason,
+        'Unable to load package catalog.'
+      );
+      renderCatalogError(message);
+      errors.push(message);
+    }
+
+    if (errors.length === 1) {
+      if (typeof window.showError === 'function') window.showError(errors[0]);
+    } else if (errors.length > 1) {
+      if (typeof window.showError === 'function') {
+        window.showError('Some package data could not be loaded. Please refresh and try again.');
+      }
+    }
+  };
+
+  cycleButtons.forEach((button) => {
+    if (!(button instanceof HTMLButtonElement)) return;
+    button.addEventListener('click', () => {
+      const nextCycle = normalizeCycle(button.dataset.packageCycleTab);
+      if (nextCycle === activeCycle) return;
+      activeCycle = nextCycle;
+      syncCycleButtons();
+      renderCatalog();
+    });
+  });
+
+  reloadButtons.forEach((button) => {
+    if (!(button instanceof HTMLButtonElement)) return;
+    button.addEventListener('click', () => {
+      void loadPackages();
+    });
+  });
+
+  gridNode.addEventListener('click', (event) => {
+    const button = event.target.closest('[data-package-upgrade]');
+    if (!(button instanceof HTMLButtonElement) || button.disabled) return;
+
+    const packageName = text(button.dataset.packageUpgrade) || 'this package';
+    if (typeof window.showInfo === 'function') {
+      window.showInfo(`Upgrade flow for ${packageName} is not connected yet.`);
+    }
+  });
+
+  syncCycleButtons();
+  setCycleButtonsDisabled(true);
+  renderSummaryLoading();
+  renderCatalogLoading();
+  void loadPackages();
 }
 
 // ══════════════════════════════════════════
