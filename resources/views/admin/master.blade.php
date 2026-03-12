@@ -1,6 +1,8 @@
 @php
   $routeName = request()->route()?->getName();
   $adminGlobalConfig = session('admin.global_config', []);
+  $adminProductType = data_get($adminGlobalConfig, 'product_type');
+  $needsAdminOnboarding = $adminProductType === null || trim((string) $adminProductType) === '';
   $websiteName = trim((string) ($adminGlobalConfig['website_name'] ?? 'A Metafy')) ?: 'A Metafy';
   $websiteLogo = trim((string) ($adminGlobalConfig['website_logo'] ?? '⚡')) ?: '⚡';
   $supportWhatsappNumber = trim((string) ($adminGlobalConfig['support_whatsapp_number'] ?? ''));
@@ -226,6 +228,10 @@
       </main>
     </div>
   </div>
+
+  @if ($needsAdminOnboarding)
+    @include('admin.partials.onboarding-wizard')
+  @endif
 
   @if ($supportWhatsappHref)
     <a

@@ -295,6 +295,7 @@ document.addEventListener('DOMContentLoaded', () => {
   initDropdowns();
   initModals();
   initToasts();
+  initAdminOnboarding();
   initTables();
   initCharts();
   initSearch();
@@ -540,6 +541,489 @@ function closeAllModals() {
     modal.classList.remove('active');
   });
   document.body.style.overflow = '';
+}
+
+function initAdminOnboarding() {
+  const shell = document.querySelector('[data-admin-onboarding]');
+  if (!(shell instanceof HTMLElement)) {
+    return;
+  }
+
+  const text = (value) => String(value ?? '').trim();
+  const parseJson = (value) => {
+    try {
+      return JSON.parse(value);
+    } catch (error) {
+      return {};
+    }
+  };
+  const slugify = (value) => text(value)
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .replace(/-{2,}/g, '-');
+  const normalizeProductType = (value) => {
+    const normalized = text(value).toLowerCase();
+    return ['physical', 'digital', 'downloadable'].includes(normalized) ? normalized : 'physical';
+  };
+  const normalizeCallScope = (value) => text(value).toLowerCase() === 'all' ? 'all' : 'cod';
+  const titleCase = (value) => {
+    const normalized = text(value).replace(/[_-]+/g, ' ').toLowerCase();
+    return normalized.replace(/\b\w/g, (char) => char.toUpperCase());
+  };
+  const readSessionValue = (key) => {
+    try {
+      return window.sessionStorage.getItem(key);
+    } catch (error) {
+      return null;
+    }
+  };
+  const writeSessionValue = (key, value) => {
+    try {
+      window.sessionStorage.setItem(key, value);
+    } catch (error) {
+      return;
+    }
+  };
+
+  const storageKey = text(shell.dataset.storageKey) || 'admin_onboarding_draft_v1';
+  const hiddenKey = text(shell.dataset.hiddenKey) || 'admin_onboarding_hidden_v1';
+  const domainSuffix = text(shell.dataset.domainSuffix) || 'vendachats.com';
+
+  if (readSessionValue(hiddenKey) === '1') {
+    shell.remove();
+    return;
+  }
+
+  const productInputs = Array.from(shell.querySelectorAll('[data-admin-onboarding-product-type]'));
+  const productCards = Array.from(shell.querySelectorAll('[data-admin-onboarding-product-card]'));
+  const stepPanels = Array.from(shell.querySelectorAll('[data-admin-onboarding-step]'));
+  const stepNavButtons = Array.from(shell.querySelectorAll('[data-admin-onboarding-step-nav]'));
+  const progressLabelNode = shell.querySelector('[data-admin-onboarding-progress-label]');
+  const progressFillNode = shell.querySelector('[data-admin-onboarding-progress-fill]');
+  const backButton = shell.querySelector('[data-admin-onboarding-back]');
+  const nextButton = shell.querySelector('[data-admin-onboarding-next]');
+  const finishButton = shell.querySelector('[data-admin-onboarding-finish]');
+  const dismissButton = shell.querySelector('[data-admin-onboarding-dismiss]');
+  const subdomainInput = shell.querySelector('[data-admin-onboarding-subdomain]');
+  const pageNameInput = shell.querySelector('[data-admin-onboarding-page-name]');
+  const primaryLanguageSelect = shell.querySelector('[data-admin-onboarding-primary-language]');
+  const callScopeInputs = Array.from(shell.querySelectorAll('[data-admin-onboarding-call-scope]'));
+  const scopeCards = Array.from(shell.querySelectorAll('[data-admin-onboarding-scope-card]'));
+  const timezoneSelect = shell.querySelector('[data-admin-onboarding-timezone]');
+  const adminLanguageSelect = shell.querySelector('[data-admin-onboarding-admin-language]');
+  const websiteLanguageSelect = shell.querySelector('[data-admin-onboarding-website-language]');
+  const domainPreviewNode = shell.querySelector('[data-admin-onboarding-domain-preview]');
+
+  if (
+    !(subdomainInput instanceof HTMLInputElement)
+    || !(pageNameInput instanceof HTMLInputElement)
+    || !(primaryLanguageSelect instanceof HTMLSelectElement)
+    || !(timezoneSelect instanceof HTMLSelectElement)
+    || !(adminLanguageSelect instanceof HTMLSelectElement)
+    || !(websiteLanguageSelect instanceof HTMLSelectElement)
+    || !(backButton instanceof HTMLButtonElement)
+    || !(nextButton instanceof HTMLButtonElement)
+    || !(finishButton instanceof HTMLButtonElement)
+    || !(dismissButton instanceof HTMLButtonElement)
+  ) {
+    shell.remove();
+    return;
+  }
+
+  const summaryNodes = {
+    domain: shell.querySelector('[data-admin-onboarding-summary="domain"]'),
+    productType: shell.querySelector('[data-admin-onboarding-summary="productType"]'),
+    orderCall: shell.querySelector('[data-admin-onboarding-summary="orderCall"]'),
+    locale: shell.querySelector('[data-admin-onboarding-summary="locale"]'),
+  };
+  const primaryLanguageOptions = Array.from(primaryLanguageSelect.options).map((option) => ({
+    value: text(option.value).toLowerCase(),
+    label: text(option.textContent) || titleCase(option.value),
+  }));
+  const timezoneOptions = Array.from(timezoneSelect.options).map((option) => text(option.value));
+  const adminLanguageOptions = Array.from(adminLanguageSelect.options).map((option) => text(option.value));
+  const websiteLanguageOptions = Array.from(websiteLanguageSelect.options).map((option) => text(option.value));
+  const normalizeSelectValue = (value, options, fallback) => {
+    const target = text(value).toLowerCase();
+    const matched = options.find((option) => text(option).toLowerCase() === target);
+    return matched || fallback;
+  };
+  const languageLabel = (value) => {
+    const target = text(value).toLowerCase();
+    const matched = primaryLanguageOptions.find((option) => option.value === target);
+    return matched?.label || titleCase(target || 'english');
+  };
+  const productTypeLabel = (value) => {
+    const labels = {
+      physical: 'Physical',
+      digital: 'Digital',
+      downloadable: 'Downloadable',
+    };
+    return labels[normalizeProductType(value)] || 'Physical';
+  };
+  const callScopeLabel = (value) => normalizeCallScope(value) === 'all' ? 'All buyers' : 'COD buyers';
+  const domainPreview = (value) => `${slugify(value) || 'yourbrand'}.${domainSuffix}`;
+  const persistedDraft = parseJson(readSessionValue(storageKey) || '{}');
+  const initialDraft = parseJson(shell.dataset.initialState || '{}');
+  const sanitizeState = (raw = {}) => {
+    const basePageName = text(raw.pageName || initialDraft.pageName || 'A Metafy');
+    const fallbackSubdomain = slugify(raw.subdomain || initialDraft.subdomain || basePageName) || 'my-store';
+
+    return {
+      productType: normalizeProductType(raw.productType || initialDraft.productType || 'physical'),
+      subdomain: slugify(raw.subdomain || initialDraft.subdomain || fallbackSubdomain) || 'my-store',
+      pageName: basePageName || 'A Metafy',
+      primaryLanguage: normalizeSelectValue(
+        text(raw.primaryLanguage || initialDraft.primaryLanguage || 'english').toLowerCase(),
+        primaryLanguageOptions.map((option) => option.value),
+        primaryLanguageOptions[0]?.value || 'english'
+      ),
+      callScope: normalizeCallScope(raw.callScope || initialDraft.callScope || 'cod'),
+      timezone: normalizeSelectValue(raw.timezone || initialDraft.timezone, timezoneOptions, timezoneOptions[0] || 'Asia/Dhaka'),
+      adminLanguage: normalizeSelectValue(raw.adminLanguage || initialDraft.adminLanguage, adminLanguageOptions, adminLanguageOptions[0] || 'English'),
+      websiteLanguage: normalizeSelectValue(raw.websiteLanguage || initialDraft.websiteLanguage, websiteLanguageOptions, websiteLanguageOptions[0] || 'English'),
+    };
+  };
+
+  let state = sanitizeState({ ...initialDraft, ...persistedDraft });
+  let currentStep = 0;
+
+  const persistState = () => {
+    writeSessionValue(storageKey, JSON.stringify(state));
+  };
+  const syncInputsFromState = () => {
+    productInputs.forEach((input) => {
+      if (input instanceof HTMLInputElement) {
+        input.checked = input.value === state.productType;
+      }
+    });
+
+    callScopeInputs.forEach((input) => {
+      if (input instanceof HTMLInputElement) {
+        input.checked = input.value === state.callScope;
+      }
+    });
+
+    subdomainInput.value = state.subdomain;
+    pageNameInput.value = state.pageName;
+    primaryLanguageSelect.value = state.primaryLanguage;
+    timezoneSelect.value = state.timezone;
+    adminLanguageSelect.value = state.adminLanguage;
+    websiteLanguageSelect.value = state.websiteLanguage;
+  };
+  const renderChoiceStates = () => {
+    productCards.forEach((card) => {
+      if (!(card instanceof HTMLElement)) {
+        return;
+      }
+
+      const input = card.querySelector('[data-admin-onboarding-product-type]');
+      const active = input instanceof HTMLInputElement && input.checked;
+      card.classList.toggle('is-active', active);
+    });
+
+    scopeCards.forEach((card) => {
+      if (!(card instanceof HTMLElement)) {
+        return;
+      }
+
+      const input = card.querySelector('[data-admin-onboarding-call-scope]');
+      const active = input instanceof HTMLInputElement && input.checked;
+      card.classList.toggle('is-active', active);
+    });
+  };
+  const renderSummary = () => {
+    const nextDomain = domainPreview(state.subdomain);
+
+    if (summaryNodes.domain instanceof HTMLElement) {
+      summaryNodes.domain.textContent = nextDomain;
+    }
+
+    if (summaryNodes.productType instanceof HTMLElement) {
+      summaryNodes.productType.textContent = productTypeLabel(state.productType);
+    }
+
+    if (summaryNodes.orderCall instanceof HTMLElement) {
+      summaryNodes.orderCall.textContent = `${languageLabel(state.primaryLanguage)} / ${callScopeLabel(state.callScope)}`;
+    }
+
+    if (summaryNodes.locale instanceof HTMLElement) {
+      summaryNodes.locale.textContent = `${state.timezone} / ${state.adminLanguage} admin / ${state.websiteLanguage} site`;
+    }
+
+    if (domainPreviewNode instanceof HTMLElement) {
+      domainPreviewNode.textContent = nextDomain;
+    }
+  };
+  const focusCurrentStep = () => {
+    const panel = stepPanels[currentStep];
+    if (!(panel instanceof HTMLElement)) {
+      return;
+    }
+
+    const target = panel.querySelector('input:not([type="hidden"]), select, textarea, button');
+    if (target instanceof HTMLElement) {
+      window.requestAnimationFrame(() => target.focus({ preventScroll: true }));
+    }
+  };
+  const validateStep = (index, showFeedback = false) => {
+    if (index === 0) {
+      if (!text(state.productType)) {
+        if (showFeedback && typeof window.showError === 'function') {
+          window.showError('Select a product type to continue.');
+        }
+        return false;
+      }
+
+      return true;
+    }
+
+    if (index === 1) {
+      const nextSubdomain = slugify(state.subdomain);
+      if (nextSubdomain.length < 3) {
+        if (showFeedback && typeof window.showError === 'function') {
+          window.showError('Subdomain username must be at least 3 characters.');
+        }
+        subdomainInput.focus();
+        return false;
+      }
+
+      state.subdomain = nextSubdomain;
+      subdomainInput.value = nextSubdomain;
+      return true;
+    }
+
+    if (index === 2) {
+      if (!text(state.pageName)) {
+        if (showFeedback && typeof window.showError === 'function') {
+          window.showError('Page name is required for order call confirmation.');
+        }
+        pageNameInput.focus();
+        return false;
+      }
+
+      if (!text(state.primaryLanguage)) {
+        if (showFeedback && typeof window.showError === 'function') {
+          window.showError('Select a primary language.');
+        }
+        primaryLanguageSelect.focus();
+        return false;
+      }
+
+      return true;
+    }
+
+    if (index === 3) {
+      if (!text(state.timezone) || !text(state.adminLanguage) || !text(state.websiteLanguage)) {
+        if (showFeedback && typeof window.showError === 'function') {
+          window.showError('Complete timezone and language preferences to finish setup.');
+        }
+        return false;
+      }
+
+      return true;
+    }
+
+    return true;
+  };
+  const render = () => {
+    const totalSteps = stepPanels.length || 1;
+
+    stepPanels.forEach((panel, index) => {
+      if (!(panel instanceof HTMLElement)) {
+        return;
+      }
+
+      const active = index === currentStep;
+      panel.classList.toggle('is-active', active);
+      panel.setAttribute('aria-hidden', active ? 'false' : 'true');
+    });
+
+    stepNavButtons.forEach((button, index) => {
+      if (!(button instanceof HTMLElement)) {
+        return;
+      }
+
+      const isActive = index === currentStep;
+      const isComplete = index < currentStep;
+      button.classList.toggle('is-active', isActive);
+      button.classList.toggle('is-complete', isComplete);
+      button.setAttribute('aria-selected', isActive ? 'true' : 'false');
+
+      const stateNode = button.querySelector('.admin-onboarding-step-state');
+      if (stateNode instanceof HTMLElement) {
+        stateNode.textContent = isActive ? 'Current' : (isComplete ? 'Completed' : 'Pending');
+      }
+    });
+
+    if (progressLabelNode instanceof HTMLElement) {
+      progressLabelNode.textContent = `Step ${currentStep + 1} of ${totalSteps}`;
+    }
+
+    if (progressFillNode instanceof HTMLElement) {
+      progressFillNode.style.width = `${((currentStep + 1) / totalSteps) * 100}%`;
+    }
+
+    backButton.disabled = currentStep === 0;
+    nextButton.classList.toggle('hidden', currentStep === totalSteps - 1);
+    finishButton.classList.toggle('hidden', currentStep !== totalSteps - 1);
+
+    renderChoiceStates();
+    renderSummary();
+    persistState();
+  };
+  const goToStep = (targetIndex) => {
+    const boundedIndex = Math.max(0, Math.min(targetIndex, stepPanels.length - 1));
+
+    if (boundedIndex > currentStep && !validateStep(currentStep, true)) {
+      renderSummary();
+      persistState();
+      return;
+    }
+
+    currentStep = boundedIndex;
+    render();
+    focusCurrentStep();
+  };
+  const hideWizard = (mode) => {
+    writeSessionValue(hiddenKey, '1');
+    persistState();
+    shell.classList.remove('is-visible');
+    document.body.classList.remove('admin-onboarding-open');
+    document.body.style.overflow = '';
+
+    window.setTimeout(() => {
+      shell.remove();
+    }, 220);
+
+    if (mode === 'finish') {
+      if (typeof window.showSuccess === 'function') {
+        window.showSuccess('Setup flow completed in UI mode.');
+      }
+      return;
+    }
+
+    if (typeof window.showInfo === 'function') {
+      window.showInfo('Setup wizard hidden for now.');
+    }
+  };
+
+  syncInputsFromState();
+
+  productInputs.forEach((input) => {
+    if (!(input instanceof HTMLInputElement)) {
+      return;
+    }
+
+    input.addEventListener('change', () => {
+      state.productType = normalizeProductType(input.value);
+      render();
+    });
+  });
+
+  subdomainInput.addEventListener('input', () => {
+    state.subdomain = slugify(subdomainInput.value);
+    subdomainInput.value = state.subdomain;
+    renderSummary();
+    persistState();
+  });
+
+  pageNameInput.addEventListener('input', () => {
+    state.pageName = text(pageNameInput.value);
+    renderSummary();
+    persistState();
+  });
+
+  primaryLanguageSelect.addEventListener('change', () => {
+    state.primaryLanguage = normalizeSelectValue(
+      primaryLanguageSelect.value,
+      primaryLanguageOptions.map((option) => option.value),
+      primaryLanguageOptions[0]?.value || 'english'
+    );
+    renderSummary();
+    persistState();
+  });
+
+  callScopeInputs.forEach((input) => {
+    if (!(input instanceof HTMLInputElement)) {
+      return;
+    }
+
+    input.addEventListener('change', () => {
+      state.callScope = normalizeCallScope(input.value);
+      render();
+    });
+  });
+
+  timezoneSelect.addEventListener('change', () => {
+    state.timezone = normalizeSelectValue(timezoneSelect.value, timezoneOptions, timezoneOptions[0] || 'Asia/Dhaka');
+    renderSummary();
+    persistState();
+  });
+
+  adminLanguageSelect.addEventListener('change', () => {
+    state.adminLanguage = normalizeSelectValue(adminLanguageSelect.value, adminLanguageOptions, adminLanguageOptions[0] || 'English');
+    renderSummary();
+    persistState();
+  });
+
+  websiteLanguageSelect.addEventListener('change', () => {
+    state.websiteLanguage = normalizeSelectValue(websiteLanguageSelect.value, websiteLanguageOptions, websiteLanguageOptions[0] || 'English');
+    renderSummary();
+    persistState();
+  });
+
+  stepNavButtons.forEach((button) => {
+    if (!(button instanceof HTMLButtonElement)) {
+      return;
+    }
+
+    button.addEventListener('click', () => {
+      const stepIndex = Number.parseInt(button.dataset.adminOnboardingStepNav || '', 10);
+      if (Number.isNaN(stepIndex)) {
+        return;
+      }
+
+      goToStep(stepIndex);
+    });
+  });
+
+  backButton.addEventListener('click', () => {
+    goToStep(currentStep - 1);
+  });
+
+  nextButton.addEventListener('click', () => {
+    if (!validateStep(currentStep, true)) {
+      renderSummary();
+      persistState();
+      return;
+    }
+
+    goToStep(currentStep + 1);
+  });
+
+  finishButton.addEventListener('click', () => {
+    if (!validateStep(currentStep, true)) {
+      renderSummary();
+      persistState();
+      return;
+    }
+
+    hideWizard('finish');
+  });
+
+  dismissButton.addEventListener('click', () => {
+    hideWizard('dismiss');
+  });
+
+  document.body.classList.add('admin-onboarding-open');
+  document.body.style.overflow = 'hidden';
+  render();
+
+  window.requestAnimationFrame(() => {
+    shell.classList.add('is-visible');
+  });
 }
 
 // ══════════════════════════════════════════

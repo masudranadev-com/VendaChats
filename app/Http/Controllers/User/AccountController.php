@@ -101,7 +101,6 @@ class AccountController extends Controller
 
             if (! $response->ok() || ! is_array($response->json())) {
                 $request->session()->forget('admin.global_config');
-
                 return;
             }
 
