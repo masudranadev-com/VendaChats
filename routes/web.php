@@ -15,6 +15,7 @@ use App\Http\Controllers\Admin\CourierController;
 use App\Http\Controllers\Admin\OrderCallController;
 use App\Http\Controllers\Admin\ProfileController;
 use App\Http\Controllers\Admin\ShopSettingsController;
+use App\Http\Controllers\Admin\AdminOnboardingController;
 use App\Http\Controllers\User\AccountController;
 use App\Http\Controllers\User\DataDeletionController;
 use App\Http\Controllers\User\FacebookAuthController;
@@ -182,5 +183,5 @@ Route::prefix('admin')->name('admin.')->middleware('admin.auth')->group(function
 
 // onboarding
 Route::prefix('admin')->name('admin.')->middleware('admin.without_onboarding')->group(function () {
-    Route::get('/onboarding', [DashboardController::class, 'onboarding'])->name('onboarding');
+    Route::get('/onboarding', [AdminOnboardingController::class, 'onboarding'])->name('onboarding');
 });
