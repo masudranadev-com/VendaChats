@@ -109,55 +109,55 @@
       </div>
     </div>
 
-    <div class="admin-onboarding-layout">
-      <aside class="admin-onboarding-rail">
-        <div class="admin-onboarding-step-list" role="tablist" aria-label="Admin panel setup steps">
-          <button type="button" class="admin-onboarding-step-link" data-admin-onboarding-step-nav="0" role="tab" aria-selected="true">
-            <span class="admin-onboarding-step-index">01</span>
-            <span class="admin-onboarding-step-copy">
-              <strong>Product type</strong>
-              <small>Choose how your catalog works.</small>
-            </span>
-            <span class="admin-onboarding-step-state">Current</span>
-          </button>
+    <div class="admin-onboarding-overview">
+      <div class="admin-onboarding-step-strip" aria-label="Admin panel setup progress">
+        <article class="admin-onboarding-step-chip is-active" data-admin-onboarding-step-chip="0" aria-current="step">
+          <span class="admin-onboarding-step-chip-index">01</span>
+          <span class="admin-onboarding-step-chip-copy">
+            <strong>Product type</strong>
+            <small>Choose how your catalog works.</small>
+          </span>
+          <span class="admin-onboarding-step-chip-state">Current</span>
+        </article>
 
-          <button type="button" class="admin-onboarding-step-link" data-admin-onboarding-step-nav="1" role="tab" aria-selected="false">
-            <span class="admin-onboarding-step-index">02</span>
-            <span class="admin-onboarding-step-copy">
-              <strong>Subdomain</strong>
-              <small>Reserve your public storefront name.</small>
-            </span>
-            <span class="admin-onboarding-step-state">Pending</span>
-          </button>
+        <article class="admin-onboarding-step-chip" data-admin-onboarding-step-chip="1">
+          <span class="admin-onboarding-step-chip-index">02</span>
+          <span class="admin-onboarding-step-chip-copy">
+            <strong>Subdomain</strong>
+            <small>Reserve your storefront username.</small>
+          </span>
+          <span class="admin-onboarding-step-chip-state">Locked</span>
+        </article>
 
-          <button type="button" class="admin-onboarding-step-link" data-admin-onboarding-step-nav="2" role="tab" aria-selected="false">
-            <span class="admin-onboarding-step-index">03</span>
-            <span class="admin-onboarding-step-copy">
-              <strong>Order call</strong>
-              <small>Define page name, language, and buyer scope.</small>
-            </span>
-            <span class="admin-onboarding-step-state">Pending</span>
-          </button>
+        <article class="admin-onboarding-step-chip" data-admin-onboarding-step-chip="2">
+          <span class="admin-onboarding-step-chip-index">03</span>
+          <span class="admin-onboarding-step-chip-copy">
+            <strong>Order call</strong>
+            <small>Choose caller language and buyer scope.</small>
+          </span>
+          <span class="admin-onboarding-step-chip-state">Locked</span>
+        </article>
 
-          <button type="button" class="admin-onboarding-step-link" data-admin-onboarding-step-nav="3" role="tab" aria-selected="false">
-            <span class="admin-onboarding-step-index">04</span>
-            <span class="admin-onboarding-step-copy">
-              <strong>Locale</strong>
-              <small>Apply timezone and language defaults.</small>
-            </span>
-            <span class="admin-onboarding-step-state">Pending</span>
-          </button>
-        </div>
+        <article class="admin-onboarding-step-chip" data-admin-onboarding-step-chip="3">
+          <span class="admin-onboarding-step-chip-index">04</span>
+          <span class="admin-onboarding-step-chip-copy">
+            <strong>Locale</strong>
+            <small>Finish timezone and language defaults.</small>
+          </span>
+          <span class="admin-onboarding-step-chip-state">Locked</span>
+        </article>
+      </div>
 
+      <div class="admin-onboarding-overview-grid">
         <div class="admin-onboarding-preview-card">
           <span class="admin-onboarding-preview-kicker">Live preview</span>
           <strong class="admin-onboarding-preview-domain" data-admin-onboarding-summary="domain">
             {{ $defaultSubdomain }}.vendachats.com
           </strong>
-          <p>Your public storefront address updates as you type. Final domain availability will be checked when backend save is connected.</p>
+          <p>Your storefront URL updates instantly while you set everything up. Final domain availability can be checked later when save APIs are connected.</p>
         </div>
 
-        <div class="admin-onboarding-summary-list">
+        <div class="admin-onboarding-summary-list" aria-label="Current onboarding summary">
           <article class="admin-onboarding-summary-item">
             <span>Product type</span>
             <strong data-admin-onboarding-summary="productType">Physical</strong>
@@ -173,14 +173,15 @@
             <strong data-admin-onboarding-summary="locale">Asia/Dhaka / English</strong>
           </article>
         </div>
-      </aside>
+      </div>
+    </div>
 
-      <div class="admin-onboarding-main">
+    <div class="admin-onboarding-main">
         <section class="admin-onboarding-step-panel is-active" data-admin-onboarding-step="0" role="tabpanel">
           <div class="admin-onboarding-panel-head">
             <span class="admin-onboarding-panel-step">Step 1</span>
-            <h3>Setup product type</h3>
-            <p>Select the selling model that best matches your catalog. You can refine detailed rules later from Products.</p>
+            <h3>Choose your product type</h3>
+            <p>Start with the selling model that best matches your business. You can fine-tune product rules later from the Products section.</p>
           </div>
 
           <div class="admin-onboarding-choice-grid">
@@ -213,8 +214,8 @@
         <section class="admin-onboarding-step-panel" data-admin-onboarding-step="1" role="tabpanel" aria-hidden="true">
           <div class="admin-onboarding-panel-head">
             <span class="admin-onboarding-panel-step">Step 2</span>
-            <h3>Setup your subdomain</h3>
-            <p>Pick a short username for the storefront customers will visit. Lowercase letters, numbers, and hyphens work best.</p>
+            <h3>Claim your storefront username</h3>
+            <p>Pick a short, memorable subdomain for the page customers will open. Lowercase letters, numbers, and hyphens work best.</p>
           </div>
 
           <div class="admin-onboarding-form-grid is-domain">
@@ -250,8 +251,8 @@
         <section class="admin-onboarding-step-panel" data-admin-onboarding-step="2" role="tabpanel" aria-hidden="true">
           <div class="admin-onboarding-panel-head">
             <span class="admin-onboarding-panel-step">Step 3</span>
-            <h3>Setup order call confirmation</h3>
-            <p>Define the storefront name callers mention, the primary language, and which buyers should receive confirmation calls.</p>
+            <h3>Set up order call confirmation</h3>
+            <p>Choose the page name your team mentions on calls, the primary language, and which buyers should receive verification calls.</p>
           </div>
 
           <div class="admin-onboarding-form-grid">
@@ -296,8 +297,8 @@
         <section class="admin-onboarding-step-panel" data-admin-onboarding-step="3" role="tabpanel" aria-hidden="true">
           <div class="admin-onboarding-panel-head">
             <span class="admin-onboarding-panel-step">Step 4</span>
-            <h3>Setup timezone and language defaults</h3>
-            <p>Finish the control panel by aligning your timezone, internal admin language, and storefront language.</p>
+            <h3>Finish timezone and language defaults</h3>
+            <p>Finalize the control panel by aligning your timezone, admin language, and storefront language for a clean first launch.</p>
           </div>
 
           <div class="admin-onboarding-form-grid">
@@ -335,12 +336,11 @@
             <p>This wizard currently keeps values in the browser so the full interaction can be reviewed before API wiring starts.</p>
           </div>
         </section>
-      </div>
     </div>
 
     <div class="admin-onboarding-footer">
       <p class="admin-onboarding-footer-note">
-        The current implementation is UI-only. Values are temporarily stored in this browser tab until backend endpoints are connected.
+        Complete each step to unlock the next one. This flow is UI-only for now and keeps your draft in this browser until backend save actions are connected.
       </p>
 
       <div class="admin-onboarding-footer-actions">

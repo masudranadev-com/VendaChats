@@ -598,9 +598,10 @@ function initAdminOnboarding() {
   const productInputs = Array.from(shell.querySelectorAll('[data-admin-onboarding-product-type]'));
   const productCards = Array.from(shell.querySelectorAll('[data-admin-onboarding-product-card]'));
   const stepPanels = Array.from(shell.querySelectorAll('[data-admin-onboarding-step]'));
-  const stepNavButtons = Array.from(shell.querySelectorAll('[data-admin-onboarding-step-nav]'));
+  const stepChips = Array.from(shell.querySelectorAll('[data-admin-onboarding-step-chip]'));
   const progressLabelNode = shell.querySelector('[data-admin-onboarding-progress-label]');
   const progressFillNode = shell.querySelector('[data-admin-onboarding-progress-fill]');
+  const mainNode = shell.querySelector('.admin-onboarding-main');
   const backButton = shell.querySelector('[data-admin-onboarding-back]');
   const nextButton = shell.querySelector('[data-admin-onboarding-next]');
   const finishButton = shell.querySelector('[data-admin-onboarding-finish]');
@@ -637,6 +638,11 @@ function initAdminOnboarding() {
     orderCall: shell.querySelector('[data-admin-onboarding-summary="orderCall"]'),
     locale: shell.querySelector('[data-admin-onboarding-summary="locale"]'),
   };
+  const nextButtonLabels = [
+    'Continue to subdomain',
+    'Continue to order call',
+    'Continue to locale',
+  ];
   const primaryLanguageOptions = Array.from(primaryLanguageSelect.options).map((option) => ({
     value: text(option.value).toLowerCase(),
     label: text(option.textContent) || titleCase(option.value),
@@ -688,6 +694,7 @@ function initAdminOnboarding() {
 
   let state = sanitizeState({ ...initialDraft, ...persistedDraft });
   let currentStep = 0;
+  let highestCompletedStep = -1;
 
   const persistState = () => {
     writeSessionValue(storageKey, JSON.stringify(state));
@@ -767,6 +774,13 @@ function initAdminOnboarding() {
       window.requestAnimationFrame(() => target.focus({ preventScroll: true }));
     }
   };
+  const resetStepScroll = () => {
+    if (mainNode instanceof HTMLElement) {
+      mainNode.scrollTop = 0;
+    }
+
+    shell.scrollTop = 0;
+  };
   const validateStep = (index, showFeedback = false) => {
     if (index === 0) {
       if (!text(state.productType)) {
@@ -785,7 +799,9 @@ function initAdminOnboarding() {
         if (showFeedback && typeof window.showError === 'function') {
           window.showError('Subdomain username must be at least 3 characters.');
         }
-        subdomainInput.focus();
+        if (showFeedback) {
+          subdomainInput.focus();
+        }
         return false;
       }
 
@@ -799,7 +815,9 @@ function initAdminOnboarding() {
         if (showFeedback && typeof window.showError === 'function') {
           window.showError('Page name is required for order call confirmation.');
         }
-        pageNameInput.focus();
+        if (showFeedback) {
+          pageNameInput.focus();
+        }
         return false;
       }
 
@@ -807,7 +825,9 @@ function initAdminOnboarding() {
         if (showFeedback && typeof window.showError === 'function') {
           window.showError('Select a primary language.');
         }
-        primaryLanguageSelect.focus();
+        if (showFeedback) {
+          primaryLanguageSelect.focus();
+        }
         return false;
       }
 
@@ -827,8 +847,18 @@ function initAdminOnboarding() {
 
     return true;
   };
+  const firstInvalidStepBefore = (targetIndex) => {
+    for (let index = 0; index < targetIndex; index += 1) {
+      if (!validateStep(index, false)) {
+        return index;
+      }
+    }
+
+    return -1;
+  };
   const render = () => {
     const totalSteps = stepPanels.length || 1;
+    const nextStepIndex = Math.min(highestCompletedStep + 1, totalSteps - 1);
 
     stepPanels.forEach((panel, index) => {
       if (!(panel instanceof HTMLElement)) {
@@ -840,20 +870,35 @@ function initAdminOnboarding() {
       panel.setAttribute('aria-hidden', active ? 'false' : 'true');
     });
 
-    stepNavButtons.forEach((button, index) => {
-      if (!(button instanceof HTMLElement)) {
+    stepChips.forEach((chip, index) => {
+      if (!(chip instanceof HTMLElement)) {
         return;
       }
 
       const isActive = index === currentStep;
-      const isComplete = index < currentStep;
-      button.classList.toggle('is-active', isActive);
-      button.classList.toggle('is-complete', isComplete);
-      button.setAttribute('aria-selected', isActive ? 'true' : 'false');
+      const isComplete = index <= highestCompletedStep && !isActive;
+      const isNext = !isActive && currentStep < nextStepIndex && index === nextStepIndex;
+      const isLocked = !isActive && !isComplete && !isNext;
+      chip.classList.toggle('is-active', isActive);
+      chip.classList.toggle('is-complete', isComplete);
+      chip.classList.toggle('is-locked', isLocked);
+      if (isActive) {
+        chip.setAttribute('aria-current', 'step');
+      } else {
+        chip.removeAttribute('aria-current');
+      }
 
-      const stateNode = button.querySelector('.admin-onboarding-step-state');
+      const stateNode = chip.querySelector('.admin-onboarding-step-chip-state');
       if (stateNode instanceof HTMLElement) {
-        stateNode.textContent = isActive ? 'Current' : (isComplete ? 'Completed' : 'Pending');
+        if (isActive) {
+          stateNode.textContent = 'Current';
+        } else if (isComplete) {
+          stateNode.textContent = 'Done';
+        } else if (isNext) {
+          stateNode.textContent = 'Next';
+        } else {
+          stateNode.textContent = 'Locked';
+        }
       }
     });
 
@@ -868,6 +913,7 @@ function initAdminOnboarding() {
     backButton.disabled = currentStep === 0;
     nextButton.classList.toggle('hidden', currentStep === totalSteps - 1);
     finishButton.classList.toggle('hidden', currentStep !== totalSteps - 1);
+    nextButton.textContent = nextButtonLabels[currentStep] || 'Continue';
 
     renderChoiceStates();
     renderSummary();
@@ -876,14 +922,25 @@ function initAdminOnboarding() {
   const goToStep = (targetIndex) => {
     const boundedIndex = Math.max(0, Math.min(targetIndex, stepPanels.length - 1));
 
-    if (boundedIndex > currentStep && !validateStep(currentStep, true)) {
-      renderSummary();
-      persistState();
-      return;
+    if (boundedIndex > currentStep) {
+      const blockingStep = firstInvalidStepBefore(boundedIndex);
+      if (blockingStep !== -1) {
+        currentStep = blockingStep;
+        render();
+        resetStepScroll();
+        validateStep(blockingStep, true);
+        focusCurrentStep();
+        return;
+      }
+    }
+
+    if (boundedIndex > currentStep) {
+      highestCompletedStep = Math.max(highestCompletedStep, boundedIndex - 1);
     }
 
     currentStep = boundedIndex;
     render();
+    resetStepScroll();
     focusCurrentStep();
   };
   const hideWizard = (mode) => {
@@ -974,32 +1031,11 @@ function initAdminOnboarding() {
     persistState();
   });
 
-  stepNavButtons.forEach((button) => {
-    if (!(button instanceof HTMLButtonElement)) {
-      return;
-    }
-
-    button.addEventListener('click', () => {
-      const stepIndex = Number.parseInt(button.dataset.adminOnboardingStepNav || '', 10);
-      if (Number.isNaN(stepIndex)) {
-        return;
-      }
-
-      goToStep(stepIndex);
-    });
-  });
-
   backButton.addEventListener('click', () => {
     goToStep(currentStep - 1);
   });
 
   nextButton.addEventListener('click', () => {
-    if (!validateStep(currentStep, true)) {
-      renderSummary();
-      persistState();
-      return;
-    }
-
     goToStep(currentStep + 1);
   });
 
