@@ -113,7 +113,15 @@
           <span class="admin-onboarding-step-chip-copy">
             <strong>Product type</strong>
           </span>
-          <span class="admin-onboarding-step-chip-state">Current</span>
+          <span class="admin-onboarding-step-chip-state" data-state="current" title="Current step">
+            <span class="admin-onboarding-step-chip-state-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" focusable="false">
+                <circle cx="12" cy="12" r="4" fill="currentColor"></circle>
+                <circle cx="12" cy="12" r="8" fill="none" stroke="currentColor" stroke-width="2"></circle>
+              </svg>
+            </span>
+            <span class="admin-onboarding-step-chip-state-label">Current step</span>
+          </span>
         </article>
 
         <article class="admin-onboarding-step-chip" data-admin-onboarding-step-chip="1">
@@ -121,7 +129,15 @@
           <span class="admin-onboarding-step-chip-copy">
             <strong>Subdomain</strong>
           </span>
-          <span class="admin-onboarding-step-chip-state">Locked</span>
+          <span class="admin-onboarding-step-chip-state" data-state="next" title="Next step">
+            <span class="admin-onboarding-step-chip-state-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" focusable="false">
+                <path d="M8 12h8" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"></path>
+                <path d="m12 8 4 4-4 4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
+              </svg>
+            </span>
+            <span class="admin-onboarding-step-chip-state-label">Next step</span>
+          </span>
         </article>
 
         <article class="admin-onboarding-step-chip" data-admin-onboarding-step-chip="2">
@@ -129,7 +145,15 @@
           <span class="admin-onboarding-step-chip-copy">
             <strong>Order call</strong>
           </span>
-          <span class="admin-onboarding-step-chip-state">Locked</span>
+          <span class="admin-onboarding-step-chip-state" data-state="locked" title="Locked step">
+            <span class="admin-onboarding-step-chip-state-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" focusable="false">
+                <rect x="6" y="11" width="12" height="9" rx="2" fill="none" stroke="currentColor" stroke-width="2"></rect>
+                <path d="M9 11V8a3 3 0 0 1 6 0v3" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"></path>
+              </svg>
+            </span>
+            <span class="admin-onboarding-step-chip-state-label">Locked step</span>
+          </span>
         </article>
 
         <article class="admin-onboarding-step-chip" data-admin-onboarding-step-chip="3">
@@ -137,7 +161,15 @@
           <span class="admin-onboarding-step-chip-copy">
             <strong>Locale</strong>
           </span>
-          <span class="admin-onboarding-step-chip-state">Locked</span>
+          <span class="admin-onboarding-step-chip-state" data-state="locked" title="Locked step">
+            <span class="admin-onboarding-step-chip-state-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" focusable="false">
+                <rect x="6" y="11" width="12" height="9" rx="2" fill="none" stroke="currentColor" stroke-width="2"></rect>
+                <path d="M9 11V8a3 3 0 0 1 6 0v3" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"></path>
+              </svg>
+            </span>
+            <span class="admin-onboarding-step-chip-state-label">Locked step</span>
+          </span>
         </article>
       </div>
     </div>

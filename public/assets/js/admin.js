@@ -669,6 +669,47 @@ function initAdminOnboarding() {
   };
   const callScopeLabel = (value) => normalizeCallScope(value) === 'all' ? 'All buyers' : 'COD buyers';
   const domainPreview = (value) => `${slugify(value) || 'yourbrand'}.${domainSuffix}`;
+  const stepChipStateMarkup = (stateName) => {
+    const normalized = text(stateName).toLowerCase();
+    const labels = {
+      current: 'Current step',
+      done: 'Completed step',
+      next: 'Next step',
+      locked: 'Locked step',
+    };
+    const icons = {
+      current: `
+        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+          <circle cx="12" cy="12" r="4" fill="currentColor"></circle>
+          <circle cx="12" cy="12" r="8" fill="none" stroke="currentColor" stroke-width="2"></circle>
+        </svg>
+      `,
+      done: `
+        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+          <path d="M7.5 12.5 10.5 15.5 16.5 9.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
+        </svg>
+      `,
+      next: `
+        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+          <path d="M8 12h8" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"></path>
+          <path d="m12 8 4 4-4 4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
+        </svg>
+      `,
+      locked: `
+        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+          <rect x="6" y="11" width="12" height="9" rx="2" fill="none" stroke="currentColor" stroke-width="2"></rect>
+          <path d="M9 11V8a3 3 0 0 1 6 0v3" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"></path>
+        </svg>
+      `,
+    };
+    const safeState = icons[normalized] ? normalized : 'locked';
+    return `
+      <span class="admin-onboarding-step-chip-state-icon" aria-hidden="true">
+        ${icons[safeState]}
+      </span>
+      <span class="admin-onboarding-step-chip-state-label">${labels[safeState]}</span>
+    `;
+  };
   const persistedDraft = parseJson(readSessionValue(storageKey) || '{}');
   const initialDraft = parseJson(shell.dataset.initialState || '{}');
   const sanitizeState = (raw = {}) => {
@@ -857,7 +898,7 @@ function initAdminOnboarding() {
   };
   const render = () => {
     const totalSteps = stepPanels.length || 1;
-    const nextStepIndex = Math.min(highestCompletedStep + 1, totalSteps - 1);
+    const nextStepIndex = Math.min(Math.max(currentStep + 1, highestCompletedStep + 1), totalSteps - 1);
 
     stepPanels.forEach((panel, index) => {
       if (!(panel instanceof HTMLElement)) {
@@ -876,10 +917,11 @@ function initAdminOnboarding() {
 
       const isActive = index === currentStep;
       const isComplete = index <= highestCompletedStep && !isActive;
-      const isNext = !isActive && currentStep < nextStepIndex && index === nextStepIndex;
+      const isNext = !isActive && !isComplete && index === nextStepIndex;
       const isLocked = !isActive && !isComplete && !isNext;
       chip.classList.toggle('is-active', isActive);
       chip.classList.toggle('is-complete', isComplete);
+      chip.classList.toggle('is-next', isNext);
       chip.classList.toggle('is-locked', isLocked);
       if (isActive) {
         chip.setAttribute('aria-current', 'step');
@@ -889,15 +931,17 @@ function initAdminOnboarding() {
 
       const stateNode = chip.querySelector('.admin-onboarding-step-chip-state');
       if (stateNode instanceof HTMLElement) {
+        let stateName = 'locked';
         if (isActive) {
-          stateNode.textContent = 'Current';
+          stateName = 'current';
         } else if (isComplete) {
-          stateNode.textContent = 'Done';
+          stateName = 'done';
         } else if (isNext) {
-          stateNode.textContent = 'Next';
-        } else {
-          stateNode.textContent = 'Locked';
+          stateName = 'next';
         }
+        stateNode.dataset.state = stateName;
+        stateNode.title = titleCase(stateName) + ' step';
+        stateNode.innerHTML = stepChipStateMarkup(stateName);
       }
     });
 
