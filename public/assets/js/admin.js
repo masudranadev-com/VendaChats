@@ -587,7 +587,7 @@ function initAdminOnboarding() {
   };
 
   const storageKey = text(shell.dataset.storageKey) || 'admin_onboarding_draft_v1';
-  const hiddenKey = text(shell.dataset.hiddenKey) || 'admin_onboarding_hidden_v1';
+  const hiddenKey = text(shell.dataset.hiddenKey) || 'admin_onboarding_completed_v1';
   const domainSuffix = text(shell.dataset.domainSuffix) || 'vendachats.com';
 
   if (readSessionValue(hiddenKey) === '1') {
@@ -626,7 +626,6 @@ function initAdminOnboarding() {
     || !(backButton instanceof HTMLButtonElement)
     || !(nextButton instanceof HTMLButtonElement)
     || !(finishButton instanceof HTMLButtonElement)
-    || !(dismissButton instanceof HTMLButtonElement)
   ) {
     shell.remove();
     return;
@@ -1049,9 +1048,11 @@ function initAdminOnboarding() {
     hideWizard('finish');
   });
 
-  dismissButton.addEventListener('click', () => {
-    hideWizard('dismiss');
-  });
+  if (dismissButton instanceof HTMLButtonElement) {
+    dismissButton.addEventListener('click', () => {
+      hideWizard('dismiss');
+    });
+  }
 
   document.body.classList.add('admin-onboarding-open');
   document.body.style.overflow = 'hidden';

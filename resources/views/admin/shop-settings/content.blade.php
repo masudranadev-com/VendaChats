@@ -31,7 +31,7 @@
     @endforeach
   </section>
 
-  <div class="settings-layout settings-layout-single mt-xl" data-content-center>
+  <div class="settings-layout settings-layout-single mt-md" data-content-center>
     <section class="settings-main-column">
       <article class="card settings-panel" id="content-slider">
         <div class="card-header">
@@ -107,7 +107,7 @@
         </div>
       </article>
 
-      <article class="card settings-panel mt-xl" id="content-policies" data-policy-editor>
+      <article class="card settings-panel mt-md" id="content-policies" data-policy-editor>
         <div class="card-header">
           <div>
             <h3 class="card-title">Policy and Static Page Editor</h3>
@@ -189,7 +189,7 @@
         </div>
       </article>
 
-      <article class="card settings-panel mt-xl" id="content-contact">
+      <article class="card settings-panel mt-md" id="content-contact">
         <div class="card-header">
           <div>
             <h3 class="card-title">Contact and Store Information</h3>
@@ -294,7 +294,7 @@
         </div>
       </article>
 
-      <article class="card settings-panel mt-xl" id="content-footer">
+      <article class="card settings-panel mt-md" id="content-footer">
         <div class="card-header">
           <div>
             <h3 class="card-title">Footer and Trust Blocks</h3>
@@ -340,7 +340,7 @@
         </div>
       </article>
 
-      <article class="card settings-panel mt-xl" id="content-seo">
+      <article class="card settings-panel mt-md" id="content-seo">
         <div class="card-header">
           <div>
             <h3 class="card-title">SEO Defaults and Scripts</h3>

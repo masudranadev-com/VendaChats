@@ -73,7 +73,7 @@
   class="admin-onboarding-shell"
   data-admin-onboarding
   data-storage-key="admin_onboarding_draft_v1"
-  data-hidden-key="admin_onboarding_hidden_v1"
+  data-hidden-key="admin_onboarding_completed_v1"
   data-domain-suffix="vendachats.com"
   data-initial-state='@json($initialState)'
 >
@@ -103,9 +103,6 @@
           </div>
         </div>
 
-        <button type="button" class="btn btn-ghost admin-onboarding-dismiss" data-admin-onboarding-dismiss>
-          Set up later
-        </button>
       </div>
     </div>
 

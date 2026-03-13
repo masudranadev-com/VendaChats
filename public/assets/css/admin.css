@@ -7462,6 +7462,7 @@ body.products-attention-open {
   border-radius: var(--radius-sm);
   background: var(--bg-secondary);
   padding: 10px;
+  margin-top: 10px;
 }
 
 .settings-content-head {

@@ -24,23 +24,8 @@
 
   @include('admin.shop-settings.partials.tab-row')
 
-  <section class="settings-section-intro">
-    <h3>{{ $sectionHeading }}</h3>
-    <p>{{ $sectionSubtitle }}</p>
-  </section>
-
-  <section class="settings-stats-grid">
-    @foreach ($quickStats as $stat)
-      <article class="settings-stat-card is-{{ $stat['tone'] }}">
-        <span>{{ $stat['label'] }}</span>
-        <strong>{{ $stat['value'] }}</strong>
-        <small>{{ $stat['note'] }}</small>
-      </article>
-    @endforeach
-  </section>
-
   <div
-    class="settings-layout settings-layout-single settings-theme-layout mt-xl"
+    class="settings-layout settings-layout-single settings-theme-layout"
     data-theme-manager
     data-theme-ready="{{ $themePageUnlocked ? '1' : '0' }}"
     data-domain-value="{{ $activeDomain['value'] ?? '' }}"
@@ -48,66 +33,8 @@
     data-allowed-themes="{{ implode(',', $allowedThemeIds) }}"
   >
     <section class="settings-main-column">
-      <article class="card settings-panel">
-        <div class="card-header">
-          <div>
-            <h3 class="card-title">Domain Link</h3>
-            <p class="settings-panel-subtitle">Theme setup runs only with one existing domain.</p>
-          </div>
-          @if (! $hasThemeDomain)
-            <span class="badge badge-warning">No Domain</span>
-          @elseif ($themePageUnlocked)
-            <span class="badge badge-success">Linked</span>
-          @else
-            <span class="badge badge-warning">Pending</span>
-          @endif
-        </div>
-
-        @if ($hasThemeDomain)
-          <div class="settings-field-grid">
-            <div class="form-group">
-              <label class="form-label">Linked Domain</label>
-              <input type="text" class="form-input" value="{{ $activeDomain['value'] }}" readonly>
-              <small class="form-help">Theme settings are scoped to this domain.</small>
-            </div>
-
-            <div class="form-group">
-              <label class="form-label">Domain Status</label>
-              <input type="text" class="form-input" value="{{ $activeDomain['status'] }}" readonly>
-              <small class="form-help">To use another domain, change it from Domain setup page.</small>
-            </div>
-          </div>
-
-          <div class="settings-content-card mt-md">
-            <div class="settings-content-head">
-              <strong>Single Domain Mode</strong>
-              <span class="badge {{ $themePageUnlocked ? 'badge-success' : 'badge-warning' }}">{{ $themePageUnlocked ? 'Ready' : 'Blocked' }}</span>
-            </div>
-            <p>
-              @if ($themePageUnlocked)
-                Theme configuration is already loaded for <strong>{{ $activeDomain['value'] }}</strong>. No domain selection is needed.
-              @else
-                <strong>{{ $activeDomain['value'] }}</strong> is not connected yet. Theme settings stay locked until domain verification is complete.
-              @endif
-            </p>
-            <small>THEME SETTINGS ALWAYS FOLLOW YOUR CURRENT ACTIVE DOMAIN</small>
-          </div>
-        @else
-          <div class="settings-content-card">
-            <div class="settings-content-head">
-              <strong>Theme Access Blocked</strong>
-              <span class="badge badge-warning">Domain Required</span>
-            </div>
-            <p>No domain found. Theme page cannot be used until you create one domain first.</p>
-            <div class="settings-inline-actions">
-              <a href="{{ route('admin.shop-settings.domain') }}" class="btn btn-primary btn-sm">Go To Domain Setup</a>
-            </div>
-          </div>
-        @endif
-      </article>
-
       @if (! $hasThemeDomain)
-        <article class="card settings-panel mt-xl">
+        <article class="card settings-panel">
           <div class="card-header">
             <div>
               <h3 class="card-title">Theme Setup Unavailable</h3>
@@ -123,7 +50,7 @@
           </ul>
         </article>
       @elseif (! $themePageUnlocked)
-        <article class="card settings-panel mt-xl">
+        <article class="card settings-panel mt-md">
           <div class="card-header">
             <div>
               <h3 class="card-title">Domain Verification Pending</h3>
@@ -136,7 +63,7 @@
         </article>
       @endif
 
-      <article class="card settings-panel mt-xl {{ $themePageUnlocked ? '' : 'hidden' }}" data-theme-domain-panel>
+      <article class="card settings-panel mt-md {{ $themePageUnlocked ? '' : 'hidden' }}" data-theme-domain-panel>
         <div class="card-header">
           <div>
             <h3 class="card-title">Auto-Generated Theme Library</h3>
@@ -181,7 +108,7 @@
         </div>
       </article>
 
-      <article class="card settings-panel mt-xl {{ $themePageUnlocked ? '' : 'hidden' }}" data-theme-domain-panel>
+      <article class="card settings-panel mt-md {{ $themePageUnlocked ? '' : 'hidden' }}" data-theme-domain-panel>
         <div class="card-header">
           <div>
             <h3 class="card-title">Advanced Visual Settings</h3>

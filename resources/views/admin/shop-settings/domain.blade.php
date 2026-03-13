@@ -17,64 +17,13 @@
 
   @include('admin.shop-settings.partials.tab-row')
 
-  <section class="settings-section-intro">
-    <h3>{{ $sectionHeading }}</h3>
-    <p>{{ $sectionSubtitle }}</p>
-  </section>
-
-  <section class="settings-stats-grid">
-    @foreach ($quickStats as $stat)
-      <article class="settings-stat-card is-{{ $stat['tone'] }}">
-        <span>{{ $stat['label'] }}</span>
-        <strong>{{ $stat['value'] }}</strong>
-        <small>{{ $stat['note'] }}</small>
-      </article>
-    @endforeach
-  </section>
-
-  <div class="settings-layout settings-layout-single mt-xl">
+  <div class="settings-layout settings-layout-single mt-md">
     <section class="settings-main-column">
-      <article class="card settings-panel">
-        <div class="card-header">
-          <div>
-            <h3 class="card-title">Package Access Rules</h3>
-            <p class="settings-panel-subtitle">Clear rule: everyone can use subdomain, only Pro+ can use custom domain.</p>
-          </div>
-          <span class="badge badge-primary">{{ $plan['name'] }} Plan</span>
-        </div>
-
-        <div class="settings-content-grid">
-          @foreach ($accessRules as $rule)
-            @php
-              $badgeClass = str_contains($rule['status'], 'Locked') ? 'badge-warning' : 'badge-success';
-            @endphp
-            <article class="settings-content-card">
-              <div class="settings-content-head">
-                <strong>{{ $rule['name'] }}</strong>
-                <span class="badge {{ $badgeClass }}">{{ $rule['status'] }}</span>
-              </div>
-              <p>{{ $rule['availability'] }}</p>
-              <small>{{ $rule['dns_rule'] }}</small>
-            </article>
-          @endforeach
-        </div>
-
-        @if (! $plan['custom_domain_allowed'])
-          <div class="settings-content-card">
-            <div class="settings-content-head">
-              <strong>Upgrade Needed</strong>
-              <span class="badge badge-warning">Custom Domain Locked</span>
-            </div>
-            <p>Custom domain is locked on <strong>{{ $plan['name'] }}</strong>. Upgrade to <strong>{{ $plan['upgrade_plan'] }}</strong> or higher to enable it.</p>
-          </div>
-        @endif
-      </article>
-
       @php
         $singleDomainLocked = ! ($canAddDomain ?? true);
       @endphp
 
-      <article class="card settings-panel mt-xl" data-domain-setup>
+      <article class="card settings-panel" data-domain-setup>
         <div class="card-header">
           <div>
             <h3 class="card-title">Add Domain</h3>
@@ -134,7 +83,7 @@
         </div>
       </article>
 
-      <article class="card settings-panel mt-xl">
+      <article class="card settings-panel mt-md">
         <div class="card-header">
           <div>
             <h3 class="card-title">Connected Domains</h3>
@@ -172,7 +121,7 @@
         </div>
       </article>
 
-      <article class="card settings-panel mt-xl">
+      <article class="card settings-panel mt-md">
         <div class="card-header">
           <div>
             <h3 class="card-title">DNS Records (Only for Custom Domain)</h3>

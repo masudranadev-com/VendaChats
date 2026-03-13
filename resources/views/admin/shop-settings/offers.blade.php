@@ -32,7 +32,7 @@
     @endforeach
   </section>
 
-  <div class="settings-layout mt-xl" data-coupon-manager style="grid-template-columns: minmax(0, 1fr);">
+  <div class="settings-layout mt-md" data-coupon-manager style="grid-template-columns: minmax(0, 1fr);">
     <section class="settings-main-column">
       <article class="card settings-panel">
         <div class="card-header">
@@ -181,7 +181,7 @@
         </div>
       </article>
 
-      <article class="card settings-panel mt-xl">
+      <article class="card settings-panel mt-md">
         <div class="card-header">
           <div>
             <h3 class="card-title">Coupon Code List</h3>
