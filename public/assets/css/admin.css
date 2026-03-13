@@ -13270,7 +13270,7 @@ body.admin-onboarding-open {
 }
 
 .admin-onboarding-backdrop {
-  position: absolute;
+  position: fixed;
   inset: 0;
   background:
     radial-gradient(circle at top left, rgba(19,82,220,0.28), transparent 30%),
@@ -13281,6 +13281,11 @@ body.admin-onboarding-open {
 }
 
 .admin-onboarding-modal {
+  --admin-onboarding-text-size: 13px;
+  --admin-onboarding-label-size: 12px;
+  --admin-onboarding-heading-size: clamp(18px, 3vw, 21px);
+  --admin-onboarding-title-size: clamp(20px, 3.4vw, 24px);
+  --admin-onboarding-display-size: clamp(20px, 2.8vw, 28px);
   position: relative;
   display: flex;
   flex-direction: column;
@@ -13294,6 +13299,9 @@ body.admin-onboarding-open {
   background:
     linear-gradient(180deg, rgba(252,253,255,0.98), rgba(241,247,255,0.96));
   box-shadow: 0 32px 120px rgba(2, 6, 23, 0.34);
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--text-primary);
 }
 
 .admin-onboarding-modal::before {
@@ -13346,7 +13354,7 @@ body.admin-onboarding-open {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -13356,15 +13364,16 @@ body.admin-onboarding-open {
 .admin-onboarding-title {
   margin-top: 8px;
   font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: clamp(18px, 4vw, 25px);
-  line-height: 1.08;
+  font-size: var(--admin-onboarding-title-size);
+  line-height: 1.18;
 }
 
 .admin-onboarding-description {
   margin-top: 10px;
   max-width: 54ch;
   color: var(--text-secondary);
-  font-size: 12px;
+  font-size: var(--admin-onboarding-text-size);
+  line-height: 1.6;
 }
 
 .admin-onboarding-topbar-actions {
@@ -13385,7 +13394,7 @@ body.admin-onboarding-open {
 .admin-onboarding-progress-label {
   display: block;
   margin-bottom: 10px;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 700;
   color: var(--text-primary);
 }
@@ -13462,8 +13471,8 @@ body.admin-onboarding-open {
 }
 
 .admin-onboarding-step-chip-copy strong {
-  font-size: 14px;
-  line-height: 1.35;
+  font-size: 13px;
+  line-height: 1.4;
 }
 
 .admin-onboarding-step-chip-copy small {
@@ -13606,8 +13615,8 @@ body.admin-onboarding-open {
   display: block;
   margin-top: 12px;
   font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: clamp(24px, 3vw, 34px);
-  line-height: 1.15;
+  font-size: var(--admin-onboarding-display-size);
+  line-height: 1.2;
   word-break: break-word;
 }
 
@@ -13615,6 +13624,8 @@ body.admin-onboarding-open {
   margin-top: 12px;
   max-width: 54ch;
   color: rgba(255,255,255,0.82);
+  font-size: var(--admin-onboarding-text-size);
+  line-height: 1.6;
 }
 
 .admin-onboarding-summary-list {
@@ -13632,7 +13643,7 @@ body.admin-onboarding-open {
 
 .admin-onboarding-summary-item span {
   display: block;
-  font-size: 12px;
+  font-size: 11px;
   text-transform: uppercase;
   letter-spacing: 0.08em;
   color: var(--text-tertiary);
@@ -13641,8 +13652,8 @@ body.admin-onboarding-open {
 .admin-onboarding-summary-item strong {
   display: block;
   margin-top: 6px;
-  font-size: 15px;
-  line-height: 1.45;
+  font-size: 14px;
+  line-height: 1.5;
 }
 
 .admin-onboarding-main {
@@ -13671,15 +13682,16 @@ body.admin-onboarding-open {
 .admin-onboarding-panel-head h3 {
   margin-top: 10px;
   font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: clamp(28px, 4vw, 36px);
-  line-height: 1.1;
+  font-size: var(--admin-onboarding-heading-size);
+  line-height: 1.2;
 }
 
 .admin-onboarding-panel-head p {
   margin-top: 12px;
   max-width: 58ch;
   color: var(--text-secondary);
-  font-size: 15px;
+  font-size: var(--admin-onboarding-text-size);
+  line-height: 1.6;
 }
 
 .admin-onboarding-choice-grid {
@@ -13751,7 +13763,7 @@ body.admin-onboarding-open {
   border-radius: 999px;
   background: rgba(19,82,220,0.08);
   color: var(--brand-primary);
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 700;
 }
 
@@ -13759,18 +13771,21 @@ body.admin-onboarding-open {
 .admin-onboarding-scope-card strong,
 .admin-onboarding-finish-card strong {
   font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 24px;
-  line-height: 1.12;
+  font-size: clamp(18px, 2.6vw, 20px);
+  line-height: 1.22;
 }
 
 .admin-onboarding-choice-card p,
 .admin-onboarding-scope-card p,
 .admin-onboarding-finish-card p {
   color: var(--text-secondary);
+  font-size: var(--admin-onboarding-text-size);
+  line-height: 1.6;
 }
 
 .admin-onboarding-choice-card small {
   color: var(--text-tertiary);
+  font-size: 12px;
   line-height: 1.55;
 }
 
@@ -13791,7 +13806,30 @@ body.admin-onboarding-open {
 
 .admin-onboarding-input {
   min-height: 50px;
-  font-size: 15px;
+  font-size: 14px;
+}
+
+.admin-onboarding-modal .form-label {
+  font-size: var(--admin-onboarding-label-size);
+}
+
+.admin-onboarding-modal .form-input,
+.admin-onboarding-modal .form-select,
+.admin-onboarding-modal .form-textarea,
+.admin-onboarding-modal .btn {
+  font-size: 13px;
+}
+
+.admin-onboarding-modal .form-input,
+.admin-onboarding-modal .form-select {
+  height: 50px;
+  min-height: 50px;
+  line-height: 1.4;
+}
+
+.admin-onboarding-modal .form-help {
+  font-size: 12px;
+  line-height: 1.55;
 }
 
 .admin-onboarding-domain-preview,
@@ -13806,7 +13844,7 @@ body.admin-onboarding-open {
 
 .admin-onboarding-domain-label {
   display: block;
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -13817,14 +13855,16 @@ body.admin-onboarding-open {
   display: block;
   margin-top: 12px;
   font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: clamp(24px, 3vw, 34px);
-  line-height: 1.08;
+  font-size: 16px;
+  line-height: 1.16;
   word-break: break-word;
 }
 
 .admin-onboarding-domain-preview p {
   margin-top: 10px;
   color: var(--text-secondary);
+  font-size: var(--admin-onboarding-text-size);
+  line-height: 1.6;
 }
 
 .admin-onboarding-domain-tips {
@@ -13832,6 +13872,8 @@ body.admin-onboarding-open {
   gap: 8px;
   margin-top: 16px;
   color: var(--text-secondary);
+  font-size: 12px;
+  line-height: 1.6;
   list-style: none;
 }
 
@@ -13881,7 +13923,7 @@ body.admin-onboarding-open {
   align-items: center;
   justify-content: space-between;
   gap: 18px;
-  padding: 20px 32px 30px;
+  padding: 20px 32px 20px;
   border-top: 1px solid rgba(226,232,240,0.92);
   background: linear-gradient(180deg, rgba(245,248,255,0.5), rgba(255,255,255,0.94));
 }
@@ -13889,7 +13931,8 @@ body.admin-onboarding-open {
 .admin-onboarding-footer-note {
   max-width: 56ch;
   color: var(--text-secondary);
-  font-size: 13px;
+  font-size: 12px;
+  line-height: 1.6;
 }
 
 .admin-onboarding-footer-actions {
@@ -13954,7 +13997,6 @@ body.admin-onboarding-open {
   .admin-onboarding-modal {
     max-height: none;
     border-radius: 24px;
-    overflow: visible;
   }
 
   .admin-onboarding-topbar {
@@ -14026,7 +14068,7 @@ body.admin-onboarding-open {
   .admin-onboarding-choice-card strong,
   .admin-onboarding-scope-card strong,
   .admin-onboarding-domain-preview strong {
-    font-size: 24px;
+    font-size: 20px;
   }
 
   .admin-onboarding-step-strip {

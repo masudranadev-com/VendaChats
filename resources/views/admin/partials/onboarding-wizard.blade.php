@@ -90,9 +90,6 @@
       <div class="admin-onboarding-topbar-copy">
         <span class="admin-onboarding-kicker">First-time setup</span>
         <h2 class="admin-onboarding-title" id="adminOnboardingTitle">Set up your admin panel in four steps</h2>
-        <p class="admin-onboarding-description" id="adminOnboardingDescription">
-          Configure your selling model, storefront subdomain, order call confirmation, and regional preferences.
-        </p>
       </div>
 
       <div class="admin-onboarding-topbar-actions">
@@ -327,19 +324,11 @@
               </select>
             </div>
           </div>
-
-          <div class="admin-onboarding-finish-card">
-            <span class="admin-onboarding-finish-kicker">Frontend only for now</span>
-            <strong>Finish the UI flow today, connect save actions later.</strong>
-            <p>This wizard currently keeps values in the browser so the full interaction can be reviewed before API wiring starts.</p>
-          </div>
         </section>
     </div>
 
     <div class="admin-onboarding-footer">
-      <p class="admin-onboarding-footer-note">
-        Complete each step to unlock the next one. This flow is UI-only for now and keeps your draft in this browser until backend save actions are connected.
-      </p>
+      <p class="admin-onboarding-footer-note"></p>
 
       <div class="admin-onboarding-footer-actions">
         <button type="button" class="btn btn-secondary" data-admin-onboarding-back>
