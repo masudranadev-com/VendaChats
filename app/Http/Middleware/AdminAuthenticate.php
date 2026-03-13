@@ -25,6 +25,8 @@ class AdminAuthenticate
                 ->withErrors(['login' => 'Your session has expired. Please log in again.']);
         }
 
+        // now check on boarding 
+
         return $next($request);
     }
 }

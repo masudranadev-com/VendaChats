@@ -16,6 +16,8 @@ class DashboardController extends Controller
             ?? ''
         );
 
+        // return $request->session()->get("admin.global_config")["onboarding"];
+
         return view('admin.dashboard', [
             'title' => 'Dashboard',
             'subtitle' => 'Live operational snapshot powered by order-history API.',
