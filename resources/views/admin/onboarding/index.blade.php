@@ -7,6 +7,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="csrf-token" content="{{ csrf_token() }}">
   <title>Onboarding - {{ $websiteName }} Admin</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -26,7 +27,7 @@
           </div>
         </div>
         <div class="card-body">
-          <p class="text-secondary">If you dismiss or finish the overlay, refresh this page to open the onboarding flow again, or go back to the regular admin dashboard.</p>
+          <p class="text-secondary">If you dismiss the overlay, refresh this page to open the onboarding flow again. After completion, continue from the regular admin dashboard.</p>
           <div class="mt-md">
             <a href="{{ route('admin.dashboard') }}" class="btn btn-secondary">Back to dashboard</a>
           </div>

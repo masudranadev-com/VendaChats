@@ -589,7 +589,11 @@ function initAdminOnboarding() {
   const storageKey = text(shell.dataset.storageKey) || 'admin_onboarding_draft_v1';
   const hiddenKey = text(shell.dataset.hiddenKey) || 'admin_onboarding_completed_v1';
   const domainSuffix = text(shell.dataset.domainSuffix) || 'vendachats.com';
+  const continueUrl = text(shell.dataset.continueUrl);
+  const initialCurrentStepValue = Number(shell.dataset.initialCurrentStep);
+  const initialHighestCompletedStepValue = Number(shell.dataset.initialHighestCompletedStep);
   const persistHiddenState = shell.dataset.persistHidden !== '0';
+  const csrfToken = text(document.querySelector('meta[name="csrf-token"]')?.getAttribute('content'));
 
   if (persistHiddenState && readSessionValue(hiddenKey) === '1') {
     shell.remove();
@@ -734,11 +738,140 @@ function initAdminOnboarding() {
   };
 
   let state = sanitizeState({ ...initialDraft, ...persistedDraft });
-  let currentStep = 0;
-  let highestCompletedStep = -1;
+  let currentStep = Number.isFinite(initialCurrentStepValue) ? initialCurrentStepValue : 0;
+  let highestCompletedStep = Number.isFinite(initialHighestCompletedStepValue) ? initialHighestCompletedStepValue : -1;
+  let submitting = false;
 
   const persistState = () => {
     writeSessionValue(storageKey, JSON.stringify(state));
+  };
+  const setSubmittingState = (value) => {
+    submitting = value;
+    backButton.disabled = value || currentStep === 0;
+    nextButton.disabled = value;
+    finishButton.disabled = value;
+  };
+  const buildOnboardingPayload = (stepIndex) => {
+    if (stepIndex === 0) {
+      return {
+        type: 'product',
+        data: {
+          product_type: normalizeProductType(state.productType),
+        },
+      };
+    }
+
+    if (stepIndex === 1) {
+      return {
+        type: 'sub_domain',
+        data: {
+          sub_domain: slugify(state.subdomain),
+        },
+      };
+    }
+
+    if (stepIndex === 2) {
+      return {
+        type: 'call_order',
+        data: {
+          recording_page_name: text(state.pageName),
+          recording_language: text(state.primaryLanguage).toLowerCase(),
+          calling_scope: normalizeCallScope(state.callScope),
+        },
+      };
+    }
+
+    if (stepIndex === 3) {
+      return {
+        type: 'locale',
+        data: {
+          timezone: text(state.timezone),
+          admin_language: text(state.adminLanguage).toLowerCase(),
+          website_language: text(state.websiteLanguage).toLowerCase(),
+        },
+      };
+    }
+
+    return null;
+  };
+  const applyServerStepData = (typeName, serverData = {}, fallbackData = {}) => {
+    const nextData = {
+      ...(fallbackData && typeof fallbackData === 'object' ? fallbackData : {}),
+      ...(serverData && typeof serverData === 'object' ? serverData : {}),
+    };
+
+    if (typeName === 'product' && text(nextData.product_type)) {
+      state.productType = normalizeProductType(nextData.product_type);
+    }
+
+    if (typeName === 'sub_domain' && text(nextData.sub_domain)) {
+      state.subdomain = slugify(nextData.sub_domain);
+    }
+
+    if (typeName === 'call_order') {
+      if (text(nextData.recording_page_name)) {
+        state.pageName = text(nextData.recording_page_name);
+      }
+      if (text(nextData.recording_language)) {
+        state.primaryLanguage = normalizeSelectValue(
+          text(nextData.recording_language).toLowerCase(),
+          primaryLanguageOptions.map((option) => option.value),
+          primaryLanguageOptions[0]?.value || 'english'
+        );
+      }
+      if (text(nextData.calling_scope)) {
+        state.callScope = normalizeCallScope(nextData.calling_scope);
+      }
+    }
+
+    if (typeName === 'locale') {
+      if (text(nextData.timezone)) {
+        state.timezone = normalizeSelectValue(nextData.timezone, timezoneOptions, timezoneOptions[0] || 'Asia/Dhaka');
+      }
+      if (text(nextData.admin_language)) {
+        state.adminLanguage = normalizeSelectValue(
+          nextData.admin_language,
+          adminLanguageOptions,
+          adminLanguageOptions[0] || 'English'
+        );
+      }
+      if (text(nextData.website_language)) {
+        state.websiteLanguage = normalizeSelectValue(
+          nextData.website_language,
+          websiteLanguageOptions,
+          websiteLanguageOptions[0] || 'English'
+        );
+      }
+    }
+  };
+  const submitStep = async (stepIndex) => {
+    const payload = buildOnboardingPayload(stepIndex);
+    if (!payload) {
+      return null;
+    }
+
+    if (!continueUrl) {
+      throw new Error('Onboarding endpoint is not configured.');
+    }
+
+    const response = await fetch(continueUrl, {
+      method: 'POST',
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+        'X-CSRF-TOKEN': csrfToken,
+        'X-Requested-With': 'XMLHttpRequest',
+      },
+      body: JSON.stringify(payload),
+    });
+    const result = await response.json().catch(() => ({}));
+
+    if (!response.ok) {
+      throw new Error(text(result?.error || result?.message) || `Request failed (${response.status}).`);
+    }
+
+    applyServerStepData(payload.type, result?.data, payload.data);
+    return result;
   };
   const syncInputsFromState = () => {
     productInputs.forEach((input) => {
@@ -964,6 +1097,10 @@ function initAdminOnboarding() {
     persistState();
   };
   const goToStep = (targetIndex) => {
+    if (submitting) {
+      return;
+    }
+
     const boundedIndex = Math.max(0, Math.min(targetIndex, stepPanels.length - 1));
 
     if (boundedIndex > currentStep) {
@@ -987,7 +1124,7 @@ function initAdminOnboarding() {
     resetStepScroll();
     focusCurrentStep();
   };
-  const hideWizard = (mode) => {
+  const hideWizard = (mode, successMessage = '') => {
     if (persistHiddenState) {
       writeSessionValue(hiddenKey, '1');
     }
@@ -1002,7 +1139,7 @@ function initAdminOnboarding() {
 
     if (mode === 'finish') {
       if (typeof window.showSuccess === 'function') {
-        window.showSuccess('Setup flow completed in UI mode.');
+        window.showSuccess(text(successMessage) || 'Setup flow completed.');
       }
       return;
     }
@@ -1081,18 +1218,66 @@ function initAdminOnboarding() {
     goToStep(currentStep - 1);
   });
 
-  nextButton.addEventListener('click', () => {
-    goToStep(currentStep + 1);
-  });
+  nextButton.addEventListener('click', async () => {
+    if (submitting) {
+      return;
+    }
 
-  finishButton.addEventListener('click', () => {
     if (!validateStep(currentStep, true)) {
       renderSummary();
       persistState();
       return;
     }
 
-    hideWizard('finish');
+    setSubmittingState(true);
+
+    try {
+      const response = await submitStep(currentStep);
+      highestCompletedStep = Math.max(highestCompletedStep, currentStep);
+      currentStep = Math.min(currentStep + 1, stepPanels.length - 1);
+      render();
+      resetStepScroll();
+      focusCurrentStep();
+
+      if (text(response?.message) && typeof window.showSuccess === 'function') {
+        window.showSuccess(response.message);
+      }
+    } catch (error) {
+      if (typeof window.showError === 'function') {
+        window.showError(error?.message || 'Failed to save onboarding step.');
+      }
+    } finally {
+      setSubmittingState(false);
+      render();
+    }
+  });
+
+  finishButton.addEventListener('click', async () => {
+    if (submitting) {
+      return;
+    }
+
+    if (!validateStep(currentStep, true)) {
+      renderSummary();
+      persistState();
+      return;
+    }
+
+    setSubmittingState(true);
+
+    try {
+      const response = await submitStep(currentStep);
+      highestCompletedStep = Math.max(highestCompletedStep, currentStep);
+      render();
+      hideWizard('finish', text(response?.message));
+    } catch (error) {
+      if (typeof window.showError === 'function') {
+        window.showError(error?.message || 'Failed to complete onboarding.');
+      }
+    } finally {
+      setSubmittingState(false);
+      render();
+    }
   });
 
   if (dismissButton instanceof HTMLButtonElement) {

@@ -31,6 +31,29 @@
   ];
   $initialWebsiteName = trim((string) ($websiteName ?? 'A Metafy')) ?: 'A Metafy';
   $defaultSubdomain = \Illuminate\Support\Str::slug($initialWebsiteName, '-') ?: 'my-store';
+  $stepIndexes = [
+    'product' => 0,
+    'sub_domain' => 1,
+    'call_order' => 2,
+    'locale' => 3,
+  ];
+  $onboardingState = trim((string) data_get($adminGlobalConfig ?? [], 'onboarding', ''));
+  $nextOnboardingStep = trim((string) data_get($adminGlobalConfig ?? [], 'onboarding_next_step', ''));
+  $initialHighestCompletedStep = match ($onboardingState) {
+    'product' => 0,
+    'sub_domain' => 1,
+    'call_order' => 2,
+    'locale', 'completed' => 3,
+    default => -1,
+  };
+  $initialCurrentStep = array_key_exists($nextOnboardingStep, $stepIndexes)
+    ? $stepIndexes[$nextOnboardingStep]
+    : match ($onboardingState) {
+      'product' => 1,
+      'sub_domain' => 2,
+      'call_order' => 3,
+      default => 0,
+    };
   $initialState = [
     'productType' => trim((string) data_get($adminGlobalConfig ?? [], 'product_type', '')),
     'subdomain' => trim((string) (
@@ -75,6 +98,10 @@
   data-storage-key="admin_onboarding_draft_v1"
   data-hidden-key="admin_onboarding_completed_v1"
   data-domain-suffix="vendachats.com"
+  data-continue-url="{{ route('admin.onboardingContinue') }}"
+  data-dashboard-url="{{ route('admin.dashboard') }}"
+  data-initial-current-step="{{ $initialCurrentStep }}"
+  data-initial-highest-completed-step="{{ $initialHighestCompletedStep }}"
   data-persist-hidden="{{ ($adminOnboardingStandalone ?? false) ? '0' : '1' }}"
   data-initial-state='@json($initialState)'
 >

@@ -184,4 +184,5 @@ Route::prefix('admin')->name('admin.')->middleware('admin.auth')->group(function
 // onboarding
 Route::prefix('admin')->name('admin.')->middleware('admin.without_onboarding')->group(function () {
     Route::get('/onboarding', [AdminOnboardingController::class, 'onboarding'])->name('onboarding');
+    Route::post('/onboarding-continue', [AdminOnboardingController::class, 'onboardingContinue'])->name('onboardingContinue');
 });
