@@ -74,14 +74,25 @@ class AdminOnboardingController extends Controller
             'data' => ['required', 'array'],
         ])->validate();
 
+        $payloadData = (array) $payload['data'];
+        if ($payload['type'] === 'product') {
+            $payloadData['product_type'] = $this->normalizeProductType(
+                (string) ($payloadData['product_type'] ?? '')
+            );
+        }
+        if ($payload['type'] === 'call_order' && array_key_exists('is_calling', $payloadData)) {
+            $payloadData['is_calling'] = $this->normalizeBoolean($payloadData['is_calling']);
+        }
+
         $dataRules = match ($payload['type']) {
             'product' => [
-                'product_type' => ['required', 'string'],
+                'product_type' => ['required', 'string', 'in:physical,downloadable,subscription'],
             ],
             'sub_domain' => [
                 'sub_domain' => ['required', 'string'],
             ],
             'call_order' => [
+                'is_calling' => ['required', 'boolean'],
                 'recording_page_name' => ['required', 'string'],
                 'recording_language' => ['required', 'string'],
                 'calling_scope' => ['required', 'string', 'in:all,cod'],
@@ -93,9 +104,32 @@ class AdminOnboardingController extends Controller
             ],
         };
 
-        $payload['data'] = Validator::make($payload['data'], $dataRules)->validate();
+        $payload['data'] = Validator::make($payloadData, $dataRules)->validate();
 
         return $payload;
+    }
+
+    private function normalizeProductType(string $value): string
+    {
+        return match (strtolower(trim($value))) {
+            'digital', 'subscription' => 'subscription',
+            'downloadable' => 'downloadable',
+            'physical' => 'physical',
+            default => trim($value),
+        };
+    }
+
+    private function normalizeBoolean(mixed $value): bool
+    {
+        if (is_bool($value)) {
+            return $value;
+        }
+
+        if (is_int($value)) {
+            return $value === 1;
+        }
+
+        return filter_var($value, FILTER_VALIDATE_BOOLEAN);
     }
 
     private function syncAdminGlobalConfig(Request $request, string $type, array $submittedData, array $response): void
@@ -115,10 +149,14 @@ class AdminOnboardingController extends Controller
         }
 
         if ($type === 'call_order') {
+            $isCalling = array_key_exists('is_calling', $data)
+                ? $this->normalizeBoolean($data['is_calling'])
+                : $this->normalizeBoolean($config['is_calling'] ?? false);
             $pageName = trim((string) ($data['recording_page_name'] ?? $config['page_name'] ?? ''));
             $language = strtolower(trim((string) ($data['recording_language'] ?? $config['primary_language'] ?? '')));
             $scope = strtolower(trim((string) ($data['calling_scope'] ?? $config['call_buyer_scope'] ?? 'cod')));
 
+            $config['is_calling'] = $isCalling;
             $config['page_name'] = $pageName;
             $config['primary_language'] = $language;
             $config['language'] = $language;

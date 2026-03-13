@@ -71,6 +71,10 @@
       ?? data_get($adminGlobalConfig ?? [], 'language')
       ?? 'english'
     ))),
+    'isCalling' => filter_var(
+      data_get($adminGlobalConfig ?? [], 'is_calling', false),
+      FILTER_VALIDATE_BOOLEAN
+    ),
     'callScope' => strtolower(trim((string) (
       data_get($adminGlobalConfig ?? [], 'call_buyer_scope')
       ?? 'cod'
@@ -117,7 +121,10 @@
     <div class="admin-onboarding-topbar">
       <div class="admin-onboarding-topbar-copy">
         <span class="admin-onboarding-kicker">First-time setup</span>
-        <h2 class="admin-onboarding-title" id="adminOnboardingTitle">Set up your admin panel in four steps</h2>
+        <h2 class="admin-onboarding-title" id="adminOnboardingTitle">Finish your admin setup</h2>
+        <p class="admin-onboarding-description" id="adminOnboardingDescription">
+          Complete product type, storefront domain, order-call preferences, and locale before entering the dashboard.
+        </p>
       </div>
 
       <div class="admin-onboarding-topbar-actions">
@@ -204,7 +211,7 @@
           <div class="admin-onboarding-panel-head">
             <span class="admin-onboarding-panel-step">Step 1</span>
             <h3>Choose your product type</h3>
-            <p>Start with the selling model that best matches your business. You can fine-tune product rules later from the Products section.</p>
+            <p>Select the selling flow your store uses today. You can refine advanced product rules later.</p>
           </div>
 
           <div class="admin-onboarding-choice-grid">
@@ -217,11 +224,11 @@
             </label>
 
             <label class="admin-onboarding-choice-card" data-admin-onboarding-product-card>
-              <input type="radio" name="adminOnboardingProductType" value="digital" data-admin-onboarding-product-type>
-              <span class="admin-onboarding-choice-badge">Instant</span>
-              <strong>Digital</strong>
-              <p>For memberships, services, licenses, or access-based offers.</p>
-              <small>No shipping flow. Great for coaching, subscriptions, and tools.</small>
+              <input type="radio" name="adminOnboardingProductType" value="subscription" data-admin-onboarding-product-type>
+              <span class="admin-onboarding-choice-badge">Access based</span>
+              <strong>Subscription</strong>
+              <p>For memberships, services, licenses, or recurring access-based offers.</p>
+              <small>No shipping flow. Great for shared accounts, coaching, subscriptions, and tools.</small>
             </label>
 
             <label class="admin-onboarding-choice-card" data-admin-onboarding-product-card>
@@ -238,7 +245,7 @@
           <div class="admin-onboarding-panel-head">
             <span class="admin-onboarding-panel-step">Step 2</span>
             <h3>Claim your storefront username</h3>
-            <p>Pick a short, memorable subdomain for the page customers will open. Lowercase letters, numbers, and hyphens work best.</p>
+            <p>Reserve a short storefront username that customers can remember and share easily.</p>
           </div>
 
           <div class="admin-onboarding-form-grid is-domain">
@@ -275,7 +282,27 @@
           <div class="admin-onboarding-panel-head">
             <span class="admin-onboarding-panel-step">Step 3</span>
             <h3>Set up order call confirmation</h3>
-            <p>Choose the page name your team mentions on calls, the primary language, and which buyers should receive verification calls.</p>
+            <p>Set the page name callers mention, the main language, and which buyers should receive confirmation calls.</p>
+          </div>
+
+          <div class="order-call-setting-switch-row">
+            <div>
+              <label class="form-label" for="adminOnboardingIsCalling">Order Call</label>
+              <p class="order-call-setting-copy">Turn automated confirmation calls on or off for new incoming orders.</p>
+            </div>
+
+            <div class="order-call-setting-switch-box">
+              <span class="order-call-setting-state" data-admin-onboarding-calling-state>Off</span>
+              <label class="bot-switch">
+                <input
+                  id="adminOnboardingIsCalling"
+                  class="bot-toggle-input"
+                  type="checkbox"
+                  data-admin-onboarding-calling-toggle
+                >
+                <span class="bot-switch-ui"></span>
+              </label>
+            </div>
           </div>
 
           <div class="admin-onboarding-form-grid">
@@ -321,7 +348,7 @@
           <div class="admin-onboarding-panel-head">
             <span class="admin-onboarding-panel-step">Step 4</span>
             <h3>Finish timezone and language defaults</h3>
-            <p>Finalize the control panel by aligning your timezone, admin language, and storefront language for a clean first launch.</p>
+            <p>Apply timezone and language defaults for the admin team and storefront before launch.</p>
           </div>
 
           <div class="admin-onboarding-form-grid">
@@ -356,12 +383,9 @@
     </div>
 
     <div class="admin-onboarding-footer">
-      <p class="admin-onboarding-footer-note"></p>
+      <p class="admin-onboarding-footer-note">Complete each step to unlock the next one.</p>
 
       <div class="admin-onboarding-footer-actions">
-        <button type="button" class="btn btn-secondary" data-admin-onboarding-back>
-          Back
-        </button>
         <button type="button" class="btn btn-primary" data-admin-onboarding-next>
           Continue
         </button>

@@ -564,7 +564,15 @@ function initAdminOnboarding() {
     .replace(/-{2,}/g, '-');
   const normalizeProductType = (value) => {
     const normalized = text(value).toLowerCase();
-    return ['physical', 'digital', 'downloadable'].includes(normalized) ? normalized : 'physical';
+    if (normalized === 'digital') {
+      return 'subscription';
+    }
+    return ['physical', 'subscription', 'downloadable'].includes(normalized) ? normalized : 'physical';
+  };
+  const hasOwn = (value, key) => Boolean(value) && Object.prototype.hasOwnProperty.call(value, key);
+  const normalizeCallingEnabled = (value) => {
+    const normalized = text(value).toLowerCase();
+    return ['1', 'true', 'yes', 'on'].includes(normalized);
   };
   const normalizeCallScope = (value) => text(value).toLowerCase() === 'all' ? 'all' : 'cod';
   const titleCase = (value) => {
@@ -590,6 +598,7 @@ function initAdminOnboarding() {
   const hiddenKey = text(shell.dataset.hiddenKey) || 'admin_onboarding_completed_v1';
   const domainSuffix = text(shell.dataset.domainSuffix) || 'vendachats.com';
   const continueUrl = text(shell.dataset.continueUrl);
+  const dashboardUrl = text(shell.dataset.dashboardUrl);
   const initialCurrentStepValue = Number(shell.dataset.initialCurrentStep);
   const initialHighestCompletedStepValue = Number(shell.dataset.initialHighestCompletedStep);
   const persistHiddenState = shell.dataset.persistHidden !== '0';
@@ -614,6 +623,8 @@ function initAdminOnboarding() {
   const subdomainInput = shell.querySelector('[data-admin-onboarding-subdomain]');
   const pageNameInput = shell.querySelector('[data-admin-onboarding-page-name]');
   const primaryLanguageSelect = shell.querySelector('[data-admin-onboarding-primary-language]');
+  const callingToggleInput = shell.querySelector('[data-admin-onboarding-calling-toggle]');
+  const callingToggleStateNode = shell.querySelector('[data-admin-onboarding-calling-state]');
   const callScopeInputs = Array.from(shell.querySelectorAll('[data-admin-onboarding-call-scope]'));
   const scopeCards = Array.from(shell.querySelectorAll('[data-admin-onboarding-scope-card]'));
   const timezoneSelect = shell.querySelector('[data-admin-onboarding-timezone]');
@@ -625,10 +636,10 @@ function initAdminOnboarding() {
     !(subdomainInput instanceof HTMLInputElement)
     || !(pageNameInput instanceof HTMLInputElement)
     || !(primaryLanguageSelect instanceof HTMLSelectElement)
+    || !(callingToggleInput instanceof HTMLInputElement)
     || !(timezoneSelect instanceof HTMLSelectElement)
     || !(adminLanguageSelect instanceof HTMLSelectElement)
     || !(websiteLanguageSelect instanceof HTMLSelectElement)
-    || !(backButton instanceof HTMLButtonElement)
     || !(nextButton instanceof HTMLButtonElement)
     || !(finishButton instanceof HTMLButtonElement)
   ) {
@@ -667,7 +678,7 @@ function initAdminOnboarding() {
   const productTypeLabel = (value) => {
     const labels = {
       physical: 'Physical',
-      digital: 'Digital',
+      subscription: 'Subscription',
       downloadable: 'Downloadable',
     };
     return labels[normalizeProductType(value)] || 'Physical';
@@ -730,6 +741,9 @@ function initAdminOnboarding() {
         primaryLanguageOptions.map((option) => option.value),
         primaryLanguageOptions[0]?.value || 'english'
       ),
+      isCalling: normalizeCallingEnabled(
+        hasOwn(raw, 'isCalling') ? raw.isCalling : initialDraft.isCalling
+      ),
       callScope: normalizeCallScope(raw.callScope || initialDraft.callScope || 'cod'),
       timezone: normalizeSelectValue(raw.timezone || initialDraft.timezone, timezoneOptions, timezoneOptions[0] || 'Asia/Dhaka'),
       adminLanguage: normalizeSelectValue(raw.adminLanguage || initialDraft.adminLanguage, adminLanguageOptions, adminLanguageOptions[0] || 'English'),
@@ -747,7 +761,9 @@ function initAdminOnboarding() {
   };
   const setSubmittingState = (value) => {
     submitting = value;
-    backButton.disabled = value || currentStep === 0;
+    if (backButton instanceof HTMLButtonElement) {
+      backButton.disabled = value || currentStep === 0;
+    }
     nextButton.disabled = value;
     finishButton.disabled = value;
   };
@@ -774,6 +790,7 @@ function initAdminOnboarding() {
       return {
         type: 'call_order',
         data: {
+          is_calling: Boolean(state.isCalling),
           recording_page_name: text(state.pageName),
           recording_language: text(state.primaryLanguage).toLowerCase(),
           calling_scope: normalizeCallScope(state.callScope),
@@ -809,6 +826,9 @@ function initAdminOnboarding() {
     }
 
     if (typeName === 'call_order') {
+      if (hasOwn(nextData, 'is_calling')) {
+        state.isCalling = normalizeCallingEnabled(nextData.is_calling);
+      }
       if (text(nextData.recording_page_name)) {
         state.pageName = text(nextData.recording_page_name);
       }
@@ -886,12 +906,19 @@ function initAdminOnboarding() {
       }
     });
 
+    callingToggleInput.checked = Boolean(state.isCalling);
     subdomainInput.value = state.subdomain;
     pageNameInput.value = state.pageName;
     primaryLanguageSelect.value = state.primaryLanguage;
     timezoneSelect.value = state.timezone;
     adminLanguageSelect.value = state.adminLanguage;
     websiteLanguageSelect.value = state.websiteLanguage;
+  };
+  const renderCallingToggle = () => {
+    callingToggleInput.checked = Boolean(state.isCalling);
+    if (callingToggleStateNode instanceof HTMLElement) {
+      callingToggleStateNode.textContent = state.isCalling ? 'On' : 'Off';
+    }
   };
   const renderChoiceStates = () => {
     productCards.forEach((card) => {
@@ -926,7 +953,7 @@ function initAdminOnboarding() {
     }
 
     if (summaryNodes.orderCall instanceof HTMLElement) {
-      summaryNodes.orderCall.textContent = `${languageLabel(state.primaryLanguage)} / ${callScopeLabel(state.callScope)}`;
+      summaryNodes.orderCall.textContent = `${state.isCalling ? 'On' : 'Off'} / ${languageLabel(state.primaryLanguage)} / ${callScopeLabel(state.callScope)}`;
     }
 
     if (summaryNodes.locale instanceof HTMLElement) {
@@ -1087,11 +1114,14 @@ function initAdminOnboarding() {
       progressFillNode.style.width = `${((currentStep + 1) / totalSteps) * 100}%`;
     }
 
-    backButton.disabled = currentStep === 0;
+    if (backButton instanceof HTMLButtonElement) {
+      backButton.disabled = currentStep === 0;
+    }
     nextButton.classList.toggle('hidden', currentStep === totalSteps - 1);
     finishButton.classList.toggle('hidden', currentStep !== totalSteps - 1);
     nextButton.textContent = nextButtonLabels[currentStep] || 'Continue';
 
+    renderCallingToggle();
     renderChoiceStates();
     renderSummary();
     persistState();
@@ -1129,6 +1159,23 @@ function initAdminOnboarding() {
       writeSessionValue(hiddenKey, '1');
     }
     persistState();
+
+    if (mode === 'finish') {
+      document.body.classList.remove('admin-onboarding-open');
+      document.body.style.overflow = '';
+
+      if (dashboardUrl) {
+        window.location.assign(dashboardUrl);
+        return;
+      }
+
+      shell.remove();
+      if (typeof window.showSuccess === 'function') {
+        window.showSuccess(text(successMessage) || 'Setup flow completed.');
+      }
+      return;
+    }
+
     shell.classList.remove('is-visible');
     document.body.classList.remove('admin-onboarding-open');
     document.body.style.overflow = '';
@@ -1136,13 +1183,6 @@ function initAdminOnboarding() {
     window.setTimeout(() => {
       shell.remove();
     }, 220);
-
-    if (mode === 'finish') {
-      if (typeof window.showSuccess === 'function') {
-        window.showSuccess(text(successMessage) || 'Setup flow completed.');
-      }
-      return;
-    }
 
     if (typeof window.showInfo === 'function') {
       window.showInfo('Setup wizard hidden for now.');
@@ -1185,6 +1225,11 @@ function initAdminOnboarding() {
     persistState();
   });
 
+  callingToggleInput.addEventListener('change', () => {
+    state.isCalling = Boolean(callingToggleInput.checked);
+    render();
+  });
+
   callScopeInputs.forEach((input) => {
     if (!(input instanceof HTMLInputElement)) {
       return;
@@ -1214,9 +1259,11 @@ function initAdminOnboarding() {
     persistState();
   });
 
-  backButton.addEventListener('click', () => {
-    goToStep(currentStep - 1);
-  });
+  if (backButton instanceof HTMLButtonElement) {
+    backButton.addEventListener('click', () => {
+      goToStep(currentStep - 1);
+    });
+  }
 
   nextButton.addEventListener('click', async () => {
     if (submitting) {
