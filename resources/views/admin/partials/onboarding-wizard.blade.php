@@ -75,6 +75,7 @@
   data-storage-key="admin_onboarding_draft_v1"
   data-hidden-key="admin_onboarding_completed_v1"
   data-domain-suffix="vendachats.com"
+  data-persist-hidden="{{ ($adminOnboardingStandalone ?? false) ? '0' : '1' }}"
   data-initial-state='@json($initialState)'
 >
   <div class="admin-onboarding-backdrop" aria-hidden="true"></div>

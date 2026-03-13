@@ -589,8 +589,9 @@ function initAdminOnboarding() {
   const storageKey = text(shell.dataset.storageKey) || 'admin_onboarding_draft_v1';
   const hiddenKey = text(shell.dataset.hiddenKey) || 'admin_onboarding_completed_v1';
   const domainSuffix = text(shell.dataset.domainSuffix) || 'vendachats.com';
+  const persistHiddenState = shell.dataset.persistHidden !== '0';
 
-  if (readSessionValue(hiddenKey) === '1') {
+  if (persistHiddenState && readSessionValue(hiddenKey) === '1') {
     shell.remove();
     return;
   }
@@ -987,7 +988,9 @@ function initAdminOnboarding() {
     focusCurrentStep();
   };
   const hideWizard = (mode) => {
-    writeSessionValue(hiddenKey, '1');
+    if (persistHiddenState) {
+      writeSessionValue(hiddenKey, '1');
+    }
     persistState();
     shell.classList.remove('is-visible');
     document.body.classList.remove('admin-onboarding-open');

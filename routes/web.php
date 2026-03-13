@@ -179,3 +179,8 @@ Route::prefix('admin')->name('admin.')->middleware('admin.auth')->group(function
     Route::get('/shop-settings/offers', [ShopSettingsController::class, 'offers'])->name('shop-settings.offers');
     Route::get('/shop-settings/content', [ShopSettingsController::class, 'content'])->name('shop-settings.content');
 });
+
+// onboarding
+Route::prefix('admin')->name('admin.')->middleware('admin.without_onboarding')->group(function () {
+    Route::get('/onboarding', [DashboardController::class, 'onboarding'])->name('onboarding');
+});

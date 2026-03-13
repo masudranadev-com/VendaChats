@@ -6,8 +6,13 @@ use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 
-class AdminAuthenticate
+class AdminOnboarding
 {
+    /**
+     * Handle an incoming request.
+     *
+     * @param  \Closure(\Illuminate\Http\Request): (\Symfony\Component\HttpFoundation\Response)  $next
+     */
     public function handle(Request $request, Closure $next): Response
     {
         $token = $request->session()->get('auth.refresh_token');
@@ -25,11 +30,10 @@ class AdminAuthenticate
                 ->withErrors(['login' => 'Your session has expired. Please log in again.']);
         }
 
-        // now check on boarding /admin/onboarding
-        if (isset($request->session()->get("admin.global_config")["onboarding"]) && $request->session()->get("admin.global_config")["onboarding"] != "completed") {
-            return redirect()->route('admin.onboarding');
+        // onboarding
+        if (isset($request->session()->get("admin.global_config")["onboarding"]) && $request->session()->get("admin.global_config")["onboarding"] == "completed") {
+            return redirect()->route('admin.dashboard');
         }
-
 
         return $next($request);
     }

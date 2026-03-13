@@ -26,6 +26,11 @@ class DashboardController extends Controller
         ]);
     }
 
+    public function onboarding(Request $request)
+    {
+        return view('admin.onboarding.index');
+    }
+
     public function analytics()
     {
         return $this->page('Analytics', 'Track revenue, conversion, and campaign performance trends.');
