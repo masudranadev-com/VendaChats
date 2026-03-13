@@ -115,7 +115,6 @@
           <span class="admin-onboarding-step-chip-index">01</span>
           <span class="admin-onboarding-step-chip-copy">
             <strong>Product type</strong>
-            <small>Choose how your catalog works.</small>
           </span>
           <span class="admin-onboarding-step-chip-state">Current</span>
         </article>
@@ -124,7 +123,6 @@
           <span class="admin-onboarding-step-chip-index">02</span>
           <span class="admin-onboarding-step-chip-copy">
             <strong>Subdomain</strong>
-            <small>Reserve your storefront username.</small>
           </span>
           <span class="admin-onboarding-step-chip-state">Locked</span>
         </article>
@@ -133,7 +131,6 @@
           <span class="admin-onboarding-step-chip-index">03</span>
           <span class="admin-onboarding-step-chip-copy">
             <strong>Order call</strong>
-            <small>Choose caller language and buyer scope.</small>
           </span>
           <span class="admin-onboarding-step-chip-state">Locked</span>
         </article>
@@ -142,37 +139,9 @@
           <span class="admin-onboarding-step-chip-index">04</span>
           <span class="admin-onboarding-step-chip-copy">
             <strong>Locale</strong>
-            <small>Finish timezone and language defaults.</small>
           </span>
           <span class="admin-onboarding-step-chip-state">Locked</span>
         </article>
-      </div>
-
-      <div class="admin-onboarding-overview-grid">
-        <div class="admin-onboarding-preview-card">
-          <span class="admin-onboarding-preview-kicker">Live preview</span>
-          <strong class="admin-onboarding-preview-domain" data-admin-onboarding-summary="domain">
-            {{ $defaultSubdomain }}.vendachats.com
-          </strong>
-          <p>Your storefront URL updates instantly while you set everything up. Final domain availability can be checked later when save APIs are connected.</p>
-        </div>
-
-        <div class="admin-onboarding-summary-list" aria-label="Current onboarding summary">
-          <article class="admin-onboarding-summary-item">
-            <span>Product type</span>
-            <strong data-admin-onboarding-summary="productType">Physical</strong>
-          </article>
-
-          <article class="admin-onboarding-summary-item">
-            <span>Order call</span>
-            <strong data-admin-onboarding-summary="orderCall">English / COD buyers</strong>
-          </article>
-
-          <article class="admin-onboarding-summary-item">
-            <span>Locale</span>
-            <strong data-admin-onboarding-summary="locale">Asia/Dhaka / English</strong>
-          </article>
-        </div>
       </div>
     </div>
 

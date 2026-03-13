@@ -13355,7 +13355,7 @@ body.admin-onboarding-open {
 .admin-onboarding-title {
   margin-top: 8px;
   font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: clamp(30px, 4vw, 44px);
+  font-size: clamp(18px, 4vw, 25px);
   line-height: 1.08;
 }
 
@@ -13363,7 +13363,7 @@ body.admin-onboarding-open {
   margin-top: 10px;
   max-width: 54ch;
   color: var(--text-secondary);
-  font-size: 15px;
+  font-size: 12px;
 }
 
 .admin-onboarding-topbar-actions {
