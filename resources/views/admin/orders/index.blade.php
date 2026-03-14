@@ -98,6 +98,7 @@
         <label class="form-label">Status</label>
         <select class="form-select" data-orders-status>
           <option value="all">All Status</option>
+          <option value="waiting_for_payment">Waiting for Payment</option>
           <option value="waiting_for_call">Waiting for Call</option>
           <option value="waiting_for_confirmation">Waiting for Confirmation</option>
           <option value="ready_to_dispatch">Ready to Dispatch</option>

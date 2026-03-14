@@ -369,6 +369,7 @@ function initSidebar() {
   const sidebar = document.querySelector('.sidebar');
   const menuToggle = document.getElementById('menuToggle');
   const mobileOverlay = document.getElementById('mobileOverlay');
+  const navAccordions = Array.from(document.querySelectorAll('[data-nav-accordion]'));
 
   // Toggle sidebar collapse (desktop)
   menuToggle?.addEventListener('click', () => {
@@ -390,6 +391,30 @@ function initSidebar() {
   if (localStorage.getItem('sidebar-collapsed') === 'true') {
     sidebar?.classList.add('collapsed');
   }
+
+  navAccordions.forEach((accordion) => {
+    if (!(accordion instanceof HTMLDetailsElement)) {
+      return;
+    }
+
+    const summary = accordion.querySelector('summary');
+
+    if (!(summary instanceof HTMLElement)) {
+      return;
+    }
+
+    if (window.innerWidth > 1024 && sidebar?.classList.contains('collapsed') && accordion.open) {
+      sidebar.classList.remove('collapsed');
+      localStorage.setItem('sidebar-collapsed', 'false');
+    }
+
+    summary.addEventListener('click', () => {
+      if (window.innerWidth > 1024 && sidebar?.classList.contains('collapsed')) {
+        sidebar.classList.remove('collapsed');
+        localStorage.setItem('sidebar-collapsed', 'false');
+      }
+    });
+  });
 }
 
 function initSupportHelpFab() {
@@ -1898,6 +1923,7 @@ function initOrdersCatalogPage() {
   };
   const progressOf = (status) => {
     const normalized = text(status).toLowerCase().replace(/[\s-]+/g, '_');
+    if (normalized === 'waiting_for_payment' || normalized === 'payment_review') return 16;
     if (normalized === 'waiting_for_call') return 18;
     if (normalized === 'waiting_for_confirmation') return 34;
     if (normalized === 'ready_to_dispatch') return 62;
@@ -2036,6 +2062,9 @@ function initOrdersCatalogPage() {
     if (normalized === 'success') return {label: 'Success', css: 'badge-success'};
     if (normalized === 'in_transit') return {label: 'In Transit', css: 'badge-primary'};
     if (normalized === 'ready_to_dispatch') return {label: 'Ready to Dispatch', css: 'badge-info'};
+    if (normalized === 'waiting_for_payment' || normalized === 'payment_review') {
+      return {label: 'Waiting For Payment', css: 'badge-warning'};
+    }
     if (normalized === 'waiting_for_call' || normalized === 'waiting_for_confirmation') {
       return {label: titleCase(normalized), css: 'badge-warning'};
     }
@@ -2080,14 +2109,15 @@ function initOrdersCatalogPage() {
       ? `<img src="${escapeHtml(image)}" class="users-avatar" alt="${escapeHtml(fullName)}" loading="lazy">`
       : `<span class="orders-customer-avatar">${escapeHtml(fullName.charAt(0).toUpperCase() || 'U')}</span>`;
 
+    const isWaitingForPayment = normalizedStatus === 'waiting_for_payment' || normalizedStatus === 'payment_review';
     const isWaitingForCall = normalizedStatus === 'waiting_for_call';
     const isWaitingForConfirmation = normalizedStatus === 'waiting_for_confirmation';
     const isReadyToDispatch = normalizedStatus === 'ready_to_dispatch';
     const isCancelOnCalled = normalizedStatus === 'cancel_on_called';
     const isCancelOnConfirmation = normalizedStatus === 'cancel_on_confirmation';
-    const shouldShowInvoice = !isWaitingForCall && !isWaitingForConfirmation && !isCancelOnCalled && !isCancelOnConfirmation;
+    const shouldShowInvoice = !isWaitingForPayment && !isWaitingForCall && !isWaitingForConfirmation && !isCancelOnCalled && !isCancelOnConfirmation;
     const shouldShowCancelControl = isWaitingForCall || isWaitingForConfirmation || isReadyToDispatch;
-    const shouldShowConfirmControl = isWaitingForCall || isWaitingForConfirmation;
+    const shouldShowConfirmControl = isWaitingForPayment || isWaitingForCall || isWaitingForConfirmation;
 
     const actions = [
       actionMenuItem(orderId, 'details', 'Details', 'info'),
@@ -2350,6 +2380,7 @@ function initOrdersCatalogPage() {
     const normalizedStatus = normalizeStatus(currentStatus);
 
     if (normalizedAction === 'confirm') {
+      if (normalizedStatus === 'waiting_for_payment' || normalizedStatus === 'payment_review') return 'success';
       if (normalizedStatus === 'waiting_for_call') return 'waiting_for_confirmation';
       if (normalizedStatus === 'waiting_for_confirmation') return 'ready_to_dispatch';
       if (normalizedStatus === 'ready_to_dispatch') return 'in_transit';
@@ -2447,11 +2478,19 @@ function initOrdersCatalogPage() {
       actionModalConfirmBtn.textContent = 'Cancelled';
       actionModalConfirmBtn.classList.add('btn-danger');
     } else if (normalizedAction === 'confirm') {
-      if (actionModalTitle) actionModalTitle.textContent = 'Confirm Order';
-      if (actionModalMessage) {
-        actionModalMessage.textContent = 'Do you want to confirm this order now?';
+      if (currentStatus === 'waiting_for_payment' || currentStatus === 'payment_review') {
+        if (actionModalTitle) actionModalTitle.textContent = 'Confirm Payment';
+        if (actionModalMessage) {
+          actionModalMessage.textContent = 'Do you want to confirm this payment now?';
+        }
+        actionModalConfirmBtn.textContent = 'Confirm Payment';
+      } else {
+        if (actionModalTitle) actionModalTitle.textContent = 'Confirm Order';
+        if (actionModalMessage) {
+          actionModalMessage.textContent = 'Do you want to confirm this order now?';
+        }
+        actionModalConfirmBtn.textContent = 'Confirm';
       }
-      actionModalConfirmBtn.textContent = 'Confirm';
       actionModalConfirmBtn.classList.add('btn-success');
     } else {
       actionModalConfirmBtn.hidden = true;
@@ -2788,6 +2827,8 @@ function initOrderDetailsPage() {
     'ready_to_dispatch',
   ]);
   const confirmOrderActionStatuses = new Set([
+    'waiting_for_payment',
+    'payment_review',
     'waiting_for_call',
     'waiting_for_confirmation',
   ]);
@@ -2806,6 +2847,9 @@ function initOrderDetailsPage() {
     if (normalized === 'success') return {label: 'Success', css: 'badge-success'};
     if (normalized === 'in_transit') return {label: 'In Transit', css: 'badge-primary'};
     if (normalized === 'ready_to_dispatch') return {label: 'Ready to Dispatch', css: 'badge-info'};
+    if (normalized === 'waiting_for_payment' || normalized === 'payment_review') {
+      return {label: 'Waiting For Payment', css: 'badge-warning'};
+    }
     if (normalized === 'waiting_for_call' || normalized === 'waiting_for_confirmation') {
       return {label: titleCase(normalized), css: 'badge-warning'};
     }
@@ -2852,6 +2896,7 @@ function initOrderDetailsPage() {
   };
   const transitionStatusForConfirm = (statusValue) => {
     const normalized = normalizeStatus(statusValue);
+    if (normalized === 'waiting_for_payment' || normalized === 'payment_review') return 'success';
     if (normalized === 'waiting_for_call') return 'waiting_for_confirmation';
     if (normalized === 'waiting_for_confirmation') return 'ready_to_dispatch';
     if (normalized === 'ready_to_dispatch') return 'in_transit';
@@ -2859,9 +2904,16 @@ function initOrderDetailsPage() {
     return '';
   };
   const shouldGenerateInvoiceOnConfirm = (statusValue) => normalizeStatus(statusValue) === 'waiting_for_confirmation';
-  const confirmButtonLabelForStatus = (statusValue) => shouldGenerateInvoiceOnConfirm(statusValue)
-    ? 'Confirm + Invoice'
-    : 'Confirm';
+  const confirmButtonLabelForStatus = (statusValue) => {
+    const normalized = normalizeStatus(statusValue);
+    if (normalized === 'waiting_for_payment' || normalized === 'payment_review') {
+      return 'Confirm Payment';
+    }
+
+    return shouldGenerateInvoiceOnConfirm(statusValue)
+      ? 'Confirm + Invoice'
+      : 'Confirm';
+  };
   const syncConfirmButtonLabel = (statusValue) => {
     if (!(confirmSubmitButton instanceof HTMLButtonElement)) return;
 
@@ -3345,7 +3397,7 @@ function initOrderDetailsPage() {
     confirmActionForm.addEventListener('submit', async (event) => {
       event.preventDefault();
 
-      if (!orderActionsAllowed) {
+      if (!confirmOrderActionStatuses.has(currentOrderStatus)) {
         return;
       }
 

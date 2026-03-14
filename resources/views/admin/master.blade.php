@@ -42,6 +42,14 @@
     'admin.shop-settings.content' => 'settings',
     'admin.packages' => 'packages',
   ];
+  $shopSettingsRoutes = [
+    'admin.shop-settings' => 'General Settings',
+    'admin.shop-settings.domain' => 'Domain',
+    'admin.shop-settings.theme' => 'Theme',
+    'admin.shop-settings.offers' => 'Offers',
+    'admin.shop-settings.content' => 'Website Content',
+  ];
+  $isShopSettingsRoute = array_key_exists($routeName, $shopSettingsRoutes);
   $currentPage = $routeToPage[$routeName] ?? 'dashboard';
   $navIcon = static function (string $name): \Illuminate\Support\HtmlString {
     $svg = match ($name) {
@@ -149,10 +157,24 @@
             <span class="nav-label">Courier Manager</span>
           </a>
 
-          <a href="{{ route('admin.shop-settings') }}" class="nav-item {{ $currentPage === 'settings' ? 'active' : '' }}">
-            <span class="nav-icon" aria-hidden="true">{{ $navIcon('settings') }}</span>
-            <span class="nav-label">Shop Settings</span>
-          </a>
+          <details class="nav-accordion {{ $isShopSettingsRoute ? 'is-current' : '' }}" data-nav-accordion {{ $isShopSettingsRoute ? 'open' : '' }}>
+            <summary class="nav-item nav-item-parent {{ $currentPage === 'settings' ? 'active' : '' }}">
+              <span class="nav-icon" aria-hidden="true">{{ $navIcon('settings') }}</span>
+              <span class="nav-label">Shop Settings</span>
+              <span class="nav-caret" aria-hidden="true">
+                <svg viewBox="0 0 20 20">
+                  <path d="M5 7.5L10 12.5L15 7.5"></path>
+                </svg>
+              </span>
+            </summary>
+            <div class="nav-submenu" aria-label="Shop settings navigation">
+              @foreach ($shopSettingsRoutes as $shopSettingsRoute => $shopSettingsLabel)
+                <a href="{{ route($shopSettingsRoute) }}" class="nav-subitem {{ $routeName === $shopSettingsRoute ? 'active' : '' }}">
+                  {{ $shopSettingsLabel }}
+                </a>
+              @endforeach
+            </div>
+          </details>
           <a href="{{ route('admin.packages') }}" class="nav-item {{ $currentPage === 'packages' ? 'active' : '' }}">
             <span class="nav-icon" aria-hidden="true">{{ $navIcon('packages') }}</span>
             <span class="nav-label">Packages</span>

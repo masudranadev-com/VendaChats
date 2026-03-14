@@ -22,8 +22,6 @@
     </div>
   </div>
 
-  @include('admin.shop-settings.partials.tab-row')
-
   <div
     class="settings-layout settings-layout-single settings-theme-layout"
     data-theme-manager

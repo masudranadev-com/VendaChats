@@ -259,6 +259,99 @@ ul, ol { list-style: none; }
   box-shadow: 0 4px 12px rgba(19,82,220,0.25);
 }
 
+.nav-accordion {
+  display: block;
+}
+
+.nav-accordion summary {
+  list-style: none;
+}
+
+.nav-accordion summary::-webkit-details-marker {
+  display: none;
+}
+
+.nav-item-parent {
+  width: 100%;
+  border: 0;
+  background: transparent;
+  text-align: left;
+  font: inherit;
+  cursor: pointer;
+  margin-bottom: 0;
+}
+
+.nav-item-parent:not(.active):hover {
+  background: transparent;
+  color: var(--text-secondary);
+}
+
+.nav-accordion[open] .nav-item-parent:not(.active) {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.nav-caret {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  transition: transform var(--transition);
+}
+
+.nav-caret svg {
+  width: 16px;
+  height: 16px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.nav-accordion[open] .nav-caret {
+  transform: rotate(180deg);
+}
+
+.nav-submenu {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 2px 0 10px 22px;
+  padding: 4px 0 4px 14px;
+  border-left: 1px solid rgba(71,85,105,0.18);
+}
+
+.nav-accordion.is-current .nav-submenu {
+  border-left-color: rgba(19,82,220,0.32);
+}
+
+.nav-accordion:not([open]) .nav-submenu {
+  display: none;
+}
+
+.nav-subitem {
+  display: block;
+  padding: 8px 12px;
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 600;
+  transition: all var(--transition);
+}
+
+.nav-subitem:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.nav-subitem.active {
+  background: rgba(19,82,220,0.12);
+  color: var(--brand-primary);
+}
+
 .nav-icon {
   display: inline-flex;
   align-items: center;
@@ -306,6 +399,14 @@ ul, ol { list-style: none; }
   top: 6px;
   right: 8px;
   transform: scale(0.8);
+}
+
+.sidebar.collapsed .nav-accordion .nav-submenu {
+  display: none;
+}
+
+.sidebar.collapsed .nav-caret {
+  opacity: 0;
 }
 
 /* ══════════════════════════════════════════

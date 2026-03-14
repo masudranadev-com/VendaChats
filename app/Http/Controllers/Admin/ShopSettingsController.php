@@ -5,14 +5,13 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
-use Illuminate\Http\RedirectResponse;
 use Illuminate\View\View;
 
 class ShopSettingsController extends Controller
 {
-    public function index(): RedirectResponse
+    public function index(Request $request): View
     {
-        return redirect()->route('admin.shop-settings.domain');
+        return view('admin.shop-settings.index', $this->generalData($request));
     }
 
     public function domain(Request $request): View
@@ -35,27 +34,15 @@ class ShopSettingsController extends Controller
         return view('admin.shop-settings.content', $this->contentData($request));
     }
 
-    private function shell(Request $request, string $activeTab, string $heading, string $sectionSubtitle, array $quickStats): array
+    private function shell(Request $request, string $heading, string $sectionSubtitle, array $quickStats): array
     {
         return [
             'title' => 'Shop Settings',
             'subtitle' => 'Separate control centers for domain, theme, offers, and content operations.',
-            'activeTab' => $activeTab,
             'sectionHeading' => $heading,
             'sectionSubtitle' => $sectionSubtitle,
-            'shopTabs' => $this->tabs(),
             'quickStats' => $quickStats,
             'activityLog' => $this->paginatedActivityLog($request),
-        ];
-    }
-
-    private function tabs(): array
-    {
-        return [
-            ['key' => 'domain', 'label' => 'Domain', 'route' => 'admin.shop-settings.domain'],
-            ['key' => 'theme', 'label' => 'Theme', 'route' => 'admin.shop-settings.theme'],
-            ['key' => 'offers', 'label' => 'Offers', 'route' => 'admin.shop-settings.offers'],
-            ['key' => 'content', 'label' => 'Website Content', 'route' => 'admin.shop-settings.content'],
         ];
     }
 
@@ -93,6 +80,97 @@ class ShopSettingsController extends Controller
         ))->appends($request->except($pageName));
     }
 
+    private function generalData(Request $request): array
+    {
+        $config = (array) $request->session()->get('admin.global_config', []);
+        $storeName = trim((string) ($config['website_name'] ?? 'A Metafy')) ?: 'A Metafy';
+        $storeLogo = trim((string) ($config['website_logo'] ?? 'A')) ?: 'A';
+        $storefrontUsername = trim((string) ($config['subdomain'] ?? 'yourbrand')) ?: 'yourbrand';
+        $storefrontUrl = $storefrontUsername.'.ametafy.shop';
+        $pageName = trim((string) ($config['page_name'] ?? $storeName)) ?: $storeName;
+        $timezone = trim((string) ($config['timezone'] ?? 'Asia/Dhaka')) ?: 'Asia/Dhaka';
+        $adminLanguage = $this->humanizeValue((string) ($config['admin_panel_language'] ?? 'english'), 'English');
+        $websiteLanguage = $this->humanizeValue((string) ($config['website_language'] ?? $config['primary_language'] ?? 'english'), 'English');
+        $primaryLanguage = $this->humanizeValue((string) ($config['primary_language'] ?? $config['website_language'] ?? 'english'), 'English');
+        $supportWhatsappNumber = trim((string) ($config['support_whatsapp_number'] ?? '+880 1700-000000')) ?: '+880 1700-000000';
+
+        return array_merge($this->shell(
+            request: $request,
+            heading: 'Storefront Identity & Defaults',
+            sectionSubtitle: 'Keep the storefront name, default language, support number, and launch basics aligned before customers visit the site.',
+            quickStats: [
+                ['label' => 'Storefront Username', 'value' => $storefrontUsername, 'note' => $storefrontUrl, 'tone' => 'primary'],
+                ['label' => 'Display Name', 'value' => $pageName, 'note' => 'Customer-facing store label', 'tone' => 'success'],
+                ['label' => 'Timezone', 'value' => $timezone, 'note' => 'Used in admin and storefront timestamps', 'tone' => 'info'],
+                ['label' => 'Support Channel', 'value' => 'WhatsApp', 'note' => $supportWhatsappNumber, 'tone' => 'warning'],
+            ]
+        ), [
+            'title' => 'General Settings',
+            'subtitle' => 'Manage the default storefront identity, language, and support information used across shop settings.',
+            'storeProfile' => [
+                'name' => $storeName,
+                'logo' => $storeLogo,
+                'page_name' => $pageName,
+                'storefront_username' => $storefrontUsername,
+                'storefront_url' => $storefrontUrl,
+            ],
+            'storeDefaults' => [
+                'timezone' => $timezone,
+                'admin_language' => $adminLanguage,
+                'website_language' => $websiteLanguage,
+                'primary_language' => $primaryLanguage,
+                'support_whatsapp_number' => $supportWhatsappNumber,
+            ],
+            'shopSections' => [
+                [
+                    'label' => 'Domain',
+                    'route' => 'admin.shop-settings.domain',
+                    'status' => 'Ready',
+                    'badge' => 'badge-success',
+                    'note' => 'Connect your subdomain or custom domain and keep DNS status in one place.',
+                ],
+                [
+                    'label' => 'Theme',
+                    'route' => 'admin.shop-settings.theme',
+                    'status' => 'Depends on Domain',
+                    'badge' => 'badge-info',
+                    'note' => 'Theme setup unlocks after one domain is connected and verified.',
+                ],
+                [
+                    'label' => 'Offers',
+                    'route' => 'admin.shop-settings.offers',
+                    'status' => 'Active',
+                    'badge' => 'badge-primary',
+                    'note' => 'Manage coupon codes, discount logic, and active promotions from one screen.',
+                ],
+                [
+                    'label' => 'Website Content',
+                    'route' => 'admin.shop-settings.content',
+                    'status' => 'Live',
+                    'badge' => 'badge-warning',
+                    'note' => 'Edit sliders, policy pages, contact details, and storefront footer content.',
+                ],
+            ],
+            'launchChecklist' => [
+                'Confirm the store name and display name match your public brand.',
+                'Review timezone and language defaults before publishing campaigns.',
+                'Keep the support WhatsApp number updated for customer handoff.',
+                'Use the sidebar submenu to move between domain, theme, offers, and content settings.',
+            ],
+        ]);
+    }
+
+    private function humanizeValue(string $value, string $fallback): string
+    {
+        $normalized = trim(str_replace(['_', '-'], ' ', strtolower($value)));
+
+        if ($normalized === '') {
+            return $fallback;
+        }
+
+        return ucwords($normalized);
+    }
+
     private function domainData(Request $request): array
     {
         $connectedDomains = [
@@ -109,7 +187,6 @@ class ShopSettingsController extends Controller
 
         return array_merge($this->shell(
             request: $request,
-            activeTab: 'domain',
             heading: 'Domain Setup',
             sectionSubtitle: 'Add your A Metafy subdomain quickly, or connect a custom domain if your package supports it.',
             quickStats: [
@@ -184,7 +261,6 @@ class ShopSettingsController extends Controller
 
         return array_merge($this->shell(
             request: $request,
-            activeTab: 'theme',
             heading: 'Theme Setup',
             sectionSubtitle: 'If domain already exists, theme opens directly. If no domain exists, theme setup is blocked.',
             quickStats: [
@@ -292,7 +368,6 @@ class ShopSettingsController extends Controller
     {
         return array_merge($this->shell(
             request: $request,
-            activeTab: 'offers',
             heading: 'Coupon Code Manager',
             sectionSubtitle: 'Create simple coupon codes with flat or percentage discount and manage them from one place.',
             quickStats: [
@@ -370,7 +445,6 @@ class ShopSettingsController extends Controller
     {
         return array_merge($this->shell(
             request: $request,
-            activeTab: 'content',
             heading: 'Website Content Control',
             sectionSubtitle: 'Manage homepage sliders, policy pages, contact details, and important storefront content from one place.',
             quickStats: [

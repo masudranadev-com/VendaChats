@@ -14,8 +14,6 @@
     </div>
   </div>
 
-  @include('admin.shop-settings.partials.tab-row')
-
   <section class="settings-section-intro">
     <h3>{{ $sectionHeading }}</h3>
     <p>{{ $sectionSubtitle }}</p>

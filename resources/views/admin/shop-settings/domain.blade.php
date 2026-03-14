@@ -15,8 +15,6 @@
     </div>
   </div>
 
-  @include('admin.shop-settings.partials.tab-row')
-
   <div class="settings-layout settings-layout-single mt-md">
     <section class="settings-main-column">
       @php
