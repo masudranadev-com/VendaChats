@@ -14,6 +14,7 @@ use App\Http\Controllers\Admin\CoachController;
 use App\Http\Controllers\Admin\CourierController;
 use App\Http\Controllers\Admin\OrderCallController;
 use App\Http\Controllers\Admin\ProfileController;
+use App\Http\Controllers\Admin\AdminWebsiteContentController;
 use App\Http\Controllers\Admin\ShopSettingsController;
 use App\Http\Controllers\Admin\AdminOnboardingController;
 use App\Http\Controllers\User\AccountController;
@@ -178,7 +179,10 @@ Route::prefix('admin')->name('admin.')->middleware('admin.auth')->group(function
     Route::get('/shop-settings/domain', [ShopSettingsController::class, 'domain'])->name('shop-settings.domain');
     Route::get('/shop-settings/theme', [ShopSettingsController::class, 'theme'])->name('shop-settings.theme');
     Route::get('/shop-settings/offers', [ShopSettingsController::class, 'offers'])->name('shop-settings.offers');
-    Route::get('/shop-settings/content', [ShopSettingsController::class, 'content'])->name('shop-settings.content');
+    Route::get('/shop-settings/content', [AdminWebsiteContentController::class, 'slider'])->name('shop-settings.content');
+    Route::get('/shop-settings/content/page-editor', [AdminWebsiteContentController::class, 'pageEditor'])->name('shop-settings.content.page-editor');
+    Route::get('/shop-settings/content/contact', [AdminWebsiteContentController::class, 'contact'])->name('shop-settings.content.contact');
+    Route::get('/shop-settings/content/footer', [AdminWebsiteContentController::class, 'footer'])->name('shop-settings.content.footer');
 });
 
 // onboarding

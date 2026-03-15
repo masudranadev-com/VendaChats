@@ -1865,6 +1865,7 @@ function initOrdersCatalogPage() {
   const sessionToken = String(section.dataset.refreshToken || '').trim();
   const orderViewUrlTemplate = String(section.dataset.orderViewUrlTemplate || '/admin/orders/__ORDER_ID__').trim();
   const orderInvoiceUrlTemplate = String(section.dataset.orderInvoiceUrlTemplate || '/admin/orders/__ORDER_ID__/invoice').trim();
+  const pageProductType = String(section.dataset.productType || '').trim().toLowerCase();
   let storageToken = '';
   try {
     storageToken = String(window.localStorage.getItem('refresh_token') || '').trim();
@@ -1923,7 +1924,9 @@ function initOrdersCatalogPage() {
   };
   const progressOf = (status) => {
     const normalized = text(status).toLowerCase().replace(/[\s-]+/g, '_');
-    if (normalized === 'waiting_for_payment' || normalized === 'payment_review') return 16;
+    if (normalized === 'waiting_for_payment' || normalized === 'payment_review') {
+      return pageProductType === 'physical' ? 50 : 16;
+    }
     if (normalized === 'waiting_for_call') return 18;
     if (normalized === 'waiting_for_confirmation') return 34;
     if (normalized === 'ready_to_dispatch') return 62;

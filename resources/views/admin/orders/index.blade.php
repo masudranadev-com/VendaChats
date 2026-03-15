@@ -80,6 +80,7 @@
     data-refresh-token="{{ $ordersRefreshToken }}"
     data-order-view-url-template="{{ route('admin.orders.view', ['orderId' => '__ORDER_ID__']) }}"
     data-order-invoice-url-template="{{ route('admin.orders.invoice', ['orderId' => '__ORDER_ID__']) }}"
+    data-product-type="{{ $ordersProductType ?? '' }}"
     data-per-page="10"
   >
     <div class="card-header">

@@ -119,4 +119,33 @@ class AdminOnboardingControllerTest extends TestCase
         $response->assertJsonPath('data.is_calling', false);
         $this->assertFalse((bool) session('admin.global_config.is_calling'));
     }
+
+    public function test_completed_onboarding_users_can_still_update_onboarding_data(): void
+    {
+        Http::fake([
+            'http://localhost:8082/api/admin/user/global/onboarding' => Http::response([
+                'data' => [
+                    'product_type' => 'physical',
+                ],
+                'onboarding' => 'completed',
+            ], 200),
+        ]);
+
+        $response = $this
+            ->withSession([
+                'auth.refresh_token' => 'refresh-token',
+                'admin.global_config' => [
+                    'onboarding' => 'completed',
+                ],
+            ])
+            ->postJson(route('admin.onboardingContinue'), [
+                'type' => 'product',
+                'data' => [
+                    'product_type' => 'physical',
+                ],
+            ]);
+
+        $response->assertOk();
+        $response->assertJsonPath('data.product_type', 'physical');
+    }
 }

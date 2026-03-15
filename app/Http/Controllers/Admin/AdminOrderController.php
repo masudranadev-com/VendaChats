@@ -17,6 +17,8 @@ class AdminOrderController extends Controller
             ?? $request->session()->get('refresh_token')
             ?? ''
         );
+        $adminGlobalConfig = (array) $request->session()->get('admin.global_config', []);
+        $productType = strtolower(trim((string) ($adminGlobalConfig['product_type'] ?? '')));
 
         $orders = collect($this->ordersDataset())
             ->map(fn (array $order): array => $this->withManualDiscount($order));
@@ -64,6 +66,7 @@ class AdminOrderController extends Controller
             'subtitle' => 'Control payment checks, dispatch priorities, and delivery health from one clean operational view.',
             'ordersApiBaseUrl' => rtrim((string) config('services.backend.url', 'http://localhost:8082'), '/'),
             'ordersRefreshToken' => $refreshToken,
+            'ordersProductType' => $productType,
             'metrics' => [
                 ['label' => 'Orders Today', 'value' => '142', 'meta' => '+19 vs yesterday'],
                 ['label' => 'Gross Revenue', 'value' => 'BDT 218K', 'meta' => '+11.6% this week'],

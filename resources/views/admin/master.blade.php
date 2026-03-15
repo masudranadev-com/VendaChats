@@ -40,16 +40,20 @@
     'admin.shop-settings.theme' => 'settings',
     'admin.shop-settings.offers' => 'settings',
     'admin.shop-settings.content' => 'settings',
+    'admin.shop-settings.content.page-editor' => 'settings',
+    'admin.shop-settings.content.contact' => 'settings',
+    'admin.shop-settings.content.footer' => 'settings',
     'admin.packages' => 'packages',
   ];
   $shopSettingsRoutes = [
-    'admin.shop-settings' => 'General Settings',
+    'admin.shop-settings' => 'First-time Setup',
     'admin.shop-settings.domain' => 'Domain',
     'admin.shop-settings.theme' => 'Theme',
     'admin.shop-settings.offers' => 'Offers',
     'admin.shop-settings.content' => 'Website Content',
   ];
-  $isShopSettingsRoute = array_key_exists($routeName, $shopSettingsRoutes);
+  $isShopSettingsRoute = array_key_exists($routeName, $shopSettingsRoutes)
+    || str_starts_with((string) $routeName, 'admin.shop-settings.content.');
   $currentPage = $routeToPage[$routeName] ?? 'dashboard';
   $navIcon = static function (string $name): \Illuminate\Support\HtmlString {
     $svg = match ($name) {

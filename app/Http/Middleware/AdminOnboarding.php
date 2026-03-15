@@ -30,6 +30,10 @@ class AdminOnboarding
                 ->withErrors(['login' => 'Your session has expired. Please log in again.']);
         }
 
+        if ($request->routeIs('admin.onboardingContinue')) {
+            return $next($request);
+        }
+
         // onboarding
         if (isset($request->session()->get("admin.global_config")["onboarding"]) && $request->session()->get("admin.global_config")["onboarding"] == "completed") {
             return redirect()->route('admin.dashboard');

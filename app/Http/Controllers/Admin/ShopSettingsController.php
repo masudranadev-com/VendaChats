@@ -83,44 +83,31 @@ class ShopSettingsController extends Controller
     private function generalData(Request $request): array
     {
         $config = (array) $request->session()->get('admin.global_config', []);
-        $storeName = trim((string) ($config['website_name'] ?? 'A Metafy')) ?: 'A Metafy';
-        $storeLogo = trim((string) ($config['website_logo'] ?? 'A')) ?: 'A';
-        $storefrontUsername = trim((string) ($config['subdomain'] ?? 'yourbrand')) ?: 'yourbrand';
-        $storefrontUrl = $storefrontUsername.'.ametafy.shop';
-        $pageName = trim((string) ($config['page_name'] ?? $storeName)) ?: $storeName;
+        $selectedProductType = $this->normalizeProductType((string) ($config['product_type'] ?? 'physical'));
         $timezone = trim((string) ($config['timezone'] ?? 'Asia/Dhaka')) ?: 'Asia/Dhaka';
         $adminLanguage = $this->humanizeValue((string) ($config['admin_panel_language'] ?? 'english'), 'English');
         $websiteLanguage = $this->humanizeValue((string) ($config['website_language'] ?? $config['primary_language'] ?? 'english'), 'English');
-        $primaryLanguage = $this->humanizeValue((string) ($config['primary_language'] ?? $config['website_language'] ?? 'english'), 'English');
-        $supportWhatsappNumber = trim((string) ($config['support_whatsapp_number'] ?? '+880 1700-000000')) ?: '+880 1700-000000';
+        $storefrontUsername = trim((string) ($config['subdomain'] ?? 'yourbrand')) ?: 'yourbrand';
+        $storefrontUrl = $storefrontUsername.'.vendachats.com';
 
         return array_merge($this->shell(
             request: $request,
-            heading: 'Storefront Identity & Defaults',
-            sectionSubtitle: 'Keep the storefront name, default language, support number, and launch basics aligned before customers visit the site.',
-            quickStats: [
-                ['label' => 'Storefront Username', 'value' => $storefrontUsername, 'note' => $storefrontUrl, 'tone' => 'primary'],
-                ['label' => 'Display Name', 'value' => $pageName, 'note' => 'Customer-facing store label', 'tone' => 'success'],
-                ['label' => 'Timezone', 'value' => $timezone, 'note' => 'Used in admin and storefront timestamps', 'tone' => 'info'],
-                ['label' => 'Support Channel', 'value' => 'WhatsApp', 'note' => $supportWhatsappNumber, 'tone' => 'warning'],
-            ]
+            heading: 'First-time setup',
+            sectionSubtitle: 'Change product type and locale at any time without reopening the onboarding wizard.',
+            quickStats: []
         ), [
-            'title' => 'General Settings',
-            'subtitle' => 'Manage the default storefront identity, language, and support information used across shop settings.',
-            'storeProfile' => [
-                'name' => $storeName,
-                'logo' => $storeLogo,
-                'page_name' => $pageName,
-                'storefront_username' => $storefrontUsername,
-                'storefront_url' => $storefrontUrl,
-            ],
-            'storeDefaults' => [
+            'title' => 'Shop Settings',
+            'subtitle' => 'Keep onboarding choices editable after launch so the store can switch product flow or locale later.',
+            'productTypeChoices' => $this->productTypeChoices(),
+            'selectedProductType' => $selectedProductType,
+            'selectedProductTypeLabel' => $this->productTypeLabel($selectedProductType),
+            'localeOptions' => $this->localeOptions(),
+            'selectedLocale' => [
                 'timezone' => $timezone,
                 'admin_language' => $adminLanguage,
                 'website_language' => $websiteLanguage,
-                'primary_language' => $primaryLanguage,
-                'support_whatsapp_number' => $supportWhatsappNumber,
             ],
+            'storefrontUrl' => $storefrontUrl,
             'shopSections' => [
                 [
                     'label' => 'Domain',
@@ -151,12 +138,6 @@ class ShopSettingsController extends Controller
                     'note' => 'Edit sliders, policy pages, contact details, and storefront footer content.',
                 ],
             ],
-            'launchChecklist' => [
-                'Confirm the store name and display name match your public brand.',
-                'Review timezone and language defaults before publishing campaigns.',
-                'Keep the support WhatsApp number updated for customer handoff.',
-                'Use the sidebar submenu to move between domain, theme, offers, and content settings.',
-            ],
         ]);
     }
 
@@ -169,6 +150,79 @@ class ShopSettingsController extends Controller
         }
 
         return ucwords($normalized);
+    }
+
+    private function normalizeProductType(string $value): string
+    {
+        return match (strtolower(trim($value))) {
+            'digital', 'subscription' => 'subscription',
+            'downloadable' => 'downloadable',
+            default => 'physical',
+        };
+    }
+
+    private function productTypeLabel(string $value): string
+    {
+        return match ($this->normalizeProductType($value)) {
+            'subscription' => 'Subscription',
+            'downloadable' => 'Downloadable',
+            default => 'Physical',
+        };
+    }
+
+    private function productTypeChoices(): array
+    {
+        return [
+            [
+                'value' => 'physical',
+                'badge' => 'Recommended',
+                'label' => 'Physical',
+                'description' => 'For shipped products with inventory, courier, and confirmation flow.',
+                'note' => 'Best for retail, fashion, gadgets, and cash-on-delivery stores.',
+            ],
+            [
+                'value' => 'subscription',
+                'badge' => 'Access based',
+                'label' => 'Subscription',
+                'description' => 'For memberships, services, licenses, or recurring access-based offers.',
+                'note' => 'No shipping flow. Great for shared accounts, coaching, subscriptions, and tools.',
+            ],
+            [
+                'value' => 'downloadable',
+                'badge' => 'File delivery',
+                'label' => 'Downloadable',
+                'description' => 'For assets, templates, ebooks, and files delivered after purchase.',
+                'note' => 'Optimized for digital goods with quick post-purchase fulfillment.',
+            ],
+        ];
+    }
+
+    private function localeOptions(): array
+    {
+        return [
+            'timezones' => [
+                'Asia/Dhaka' => 'Asia/Dhaka (GMT +6)',
+                'Asia/Kolkata' => 'Asia/Kolkata (GMT +5:30)',
+                'Asia/Dubai' => 'Asia/Dubai (GMT +4)',
+                'UTC' => 'UTC (GMT +0)',
+                'Europe/London' => 'Europe/London (GMT +0)',
+                'America/New_York' => 'America/New_York (GMT -5)',
+                'America/Chicago' => 'America/Chicago (GMT -6)',
+                'America/Los_Angeles' => 'America/Los_Angeles (GMT -8)',
+            ],
+            'admin_languages' => [
+                'English' => 'English',
+                'Bangla' => 'Bangla',
+                'Hindi' => 'Hindi',
+                'Arabic' => 'Arabic',
+            ],
+            'website_languages' => [
+                'English' => 'English',
+                'Bangla' => 'Bangla',
+                'Hindi' => 'Hindi',
+                'Arabic' => 'Arabic',
+            ],
+        ];
     }
 
     private function domainData(Request $request): array
@@ -378,43 +432,86 @@ class ShopSettingsController extends Controller
             ]
         ), [
             'couponDefaults' => [
+                'id' => null,
                 'code' => 'WELCOME10',
                 'discount_type' => 'percentage',
-                'discount_value' => 10,
+                'flat_value' => 120,
+                'percentage_value' => 10,
                 'minimum_order' => 500,
                 'max_discount' => 250,
+                'usage_count' => 0,
                 'usage_limit' => 200,
                 'per_user_limit' => 1,
                 'start_at' => '2026-02-23T00:00',
                 'end_at' => '2026-03-31T23:59',
-                'applies_to' => 'All Products',
+                'applies_to' => 'all_products',
+                'specific_product_ids' => [],
                 'status' => 'Active',
             ],
             'coupons' => [
                 [
+                    'id' => 'coupon_welcome10',
                     'code' => 'WELCOME10',
-                    'discount_type' => 'Percentage',
-                    'discount_value' => '10%',
-                    'minimum_order' => 'BDT 500',
+                    'discount_type' => 'percentage',
+                    'discount_type_label' => 'Percentage',
+                    'flat_value' => 120,
+                    'percentage_value' => 10,
+                    'discount_value_label' => '10%',
+                    'minimum_order' => 500,
+                    'minimum_order_label' => 'BDT 500',
+                    'max_discount' => 250,
+                    'usage_count' => 134,
+                    'usage_limit' => 200,
                     'usage' => '134 / 200',
+                    'per_user_limit' => 1,
+                    'start_at' => '2026-02-23T00:00',
+                    'end_at' => '2026-03-31T23:59',
+                    'applies_to' => 'all_products',
+                    'specific_product_ids' => [],
                     'status' => 'Active',
                     'validity' => '23 Feb 2026 - 31 Mar 2026',
                 ],
                 [
+                    'id' => 'coupon_flat120',
                     'code' => 'FLAT120',
-                    'discount_type' => 'Flat',
-                    'discount_value' => 'BDT 120',
-                    'minimum_order' => 'BDT 800',
+                    'discount_type' => 'flat',
+                    'discount_type_label' => 'Flat',
+                    'flat_value' => 120,
+                    'percentage_value' => 0,
+                    'discount_value_label' => 'BDT 120',
+                    'minimum_order' => 800,
+                    'minimum_order_label' => 'BDT 800',
+                    'max_discount' => 0,
+                    'usage_count' => 68,
+                    'usage_limit' => 150,
                     'usage' => '68 / 150',
+                    'per_user_limit' => 1,
+                    'start_at' => '2026-02-15T00:00',
+                    'end_at' => '2026-02-28T23:59',
+                    'applies_to' => 'all_products',
+                    'specific_product_ids' => [],
                     'status' => 'Active',
                     'validity' => '15 Feb 2026 - 28 Feb 2026',
                 ],
                 [
+                    'id' => 'coupon_ramadan20',
                     'code' => 'RAMADAN20',
-                    'discount_type' => 'Percentage',
-                    'discount_value' => '20%',
-                    'minimum_order' => 'BDT 1200',
+                    'discount_type' => 'percentage',
+                    'discount_type_label' => 'Percentage',
+                    'flat_value' => 120,
+                    'percentage_value' => 20,
+                    'discount_value_label' => '20%',
+                    'minimum_order' => 1200,
+                    'minimum_order_label' => 'BDT 1200',
+                    'max_discount' => 400,
+                    'usage_count' => 0,
+                    'usage_limit' => 300,
                     'usage' => '0 / 300',
+                    'per_user_limit' => 2,
+                    'start_at' => '2026-03-01T00:00',
+                    'end_at' => '2026-03-20T23:59',
+                    'applies_to' => 'specific_products',
+                    'specific_product_ids' => ['prod_201', 'prod_202'],
                     'status' => 'Scheduled',
                     'validity' => '01 Mar 2026 - 20 Mar 2026',
                 ],
