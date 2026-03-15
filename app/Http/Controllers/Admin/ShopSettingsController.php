@@ -3,12 +3,17 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Support\AdminLocaleOptions;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\View\View;
 
 class ShopSettingsController extends Controller
 {
+    public function __construct(private readonly AdminLocaleOptions $localeOptions)
+    {
+    }
+
     public function index(Request $request): View
     {
         return view('admin.shop-settings.index', $this->generalData($request));
@@ -83,10 +88,20 @@ class ShopSettingsController extends Controller
     private function generalData(Request $request): array
     {
         $config = (array) $request->session()->get('admin.global_config', []);
+        $localeOptions = $this->localeOptions->load($request);
         $selectedProductType = $this->normalizeProductType((string) ($config['product_type'] ?? 'physical'));
-        $timezone = trim((string) ($config['timezone'] ?? 'Asia/Dhaka')) ?: 'Asia/Dhaka';
-        $adminLanguage = $this->humanizeValue((string) ($config['admin_panel_language'] ?? 'english'), 'English');
-        $websiteLanguage = $this->humanizeValue((string) ($config['website_language'] ?? $config['primary_language'] ?? 'english'), 'English');
+        $timezone = $this->localeOptions->normalizeTimezone(
+            (string) ($config['timezone'] ?? 'Asia/Dhaka'),
+            $localeOptions['timezones'] ?? []
+        );
+        $adminLanguage = $this->localeOptions->normalizeLanguage(
+            (string) ($config['admin_panel_language'] ?? $config['admin_language'] ?? $config['language'] ?? 'en'),
+            $localeOptions['admin_languages'] ?? []
+        );
+        $websiteLanguage = $this->localeOptions->normalizeLanguage(
+            (string) ($config['website_language'] ?? $config['primary_language'] ?? $config['language'] ?? 'en'),
+            $localeOptions['website_languages'] ?? []
+        );
         $storefrontUsername = trim((string) ($config['subdomain'] ?? 'yourbrand')) ?: 'yourbrand';
         $storefrontUrl = $storefrontUsername.'.vendachats.com';
 
@@ -98,10 +113,16 @@ class ShopSettingsController extends Controller
         ), [
             'title' => 'Shop Settings',
             'subtitle' => 'Keep onboarding choices editable after launch so the store can switch product flow or locale later.',
+            'productsApiBaseUrl' => rtrim((string) config('services.backend.url', 'http://localhost:8082'), '/'),
+            'productsRefreshToken' => (string) (
+                $request->session()->get('auth.refresh_token')
+                ?? $request->session()->get('refresh_token')
+                ?? ''
+            ),
             'productTypeChoices' => $this->productTypeChoices(),
             'selectedProductType' => $selectedProductType,
             'selectedProductTypeLabel' => $this->productTypeLabel($selectedProductType),
-            'localeOptions' => $this->localeOptions(),
+            'localeOptions' => $localeOptions,
             'selectedLocale' => [
                 'timezone' => $timezone,
                 'admin_language' => $adminLanguage,
@@ -139,17 +160,6 @@ class ShopSettingsController extends Controller
                 ],
             ],
         ]);
-    }
-
-    private function humanizeValue(string $value, string $fallback): string
-    {
-        $normalized = trim(str_replace(['_', '-'], ' ', strtolower($value)));
-
-        if ($normalized === '') {
-            return $fallback;
-        }
-
-        return ucwords($normalized);
     }
 
     private function normalizeProductType(string $value): string
@@ -193,34 +203,6 @@ class ShopSettingsController extends Controller
                 'label' => 'Downloadable',
                 'description' => 'For assets, templates, ebooks, and files delivered after purchase.',
                 'note' => 'Optimized for digital goods with quick post-purchase fulfillment.',
-            ],
-        ];
-    }
-
-    private function localeOptions(): array
-    {
-        return [
-            'timezones' => [
-                'Asia/Dhaka' => 'Asia/Dhaka (GMT +6)',
-                'Asia/Kolkata' => 'Asia/Kolkata (GMT +5:30)',
-                'Asia/Dubai' => 'Asia/Dubai (GMT +4)',
-                'UTC' => 'UTC (GMT +0)',
-                'Europe/London' => 'Europe/London (GMT +0)',
-                'America/New_York' => 'America/New_York (GMT -5)',
-                'America/Chicago' => 'America/Chicago (GMT -6)',
-                'America/Los_Angeles' => 'America/Los_Angeles (GMT -8)',
-            ],
-            'admin_languages' => [
-                'English' => 'English',
-                'Bangla' => 'Bangla',
-                'Hindi' => 'Hindi',
-                'Arabic' => 'Arabic',
-            ],
-            'website_languages' => [
-                'English' => 'English',
-                'Bangla' => 'Bangla',
-                'Hindi' => 'Hindi',
-                'Arabic' => 'Arabic',
             ],
         ];
     }

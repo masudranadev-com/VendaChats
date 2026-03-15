@@ -687,6 +687,24 @@ function initAdminOnboarding() {
     value: text(option.value).toLowerCase(),
     label: text(option.textContent) || titleCase(option.value),
   }));
+  const adminLanguageOptionMap = new Map(
+    Array.from(adminLanguageSelect.options).map((option) => [
+      text(option.value).toLowerCase(),
+      text(option.textContent) || titleCase(option.value),
+    ])
+  );
+  const websiteLanguageOptionMap = new Map(
+    Array.from(websiteLanguageSelect.options).map((option) => [
+      text(option.value).toLowerCase(),
+      text(option.textContent) || titleCase(option.value),
+    ])
+  );
+  const timezoneOptionMap = new Map(
+    Array.from(timezoneSelect.options).map((option) => [
+      text(option.value),
+      text(option.textContent) || text(option.value),
+    ])
+  );
   const timezoneOptions = Array.from(timezoneSelect.options).map((option) => text(option.value));
   const adminLanguageOptions = Array.from(adminLanguageSelect.options).map((option) => text(option.value));
   const websiteLanguageOptions = Array.from(websiteLanguageSelect.options).map((option) => text(option.value));
@@ -700,6 +718,9 @@ function initAdminOnboarding() {
     const matched = primaryLanguageOptions.find((option) => option.value === target);
     return matched?.label || titleCase(target || 'english');
   };
+  const adminLanguageLabel = (value) => adminLanguageOptionMap.get(text(value).toLowerCase()) || titleCase(value || 'en');
+  const websiteLanguageLabel = (value) => websiteLanguageOptionMap.get(text(value).toLowerCase()) || titleCase(value || 'en');
+  const timezoneLabel = (value) => timezoneOptionMap.get(text(value)) || text(value) || 'Asia/Dhaka';
   const productTypeLabel = (value) => {
     const labels = {
       physical: 'Physical',
@@ -982,7 +1003,7 @@ function initAdminOnboarding() {
     }
 
     if (summaryNodes.locale instanceof HTMLElement) {
-      summaryNodes.locale.textContent = `${state.timezone} / ${state.adminLanguage} admin / ${state.websiteLanguage} site`;
+      summaryNodes.locale.textContent = `${timezoneLabel(state.timezone)} / ${adminLanguageLabel(state.adminLanguage)} admin / ${websiteLanguageLabel(state.websiteLanguage)} site`;
     }
 
     if (domainPreviewNode instanceof HTMLElement) {
@@ -5922,6 +5943,8 @@ function initProductsCatalogPage() {
   const categorySelect = section.querySelector('[data-products-category]');
   const statusSelect = section.querySelector('[data-products-status]');
   const sortSelect = section.querySelector('[data-products-sort]');
+  const importTrigger = document.querySelector('[data-products-import-trigger]');
+  const importInput = document.querySelector('[data-products-import-input]');
   const applyBtn = section.querySelector('[data-products-apply]');
   const resetBtn = section.querySelector('[data-products-reset]');
   const deleteModal = document.getElementById('productsDeleteConfirmModal');
@@ -6812,6 +6835,77 @@ function initProductsCatalogPage() {
       if (requestId === state.requestId) setLoading(false);
     }
   }
+
+  const readImportPayload = async (file) => {
+    const raw = await file.text();
+    const parsed = JSON.parse(raw);
+    if (Array.isArray(parsed)) {
+      return { products: parsed };
+    }
+    if (Array.isArray(parsed?.products)) {
+      return { products: parsed.products };
+    }
+    throw new Error('Invalid backup file. Expected a JSON object with a products array.');
+  };
+
+  importTrigger?.addEventListener('click', () => {
+    if (!(importInput instanceof HTMLInputElement)) return;
+    importInput.click();
+  });
+
+  importInput?.addEventListener('change', async () => {
+    if (!(importInput instanceof HTMLInputElement)) return;
+
+    const file = importInput.files?.[0];
+    importInput.value = '';
+    if (!file) return;
+
+    if (!token) {
+      if (typeof window.showError === 'function') window.showError('Missing refresh token. Please login again.');
+      return;
+    }
+
+    if (!apiBase) {
+      if (typeof window.showError === 'function') window.showError('Backend API URL is missing.');
+      return;
+    }
+
+    if (!window.API?.Admin?.Products?.importAll) {
+      if (typeof window.showError === 'function') window.showError('Import API is not configured.');
+      return;
+    }
+
+    const originalLabel = importTrigger instanceof HTMLButtonElement ? importTrigger.textContent : 'Import Backup';
+    if (importTrigger instanceof HTMLButtonElement) {
+      importTrigger.disabled = true;
+      importTrigger.textContent = 'Importing...';
+    }
+
+    try {
+      const payload = await readImportPayload(file);
+      const result = await window.API.Admin.Products.importAll({
+        apiBaseUrl: apiBase,
+        refreshToken: token,
+        payload,
+        timeoutMs: 30000,
+      });
+
+      if (typeof window.showSuccess === 'function') {
+        window.showSuccess(text(result?.message) || 'Products imported successfully.');
+      }
+
+      await loadProducts(1);
+    } catch (error) {
+      if (typeof window.showError === 'function') {
+        window.showError(error?.message || 'Failed to import products.');
+      }
+    } finally {
+      if (importTrigger instanceof HTMLButtonElement) {
+        importTrigger.disabled = false;
+        importTrigger.textContent = originalLabel || 'Import Backup';
+      }
+    }
+  });
 
   applyBtn.addEventListener('click', () => {
     if (state.loading) return;
@@ -8088,6 +8182,9 @@ function initProductCreateCategoryPicker() {
 }
 
 function initProductTypeSelector() {
+  const form = document.getElementById('createProductForm');
+  if (!form) return;
+
   const cards = Array.from(document.querySelectorAll('[data-product-type-card]'));
   if (!cards.length) return;
 
@@ -8096,6 +8193,13 @@ function initProductTypeSelector() {
   const nonPhysicalOnlyGroups = Array.from(document.querySelectorAll('[data-non-physical-only]'));
   const typeBadge = document.querySelector('[data-product-type-badge]');
   const checklistContainer = document.querySelector('[data-product-type-checklist]');
+  const saveButton = document.querySelector('[data-product-save-button]');
+  const settingsLink = document.querySelector('[data-product-settings-link]');
+  const settingsWarning = document.querySelector('[data-product-settings-warning]');
+  const configuredTypeLabelNode = document.querySelector('[data-product-configured-type-label]');
+  const switchCopyNode = document.querySelector('[data-product-type-switch-copy]');
+  const isEditMode = String(form.dataset.formMode || '').trim().toLowerCase() === 'edit';
+  const lockProductType = form.dataset.lockProductType === '1' || isEditMode;
 
   const checklistData = {
     physical: [
@@ -8147,6 +8251,66 @@ function initProductTypeSelector() {
     subscription: 'Subscription',
     package: 'Package',
   };
+  const validTypes = ['physical', 'downloadable', 'subscription', 'package'];
+  const configuredTypeRaw = String(form?.dataset.configuredProductType || '').trim().toLowerCase();
+  const configuredType = validTypes.includes(configuredTypeRaw) ? configuredTypeRaw : 'physical';
+
+  const syncProductTypeLockState = (disabled) => {
+    cards.forEach((card) => {
+      const input = card.querySelector('input[type="radio"]');
+      card.classList.toggle('is-locked', disabled);
+      card.setAttribute('aria-disabled', disabled ? 'true' : 'false');
+
+      if (input) {
+        input.disabled = disabled;
+      }
+    });
+  };
+
+  const renderTypeSwitchState = (type) => {
+    const configuredLabel = badgeLabels[configuredType] || configuredType;
+    const selectedLabel = badgeLabels[type] || type;
+    const isMismatch = !lockProductType && type !== configuredType;
+
+    if (configuredTypeLabelNode) {
+      configuredTypeLabelNode.textContent = lockProductType
+        ? `Product type: ${selectedLabel} (locked)`
+        : `Current store mode: ${configuredLabel}`;
+    }
+
+    if (switchCopyNode) {
+      if (lockProductType) {
+        switchCopyNode.textContent = type === configuredType
+          ? `Product type is fixed after creation and cannot be changed here. This product will remain ${selectedLabel.toLowerCase()}.`
+          : `Product type is fixed after creation and cannot be changed here. This product remains ${selectedLabel.toLowerCase()}, even though the current store mode is ${configuredLabel}.`;
+      } else {
+        switchCopyNode.textContent = isMismatch
+          ? `Previewing ${selectedLabel} inputs while the store is still set to ${configuredLabel}. Open Shop Settings to switch the real store type before saving.`
+          : `This form matches your current ${configuredLabel.toLowerCase()} store setup, so you can continue and save normally.`;
+      }
+    }
+
+    if (saveButton) {
+      saveButton.classList.toggle('hidden', isMismatch);
+    }
+
+    if (settingsLink) {
+      settingsLink.classList.toggle('hidden', lockProductType || !isMismatch);
+    }
+
+    if (settingsWarning) {
+      settingsWarning.classList.toggle('hidden', lockProductType || !isMismatch);
+      settingsWarning.textContent = (!lockProductType && isMismatch)
+        ? `Selected form type: ${selectedLabel}. Current store type: ${configuredLabel}. Change the store type in Shop Settings before saving products in this mode.`
+        : '';
+    }
+
+    if (form) {
+      form.dataset.selectedProductType = type;
+      form.dataset.productTypeMismatch = isMismatch ? '1' : '0';
+      form.dataset.productTypeLocked = lockProductType ? '1' : '0';
+    }
+  };
 
   const setActiveType = (type) => {
     // Update card active states
@@ -8194,24 +8358,35 @@ function initProductTypeSelector() {
 
     // Render type checklist
     renderChecklist(type);
+    renderTypeSwitchState(type);
   };
 
   cards.forEach((card) => {
-    card.addEventListener('click', () => {
+    const input = card.querySelector('input[type="radio"]');
+    if (input) {
+      input.addEventListener('change', () => {
+        if (input.checked) {
+          setActiveType(input.value);
+        }
+      });
+    }
+
+    card.addEventListener('click', (event) => {
+      event.preventDefault();
+
+      if (lockProductType) {
+        return;
+      }
+
       const input = card.querySelector('input[type="radio"]');
       if (!input) return;
       input.checked = true;
+      input.dispatchEvent(new Event('change', { bubbles: true }));
       sessionStorage.setItem('product_create_type', input.value);
-      setActiveType(input.value);
     });
   });
 
-  // Restore from session, then fall back to checked radio, then default
-  const savedType = sessionStorage.getItem('product_create_type');
-  const validTypes = ['physical', 'downloadable', 'subscription', 'package'];
-  const initialType = (savedType && validTypes.includes(savedType))
-    ? savedType
-    : (cards.find((c) => c.querySelector('input[type="radio"]')?.checked)?.querySelector('input[type="radio"]')?.value || 'physical');
+  const initialType = configuredType || 'physical';
 
   // Sync the radio to match the restored type
   cards.forEach((card) => {
@@ -8219,6 +8394,7 @@ function initProductTypeSelector() {
     if (input) input.checked = input.value === initialType;
   });
 
+  syncProductTypeLockState(lockProductType);
   setActiveType(initialType);
 }
 
@@ -12160,6 +12336,15 @@ function initProductCreateSubmit() {
 
   form.addEventListener('submit', async (event) => {
     event.preventDefault();
+
+    if (form.dataset.productTypeMismatch === '1') {
+      const shopSettingsUrl = String(form.dataset.shopSettingsUrl || '/admin/shop-settings').trim();
+      showInfo('Change the store product type from Shop Settings before saving this product.');
+      window.setTimeout(() => {
+        window.location.href = shopSettingsUrl;
+      }, 200);
+      return;
+    }
 
     const token = getToken();
     if (!token) {

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Support\AdminLocaleOptions;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Config;
@@ -14,10 +15,36 @@ use Throwable;
 
 class AdminOnboardingController extends Controller
 {
+    public function __construct(private readonly AdminLocaleOptions $localeOptions)
+    {
+    }
+
     public function onboarding(Request $request): View
     {
+        $config = (array) $request->session()->get('admin.global_config', []);
+        $localeOptions = $this->localeOptions->load($request);
+
         return view('admin.onboarding.index', [
-            'adminGlobalConfig' => (array) $request->session()->get('admin.global_config', []),
+            'adminGlobalConfig' => $config,
+            'localeOptions' => $localeOptions,
+            'selectedLocale' => [
+                'primary_language' => $this->localeOptions->normalizeLanguage(
+                    (string) ($config['primary_language'] ?? $config['language'] ?? 'en'),
+                    $localeOptions['languages'] ?? []
+                ),
+                'timezone' => $this->localeOptions->normalizeTimezone(
+                    (string) ($config['timezone'] ?? 'Asia/Dhaka'),
+                    $localeOptions['timezones'] ?? []
+                ),
+                'admin_language' => $this->localeOptions->normalizeLanguage(
+                    (string) ($config['admin_panel_language'] ?? $config['admin_language'] ?? $config['language'] ?? 'en'),
+                    $localeOptions['admin_languages'] ?? []
+                ),
+                'website_language' => $this->localeOptions->normalizeLanguage(
+                    (string) ($config['website_language'] ?? $config['language'] ?? 'en'),
+                    $localeOptions['website_languages'] ?? []
+                ),
+            ],
         ]);
     }
 

@@ -31,6 +31,7 @@ class AdminProductsController extends Controller
             ?? request()->session()->get('refresh_token')
             ?? ''
         );
+        $configuredProductType = $this->configuredProductType();
 
         return view('admin.products.create', [
             'title' => 'Add Product',
@@ -42,6 +43,8 @@ class AdminProductsController extends Controller
             'refreshToken' => $refreshToken,
             'formMode' => 'create',
             'productId' => null,
+            'configuredProductType' => $configuredProductType,
+            'configuredProductTypeLabel' => $this->productTypeLabel($configuredProductType),
             'isLocal' => app()->environment('local'),
             'enableDevAutofill' => app()->environment('local'),
             'callVoiceFeature' => $this->callVoiceFeature(),
@@ -55,6 +58,7 @@ class AdminProductsController extends Controller
             ?? $request->session()->get('refresh_token')
             ?? ''
         );
+        $configuredProductType = $this->configuredProductType($request);
 
         return view('admin.products.create', [
             'title' => 'Edit Product',
@@ -66,6 +70,8 @@ class AdminProductsController extends Controller
             'refreshToken' => $refreshToken,
             'formMode' => 'edit',
             'productId' => $productId,
+            'configuredProductType' => $configuredProductType,
+            'configuredProductTypeLabel' => $this->productTypeLabel($configuredProductType),
             'isLocal' => app()->environment('local'),
             'enableDevAutofill' => false,
             'callVoiceFeature' => $this->callVoiceFeature(),
@@ -124,5 +130,24 @@ class AdminProductsController extends Controller
                 ],
             ],
         ];
+    }
+
+    private function configuredProductType(?Request $request = null): string
+    {
+        $session = ($request ?? request())->session();
+        $value = strtolower(trim((string) data_get($session->get('admin.global_config', []), 'product_type', 'physical')));
+
+        return in_array($value, ['physical', 'downloadable', 'subscription'], true)
+            ? $value
+            : 'physical';
+    }
+
+    private function productTypeLabel(string $type): string
+    {
+        return match ($type) {
+            'downloadable' => 'Downloadable',
+            'subscription' => 'Subscription',
+            default => 'Physical',
+        };
     }
 }

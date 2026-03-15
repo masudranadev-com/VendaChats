@@ -1,34 +1,10 @@
 @php
-  $orderCallLanguages = [
-    'english' => 'English',
-    'bangla' => 'Bangla',
-    'hindi' => 'Hindi',
-    'arabic' => 'Arabic',
-    'spanish' => 'Spanish',
-    'urdu' => 'Urdu',
-  ];
-  $panelLanguages = [
-    'English' => 'English',
-    'Bangla' => 'Bangla',
-    'Hindi' => 'Hindi',
-    'Arabic' => 'Arabic',
-  ];
-  $websiteLanguages = [
-    'English' => 'English',
-    'Bangla' => 'Bangla',
-    'Hindi' => 'Hindi',
-    'Arabic' => 'Arabic',
-  ];
-  $timezones = [
-    'Asia/Dhaka' => 'Asia/Dhaka (GMT +6)',
-    'Asia/Kolkata' => 'Asia/Kolkata (GMT +5:30)',
-    'Asia/Dubai' => 'Asia/Dubai (GMT +4)',
-    'UTC' => 'UTC (GMT +0)',
-    'Europe/London' => 'Europe/London (GMT +0)',
-    'America/New_York' => 'America/New_York (GMT -5)',
-    'America/Chicago' => 'America/Chicago (GMT -6)',
-    'America/Los_Angeles' => 'America/Los_Angeles (GMT -8)',
-  ];
+  $localeOptions = $localeOptions ?? [];
+  $selectedLocale = $selectedLocale ?? [];
+  $orderCallLanguages = $localeOptions['languages'] ?? [];
+  $panelLanguages = $localeOptions['admin_languages'] ?? $orderCallLanguages;
+  $websiteLanguages = $localeOptions['website_languages'] ?? $orderCallLanguages;
+  $timezones = $localeOptions['timezones'] ?? [];
   $initialWebsiteName = trim((string) ($websiteName ?? 'A Metafy')) ?: 'A Metafy';
   $defaultSubdomain = \Illuminate\Support\Str::slug($initialWebsiteName, '-') ?: 'my-store';
   $stepIndexes = [
@@ -67,9 +43,10 @@
       ?? $initialWebsiteName
     )),
     'primaryLanguage' => strtolower(trim((string) (
-      data_get($adminGlobalConfig ?? [], 'primary_language')
+      data_get($selectedLocale, 'primary_language')
+      ?? data_get($adminGlobalConfig ?? [], 'primary_language')
       ?? data_get($adminGlobalConfig ?? [], 'language')
-      ?? 'english'
+      ?? 'en'
     ))),
     'isCalling' => filter_var(
       data_get($adminGlobalConfig ?? [], 'is_calling', false),
@@ -80,18 +57,22 @@
       ?? 'cod'
     ))),
     'timezone' => trim((string) (
-      data_get($adminGlobalConfig ?? [], 'timezone')
+      data_get($selectedLocale, 'timezone')
+      ?? data_get($adminGlobalConfig ?? [], 'timezone')
       ?? 'Asia/Dhaka'
     )),
     'adminLanguage' => trim((string) (
-      data_get($adminGlobalConfig ?? [], 'admin_panel_language')
+      data_get($selectedLocale, 'admin_language')
+      ?? data_get($adminGlobalConfig ?? [], 'admin_panel_language')
+      ?? data_get($adminGlobalConfig ?? [], 'admin_language')
       ?? data_get($adminGlobalConfig ?? [], 'language')
-      ?? 'English'
+      ?? 'en'
     )),
     'websiteLanguage' => trim((string) (
-      data_get($adminGlobalConfig ?? [], 'website_language')
+      data_get($selectedLocale, 'website_language')
+      ?? data_get($adminGlobalConfig ?? [], 'website_language')
       ?? data_get($adminGlobalConfig ?? [], 'language')
-      ?? 'English'
+      ?? 'en'
     )),
   ];
 @endphp

@@ -13,9 +13,12 @@
     <div class="products-header-actions">
       <a href="{{ route('admin.order-call') }}" class="btn btn-info">Call Voice Setup</a>
       <a href="{{ route('admin.categories') }}" class="btn btn-secondary">Manage Categories</a>
+      <button type="button" class="btn btn-secondary" data-products-import-trigger>Import Backup</button>
       <a href="{{ route('admin.products.create') }}" class="btn btn-primary">+ Add Product</a>
     </div>
   </div>
+
+  <input type="file" accept="application/json,.json" hidden data-products-import-input>
 
   {{-- -- KPI STRIP -- --}}
   <section class="products-kpi-grid" data-products-kpi-grid>

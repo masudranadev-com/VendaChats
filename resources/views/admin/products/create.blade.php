@@ -15,6 +15,9 @@
     class="products-create-layout"
     data-form-mode="{{ $formMode }}"
     data-product-id="{{ $productId }}"
+    data-lock-product-type="{{ $formMode === 'edit' ? '1' : '0' }}"
+    data-configured-product-type="{{ $configuredProductType }}"
+    data-shop-settings-url="{{ route('admin.shop-settings') }}"
     data-api-base-url="{{ $backendApiBaseUrl }}"
     data-refresh-token="{{ $refreshToken }}"
     data-dev-autofill="{{ $enableDevAutofill ? '1' : '0' }}"
@@ -24,35 +27,52 @@
       {{-- ══ 1. PRODUCT TYPE ══ --}}
       <section class="card">
         <div class="card-header">
-          <h3 class="card-title">Product Type</h3>
-          <span class="badge badge-info">Required</span>
+          <div>
+            <h3 class="card-title">{{ $formMode === 'edit' ? 'Product Type' : 'Product Type Preview' }}</h3>
+            <p class="settings-panel-subtitle">
+              @if ($formMode === 'edit')
+                Product type is fixed after creation. The saved product type will load automatically and remain locked on this form.
+              @else
+                Your store is currently configured for {{ strtolower($configuredProductTypeLabel) }} products. Use this switch to preview a different form layout before changing the real store type from Shop Settings.
+              @endif
+            </p>
+          </div>
+          <span class="badge badge-info">Store: {{ $configuredProductTypeLabel }}</span>
         </div>
 
-        <div class="products-type-selector">
-          <label class="products-type-card is-active" data-product-type-card>
-            <input type="radio" name="product_type" value="physical" checked>
-            <span class="products-type-card-icon">📦</span>
-            <strong class="products-type-card-title">Physical</strong>
-            <span class="products-type-card-desc">Tangible product shipped to the customer with inventory & shipping management</span>
-            <span class="products-type-card-check" aria-hidden="true">✓</span>
-          </label>
+        <div class="products-type-switcher">
+          <div class="products-type-switcher-tabs">
+            <label class="products-type-switch-card is-active" data-product-type-card>
+              <input type="radio" name="product_type" value="physical" {{ $configuredProductType === 'physical' ? 'checked' : '' }}>
+              <span class="products-type-switch-card-title">Physical</span>
+              <span class="products-type-switch-card-meta">Inventory + shipping</span>
+            </label>
 
-          <label class="products-type-card" data-product-type-card>
-            <input type="radio" name="product_type" value="downloadable">
-            <span class="products-type-card-icon">⬇️</span>
-            <strong class="products-type-card-title">Downloadable</strong>
-            <span class="products-type-card-desc">Digital file delivered via Google Drive — no shipping or inventory needed</span>
-            <span class="products-type-card-check" aria-hidden="true">✓</span>
-          </label>
+            <label class="products-type-switch-card" data-product-type-card>
+              <input type="radio" name="product_type" value="downloadable" {{ $configuredProductType === 'downloadable' ? 'checked' : '' }}>
+              <span class="products-type-switch-card-title">Downloadable</span>
+              <span class="products-type-switch-card-meta">Drive/file delivery</span>
+            </label>
 
-          <label class="products-type-card" data-product-type-card>
-            <input type="radio" name="product_type" value="subscription">
-            <span class="products-type-card-icon">🔄</span>
-            <strong class="products-type-card-title">Subscription</strong>
-            <span class="products-type-card-desc">Recurring access plan — manage multiple credential slots for buyers</span>
-            <span class="products-type-card-check" aria-hidden="true">✓</span>
-          </label>
+            <label class="products-type-switch-card" data-product-type-card>
+              <input type="radio" name="product_type" value="subscription" {{ $configuredProductType === 'subscription' ? 'checked' : '' }}>
+              <span class="products-type-switch-card-title">Subscription</span>
+              <span class="products-type-switch-card-meta">Slots + credentials</span>
+            </label>
+          </div>
+
+          <div class="products-type-switcher-note" data-product-type-switch-note>
+            <strong data-product-configured-type-label>{{ $formMode === 'edit' ? 'Product type is locked after creation.' : 'Current store mode: ' . $configuredProductTypeLabel }}</strong>
+            <p data-product-type-switch-copy>
+              @if ($formMode === 'edit')
+                This product will keep the type it was created with. Update the rest of the product details here, but create a new product if you need a different type.
+              @else
+                If you preview another type here, the matching inputs will load immediately. Saving will be replaced with a shortcut to Shop Settings until the store type is changed there.
+              @endif
+            </p>
+          </div>
         </div>
+
       </section>
 
       {{-- ══ 2. BASIC INFORMATION ══ --}}
@@ -757,10 +777,14 @@
           
           <div class="products-header-actions">
             <a href="{{ route('admin.products') }}" class="btn btn-secondary">Back to Products</a>
-            <button type="submit" form="createProductForm" class="btn btn-primary">
+            <button type="submit" form="createProductForm" class="btn btn-primary" data-product-save-button>
               {{ $formMode === 'edit' ? 'Update Product' : 'Save Product' }}
             </button>
+            <a href="{{ route('admin.shop-settings') }}" class="btn btn-warning hidden" data-product-settings-link>Settings</a>
           </div>
+          <p class="products-type-switch-warning hidden" data-product-settings-warning>
+            This form is showing a different product type than your current store setup. Open Shop Settings to switch the store type, then come back to save.
+          </p>
 
           <label class="products-radio-item">
             <input type="radio" name="publish_state" value="draft">

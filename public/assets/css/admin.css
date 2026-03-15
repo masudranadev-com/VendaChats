@@ -6210,6 +6210,100 @@ body.products-attention-open {
 /* ══════════════════════════════════════════
    PRODUCTS: TYPE SELECTOR
 ══════════════════════════════════════════ */
+.products-type-switcher {
+  display: grid;
+  gap: 16px;
+}
+
+.products-type-switcher-tabs {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.products-type-switch-card {
+  position: relative;
+  display: grid;
+  gap: 4px;
+  padding: 16px 18px;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: linear-gradient(180deg, rgba(255,255,255,0.98), rgba(248,250,252,0.98));
+  cursor: pointer;
+  transition: border-color var(--transition), box-shadow var(--transition), transform var(--transition), background var(--transition);
+}
+
+.products-type-switch-card:hover {
+  border-color: rgba(19,82,220,0.22);
+  transform: translateY(-1px);
+  box-shadow: 0 14px 30px rgba(15,23,42,0.08);
+}
+
+.products-type-switch-card.is-locked {
+  cursor: not-allowed;
+}
+
+.products-type-switch-card.is-locked:hover {
+  transform: none;
+  box-shadow: none;
+}
+
+.products-type-switch-card.is-active {
+  border-color: rgba(19,82,220,0.36);
+  background: linear-gradient(180deg, rgba(19,82,220,0.08), rgba(255,255,255,0.96));
+  box-shadow: 0 0 0 3px rgba(19,82,220,0.10);
+}
+
+.products-type-switch-card input[type="radio"] {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.products-type-switch-card-title {
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--text-primary);
+}
+
+.products-type-switch-card-meta {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.products-type-switch-card.is-active .products-type-switch-card-title {
+  color: var(--brand-primary);
+}
+
+.products-type-switcher-note {
+  padding: 14px 16px;
+  border-radius: 16px;
+  border: 1px dashed rgba(19,82,220,0.22);
+  background: linear-gradient(180deg, rgba(19,82,220,0.06), rgba(255,255,255,0.98));
+}
+
+.products-type-switcher-note strong {
+  display: block;
+  margin-bottom: 6px;
+  color: var(--text-primary);
+}
+
+.products-type-switcher-note p,
+.products-type-switch-warning {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--text-secondary);
+}
+
+.products-type-switch-warning {
+  padding: 12px 14px;
+  border-radius: 14px;
+  border: 1px solid rgba(245,166,35,0.22);
+  background: linear-gradient(180deg, rgba(255,248,235,0.98), rgba(255,255,255,0.98));
+  color: #9a3412;
+}
+
 .products-type-selector {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -7696,6 +7790,60 @@ body.products-attention-open {
   color: var(--text-secondary);
   font-size: 12px;
   font-weight: 700;
+}
+
+.shop-setup-switch-summary {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.shop-setup-switch-summary-card {
+  display: grid;
+  gap: 4px;
+  padding: 14px;
+  border-radius: 14px;
+  border: 1px solid var(--border);
+  background: var(--bg-secondary);
+}
+
+.shop-setup-switch-summary-card span {
+  font-size: 12px;
+  color: var(--text-tertiary);
+}
+
+.shop-setup-switch-summary-card strong {
+  font-size: 15px;
+  color: var(--text-primary);
+}
+
+.shop-setup-switch-backup {
+  margin-top: 18px;
+  padding: 16px;
+  border-radius: 16px;
+  border: 1px dashed rgba(245,166,35,0.28);
+  background: linear-gradient(180deg, rgba(255,248,235,0.98), rgba(255,255,255,0.98));
+}
+
+.shop-setup-switch-backup p {
+  margin: 8px 0 0;
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.shop-setup-switch-backup-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 14px;
+}
+
+.shop-setup-switch-backup-status {
+  font-size: 12px;
+  font-weight: 700;
+  color: #9a3412;
 }
 
 .settings-activity-list {
@@ -9295,6 +9443,18 @@ body.products-attention-open {
     width: 100%;
   }
 
+  .shop-setup-switch-summary {
+    grid-template-columns: 1fr;
+  }
+
+  .shop-setup-switch-backup-actions {
+    align-items: stretch;
+  }
+
+  .shop-setup-switch-backup-actions .btn {
+    width: 100%;
+  }
+
   .stats-grid {
     grid-template-columns: 1fr;
   }
@@ -9399,6 +9559,10 @@ body.products-attention-open {
   .products-filter-actions {
     flex-direction: column;
     align-items: stretch;
+  }
+
+  .products-type-switcher-tabs {
+    grid-template-columns: 1fr;
   }
 
   .products-create-grid {

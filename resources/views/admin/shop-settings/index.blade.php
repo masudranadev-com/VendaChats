@@ -14,6 +14,9 @@
     data-shop-settings-setup
     data-continue-url="{{ route('admin.onboardingContinue') }}"
     data-csrf-token="{{ csrf_token() }}"
+    data-products-api-base-url="{{ $productsApiBaseUrl }}"
+    data-products-refresh-token="{{ $productsRefreshToken }}"
+    data-current-product-type="{{ $selectedProductType }}"
   >
     <div class="page-header settings-page-header">
       <div>
@@ -61,7 +64,7 @@
             </div>
 
             <div class="shop-setup-actions">
-              <p class="shop-setup-note">Changing product type updates the saved onboarding profile for this store.</p>
+              <p class="shop-setup-note">If products already exist, switching the store type will require a backup and full product cleanup before the new mode can be activated.</p>
               <div class="shop-setup-action-group">
                 <span class="shop-setup-save-state" data-shop-save-state="product">Current: {{ $selectedProductTypeLabel }}</span>
                 <button type="submit" class="btn btn-primary" data-shop-save-button="product">Save product type</button>
@@ -147,6 +150,48 @@
     </div>
   </div>
 
+  <div class="modal-overlay" id="shopProductTypeSwitchModal" aria-hidden="true">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="shopProductTypeSwitchTitle">
+      <div class="modal-header">
+        <h3 class="modal-title" id="shopProductTypeSwitchTitle">Switch Product Type</h3>
+        <button type="button" class="modal-close" data-shop-switch-close aria-label="Close">x</button>
+      </div>
+      <div class="modal-body">
+        <p data-shop-switch-message>
+          To switch the store product type, you need to delete the old product data first.
+        </p>
+
+        <div class="shop-setup-switch-summary">
+          <article class="shop-setup-switch-summary-card">
+            <span>Current type</span>
+            <strong data-shop-switch-current-type>{{ $selectedProductTypeLabel }}</strong>
+          </article>
+          <article class="shop-setup-switch-summary-card">
+            <span>New type</span>
+            <strong data-shop-switch-next-type>{{ $selectedProductTypeLabel }}</strong>
+          </article>
+          <article class="shop-setup-switch-summary-card">
+            <span>Products to remove</span>
+            <strong data-shop-switch-total-products>0</strong>
+          </article>
+        </div>
+
+        <section class="shop-setup-switch-backup">
+          <strong>Backup and delete</strong>
+          <p>Download a meaningful JSON backup for all products first. After the backup is complete, you can delete the old products and activate the new type.</p>
+          <div class="shop-setup-switch-backup-actions">
+            <button type="button" class="btn btn-secondary" data-shop-switch-backup-button>Backup Products</button>
+            <span class="shop-setup-switch-backup-status" data-shop-switch-backup-status>Backup required before switching.</span>
+          </div>
+        </section>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-ghost" data-shop-switch-close>Cancel</button>
+        <button type="button" class="btn btn-danger" data-shop-switch-confirm-button disabled>Delete Old Products &amp; Switch</button>
+      </div>
+    </div>
+  </div>
+
   <script>
     document.addEventListener('DOMContentLoaded', () => {
       const shell = document.querySelector('[data-shop-settings-setup]');
@@ -156,6 +201,8 @@
 
       const continueUrl = String(shell.dataset.continueUrl || '').trim();
       const csrfToken = String(shell.dataset.csrfToken || '').trim();
+      const productsApiBaseUrl = String(shell.dataset.productsApiBaseUrl || '').trim();
+      const refreshToken = String(shell.dataset.productsRefreshToken || window.localStorage.getItem('refresh_token') || '').trim();
       const text = (value) => String(value ?? '').trim();
       const showError = (message) => {
         if (typeof window.showError === 'function') {
@@ -184,6 +231,14 @@
       const timezoneSelect = shell.querySelector('[data-shop-locale-timezone]');
       const adminLanguageSelect = shell.querySelector('[data-shop-locale-admin-language]');
       const websiteLanguageSelect = shell.querySelector('[data-shop-locale-website-language]');
+      const switchModal = document.getElementById('shopProductTypeSwitchModal');
+      const switchMessage = switchModal?.querySelector('[data-shop-switch-message]');
+      const switchCurrentType = switchModal?.querySelector('[data-shop-switch-current-type]');
+      const switchNextType = switchModal?.querySelector('[data-shop-switch-next-type]');
+      const switchTotalProducts = switchModal?.querySelector('[data-shop-switch-total-products]');
+      const switchBackupButton = switchModal?.querySelector('[data-shop-switch-backup-button]');
+      const switchBackupStatus = switchModal?.querySelector('[data-shop-switch-backup-status]');
+      const switchConfirmButton = switchModal?.querySelector('[data-shop-switch-confirm-button]');
 
       if (
         !(productForm instanceof HTMLFormElement)
@@ -194,6 +249,12 @@
       ) {
         return;
       }
+
+      let currentProductType = text(shell.dataset.currentProductType || '').toLowerCase() || 'physical';
+      let totalProducts = 0;
+      let productsSummaryKnown = false;
+      let backupCompletedForType = '';
+      let pendingProductType = '';
 
       const buttonLabels = new Map();
       shell.querySelectorAll('[data-shop-save-button]').forEach((button) => {
@@ -223,6 +284,14 @@
         const labelNode = card instanceof HTMLElement ? card.querySelector('strong') : null;
 
         return text(labelNode?.textContent || input.value);
+      };
+      const productTypeLabel = (value) => {
+        const labels = {
+          physical: 'Physical',
+          downloadable: 'Downloadable',
+          subscription: 'Subscription',
+        };
+        return labels[text(value).toLowerCase()] || text(value);
       };
 
       const localeSummary = () => {
@@ -275,6 +344,114 @@
 
         return result;
       };
+      const fetchProductsSummary = async () => {
+        if (!window.API?.Admin?.Products?.list || !productsApiBaseUrl || !refreshToken) {
+          totalProducts = 0;
+          productsSummaryKnown = false;
+          return false;
+        }
+
+        try {
+          const response = await window.API.Admin.Products.list({
+            apiBaseUrl: productsApiBaseUrl,
+            refreshToken,
+            page: 1,
+            perPage: 1,
+            timeoutMs: 12000,
+          });
+
+          totalProducts = Number(response?.products?.pagination?.total ?? response?.products?.pagination_info?.total ?? 0) || 0;
+          productsSummaryKnown = true;
+          return true;
+        } catch (error) {
+          totalProducts = 0;
+          productsSummaryKnown = false;
+          return false;
+        }
+      };
+      const downloadBackupFile = (payload) => {
+        const fileName = `products-backup-${new Date().toISOString().replace(/[:.]/g, '-')}.json`;
+        const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+        const downloadUrl = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = downloadUrl;
+        link.download = fileName;
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        window.setTimeout(() => window.URL.revokeObjectURL(downloadUrl), 500);
+      };
+      const setSwitchConfirmState = (enabled) => {
+        if (!(switchConfirmButton instanceof HTMLButtonElement)) {
+          return;
+        }
+
+        switchConfirmButton.disabled = !enabled;
+      };
+      const closeSwitchModal = () => {
+        if (!(switchModal instanceof HTMLElement)) {
+          return;
+        }
+
+        switchModal.classList.remove('active');
+        switchModal.setAttribute('aria-hidden', 'true');
+      };
+      const openSwitchModal = (nextType) => {
+        if (!(switchModal instanceof HTMLElement)) {
+          return;
+        }
+
+        pendingProductType = nextType;
+        const nextLabel = productTypeLabel(nextType);
+        const currentLabel = productTypeLabel(currentProductType);
+        const requiresBackup = totalProducts > 0;
+
+        if (switchMessage instanceof HTMLElement) {
+          switchMessage.textContent = requiresBackup
+            ? 'To switch the product type, you must delete all old product data first. Backup the current products, then continue with delete and switch.'
+            : 'No products are currently stored, so you can switch the product type immediately.';
+        }
+        if (switchCurrentType instanceof HTMLElement) {
+          switchCurrentType.textContent = currentLabel;
+        }
+        if (switchNextType instanceof HTMLElement) {
+          switchNextType.textContent = nextLabel;
+        }
+        if (switchTotalProducts instanceof HTMLElement) {
+          switchTotalProducts.textContent = String(totalProducts);
+        }
+        if (switchBackupStatus instanceof HTMLElement) {
+          switchBackupStatus.textContent = requiresBackup
+            ? (backupCompletedForType === nextType ? 'Backup downloaded. You can switch now.' : 'Backup required before switching.')
+            : 'No backup needed because no products were found.';
+        }
+        if (switchBackupButton instanceof HTMLButtonElement) {
+          switchBackupButton.disabled = !requiresBackup;
+        }
+
+        setSwitchConfirmState(!requiresBackup || backupCompletedForType === nextType);
+        switchModal.classList.add('active');
+        switchModal.setAttribute('aria-hidden', 'false');
+      };
+      const saveProductType = async (nextType) => {
+        await postUpdate({
+          type: 'product',
+          data: {
+            product_type: text(nextType),
+          },
+        });
+
+        currentProductType = text(nextType).toLowerCase();
+        shell.dataset.currentProductType = currentProductType;
+
+        const label = productTypeLabel(currentProductType);
+        if (productState instanceof HTMLElement) {
+          productState.textContent = `Current: ${label}`;
+        }
+        if (productBadge instanceof HTMLElement) {
+          productBadge.textContent = label;
+        }
+      };
 
       productInputs.forEach((input) => {
         if (!(input instanceof HTMLInputElement)) {
@@ -296,23 +473,21 @@
           return;
         }
 
+        const nextType = text(productInput.value).toLowerCase();
+        if (nextType !== currentProductType) {
+          const loaded = await fetchProductsSummary();
+          if (!loaded && !productsSummaryKnown) {
+            showError('Could not verify the existing product count. Please try again.');
+            return;
+          }
+          openSwitchModal(nextType);
+          return;
+        }
+
         setButtonState(submitButton, 'Saving...', true);
 
         try {
-          await postUpdate({
-            type: 'product',
-            data: {
-              product_type: text(productInput.value),
-            },
-          });
-
-          const label = selectedProductLabel();
-          if (productState instanceof HTMLElement) {
-            productState.textContent = `Current: ${label}`;
-          }
-          if (productBadge instanceof HTMLElement) {
-            productBadge.textContent = label;
-          }
+          await saveProductType(nextType);
 
           showSuccess('Product type updated.');
         } catch (error) {
@@ -359,7 +534,87 @@
         }
       });
 
+      switchModal?.querySelectorAll('[data-shop-switch-close]').forEach((button) => {
+        if (button instanceof HTMLButtonElement) {
+          button.addEventListener('click', closeSwitchModal);
+        }
+      });
+
+      switchBackupButton?.addEventListener('click', async () => {
+        if (!pendingProductType) {
+          return;
+        }
+        if (!window.API?.Admin?.Products?.backupAll || !productsApiBaseUrl || !refreshToken) {
+          showError('Backup API is not configured.');
+          return;
+        }
+
+        if (switchBackupButton instanceof HTMLButtonElement) {
+          switchBackupButton.disabled = true;
+          switchBackupButton.textContent = 'Backing up...';
+        }
+
+        try {
+          const payload = await window.API.Admin.Products.backupAll({
+            apiBaseUrl: productsApiBaseUrl,
+            refreshToken,
+            timeoutMs: 30000,
+          });
+
+          downloadBackupFile(payload || {});
+          backupCompletedForType = pendingProductType;
+          if (switchBackupStatus instanceof HTMLElement) {
+            switchBackupStatus.textContent = 'Congratulations, your backup is done. Now you can switch.';
+          }
+          setSwitchConfirmState(true);
+          showSuccess('Products backup downloaded.');
+        } catch (error) {
+          showError(error?.message || 'Failed to create backup.');
+        } finally {
+          if (switchBackupButton instanceof HTMLButtonElement) {
+            switchBackupButton.disabled = false;
+            switchBackupButton.textContent = 'Backup Products';
+          }
+        }
+      });
+
+      switchConfirmButton?.addEventListener('click', async () => {
+        if (!pendingProductType) {
+          return;
+        }
+        if (totalProducts > 0 && backupCompletedForType !== pendingProductType) {
+          showError('Complete the backup first before switching the product type.');
+          return;
+        }
+        if (!window.API?.Admin?.Products?.deleteAll || !productsApiBaseUrl || !refreshToken) {
+          showError('Delete API is not configured.');
+          return;
+        }
+
+        setSwitchConfirmState(false);
+
+        try {
+          if (totalProducts > 0) {
+            await window.API.Admin.Products.deleteAll({
+              apiBaseUrl: productsApiBaseUrl,
+              refreshToken,
+              timeoutMs: 30000,
+            });
+          }
+
+          await saveProductType(pendingProductType);
+          totalProducts = 0;
+          backupCompletedForType = '';
+          closeSwitchModal();
+          showSuccess('Old products deleted and product type switched successfully.');
+        } catch (error) {
+          showError(error?.message || 'Failed to switch product type.');
+          setSwitchConfirmState(true);
+        }
+      });
+
       renderProductCards();
+      fetchProductsSummary();
     });
   </script>
 @endsection

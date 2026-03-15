@@ -263,6 +263,27 @@
           });
         },
       },
+      Profile: {
+        get({apiBaseUrl, refreshToken, timeoutMs = 12000} = {}) {
+          return request({
+            baseUrl: normalizeBaseUrl(apiBaseUrl),
+            path: '/api/admin/profile',
+            method: 'GET',
+            token: refreshToken,
+            timeoutMs,
+          });
+        },
+        update({apiBaseUrl, refreshToken, payload, timeoutMs = 12000} = {}) {
+          return request({
+            baseUrl: normalizeBaseUrl(apiBaseUrl),
+            path: '/api/admin/profile',
+            method: 'PUT',
+            token: refreshToken,
+            body: payload,
+            timeoutMs,
+          });
+        },
+      },
       Products: {
         list({
           apiBaseUrl,
@@ -316,6 +337,34 @@
             path: `/api/admin/products/${encodeURIComponent(productId)}`,
             method: 'DELETE',
             token: refreshToken,
+            timeoutMs,
+          });
+        },
+        backupAll({apiBaseUrl, refreshToken, timeoutMs = 30000} = {}) {
+          return request({
+            baseUrl: normalizeBaseUrl(apiBaseUrl),
+            path: '/api/admin/products/backup',
+            method: 'POST',
+            token: refreshToken,
+            timeoutMs,
+          });
+        },
+        deleteAll({apiBaseUrl, refreshToken, timeoutMs = 30000} = {}) {
+          return request({
+            baseUrl: normalizeBaseUrl(apiBaseUrl),
+            path: '/api/admin/products/delete-all',
+            method: 'DELETE',
+            token: refreshToken,
+            timeoutMs,
+          });
+        },
+        importAll({apiBaseUrl, refreshToken, payload, timeoutMs = 30000} = {}) {
+          return request({
+            baseUrl: normalizeBaseUrl(apiBaseUrl),
+            path: '/api/admin/products/import',
+            method: 'POST',
+            token: refreshToken,
+            body: payload,
             timeoutMs,
           });
         },

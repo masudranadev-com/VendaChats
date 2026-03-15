@@ -3,51 +3,120 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Support\AdminLocaleOptions;
+use Carbon\CarbonImmutable;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Http;
 use Illuminate\View\View;
+use Throwable;
 
 class ProfileController extends Controller
 {
-    public function index(): View
+    public function __construct(private readonly AdminLocaleOptions $localeOptions)
     {
+    }
+
+    public function index(Request $request): View
+    {
+        $profile = $this->fetchProfile($request);
+        $localeOptions = $this->localeOptions->load($request);
+
         return view('admin.profile.index', [
             'title' => 'My Profile',
-            'subtitle' => 'Manage your personal profile and account details used across the admin panel.',
+            'subtitle' => 'Update your contact details, profile image, email, and password from one place.',
+            'profileApiBaseUrl' => rtrim((string) config('services.backend.url', 'http://localhost:8082'), '/'),
+            'profileRefreshToken' => (string) (
+                $request->session()->get('auth.refresh_token')
+                ?? $request->session()->get('refresh_token')
+                ?? ''
+            ),
+            'localeOptions' => $localeOptions,
             'profile' => [
-                'name' => 'Rahim Ahmed',
-                'email' => 'rahim.ahmed@example.com',
-                'phone' => '+880 1712-345678',
-                'role' => 'Owner',
-                'department' => 'Operations',
-                'timezone' => 'Asia/Dhaka',
-                'language' => 'English',
-                'joined_at' => 'January 12, 2024',
-                'last_login' => 'Today, 10:32 AM',
-            ],
-            'recentActivities' => [
-                ['time' => '15m ago', 'text' => 'Updated courier assignment rules.'],
-                ['time' => '2h ago', 'text' => 'Approved 4 high-value COD orders.'],
-                ['time' => 'Yesterday', 'text' => 'Changed store timezone preference.'],
+                'id' => (int) ($profile['id'] ?? 0),
+                'username' => (string) ($profile['username'] ?? 'admin'),
+                'full_name' => (string) ($profile['full_name'] ?? 'Admin'),
+                'email' => (string) ($profile['email'] ?? ''),
+                'phone_number' => (string) ($profile['phone_number'] ?? ''),
+                'address' => (string) ($profile['address'] ?? ''),
+                'profile_image' => (string) ($profile['profile_image'] ?? ''),
+                'onboarding' => (string) ($profile['onboarding'] ?? 'completed'),
+                'product_type' => (string) ($profile['product_type'] ?? 'physical'),
+                'timezone' => $this->localeOptions->normalizeTimezone(
+                    (string) ($profile['timezone'] ?? 'Asia/Dhaka'),
+                    $localeOptions['timezones'] ?? []
+                ),
+                'admin_language' => $this->localeOptions->normalizeLanguage(
+                    (string) ($profile['admin_language'] ?? 'en'),
+                    $localeOptions['admin_languages'] ?? []
+                ),
+                'website_language' => $this->localeOptions->normalizeLanguage(
+                    (string) ($profile['website_language'] ?? 'en'),
+                    $localeOptions['website_languages'] ?? []
+                ),
+                'joined_at' => $this->formatDate($profile['created_at'] ?? null, 'Account not available'),
+                'last_login_at' => $this->formatDateTime($profile['last_login_at'] ?? null, 'No login recorded yet'),
+                'password_changed_at' => $this->formatDateTime($profile['password_changed_at'] ?? null, 'No password change yet'),
             ],
         ]);
     }
 
-    public function settings(): View
+    public function settings(Request $request): View
     {
-        return view('admin.profile.settings', [
-            'title' => 'My Settings',
-            'subtitle' => 'Set notification preferences, login security, and interface defaults for your account.',
-            'preferences' => [
-                'email_notifications' => true,
-                'sms_notifications' => false,
-                'browser_notifications' => true,
-                'weekly_summary' => true,
-                'dark_mode' => false,
-            ],
-            'security' => [
-                'two_factor_enabled' => false,
-                'last_password_change' => '42 days ago',
-                'active_sessions' => 2,
-            ],
-        ]);
+        return $this->index($request);
+    }
+
+    private function fetchProfile(Request $request): array
+    {
+        $refreshToken = trim((string) $request->session()->get('auth.refresh_token', ''));
+        if ($refreshToken === '') {
+            return [];
+        }
+
+        $apiUrl = rtrim((string) config('services.backend.url', 'http://localhost:8082'), '/');
+
+        try {
+            $response = Http::acceptJson()
+                ->withHeaders([
+                    'user-refres-token' => $refreshToken,
+                ])
+                ->timeout(12)
+                ->get("{$apiUrl}/api/admin/profile");
+
+            if (! $response->ok() || ! is_array($response->json())) {
+                return [];
+            }
+
+            return $response->json();
+        } catch (Throwable) {
+            return [];
+        }
+    }
+
+    private function formatDate(mixed $value, string $fallback): string
+    {
+        $date = $this->parseDate($value);
+
+        return $date?->format('F j, Y') ?? $fallback;
+    }
+
+    private function formatDateTime(mixed $value, string $fallback): string
+    {
+        $date = $this->parseDate($value);
+
+        return $date?->format('F j, Y g:i A') ?? $fallback;
+    }
+
+    private function parseDate(mixed $value): ?CarbonImmutable
+    {
+        $text = trim((string) $value);
+        if ($text === '') {
+            return null;
+        }
+
+        try {
+            return CarbonImmutable::parse($text);
+        } catch (Throwable) {
+            return null;
+        }
     }
 }
