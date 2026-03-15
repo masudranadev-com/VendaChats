@@ -5381,8 +5381,14 @@ function initPackagesPage() {
     if (normalized === 'quarterly') return '/quarter';
     return '/month';
   };
+  const trialDays = (pkg) => {
+    const parsed = Number(pkg?.trial_days);
+    return Number.isFinite(parsed) ? Math.max(0, Math.round(parsed)) : 0;
+  };
+  const isTrialPackage = (pkg) => trialDays(pkg) > 0;
   const accentForPackage = (pkg, index = 0) => {
     const normalizedName = text(pkg?.package_name).toLowerCase();
+    if (isTrialPackage(pkg) || normalizedName.includes('free')) return 'starter';
     if (normalizedName.includes('starter')) return 'starter';
     if (normalizedName.includes('growth')) return 'growth';
     if (normalizedName.includes('scale')) return 'scale';
@@ -5433,6 +5439,19 @@ function initPackagesPage() {
     return variants.find((variant) => normalizeCycle(variant?.validity) === normalizedCycle) || variants[0] || null;
   };
   const resolvePricing = (pkg, cycle) => {
+    if (isTrialPackage(pkg)) {
+      const days = trialDays(pkg);
+      return {
+        basePrice: 0,
+        finalPrice: 0,
+        hasPrice: true,
+        note: `${days}-day free trial`,
+        unitLabel: '/trial',
+        billingLabel: `${days}-day trial`,
+        priceLabel: 'Free',
+      };
+    }
+
     const variant = getVariant(pkg, cycle);
     const normalizedCycle = normalizeCycle(cycle);
     const basePrice = Number(variant?.price);
@@ -5474,6 +5493,7 @@ function initPackagesPage() {
       note: noteParts.join(' • '),
       unitLabel: cycleUnitLabel(normalizedCycle),
       billingLabel: cycleBillingLabel(normalizedCycle),
+      priceLabel: '',
     };
   };
   const capabilityLabels = [
@@ -5528,7 +5548,11 @@ function initPackagesPage() {
     const packageCount = Array.isArray(allPackages) ? allPackages.length : 0;
     const parts = [`Showing ${cycleLabel(activeCycle).toLowerCase()} pricing for ${packageCount} available package${packageCount === 1 ? '' : 's'}.`];
     if (currentPackage) {
-      parts.push(`Your active package runs on a ${cycleLabel(currentPackage.package_type).toLowerCase()} cycle.`);
+      parts.push(
+        isTrialPackage(currentPackage)
+          ? `Your active package is running on a ${trialDays(currentPackage)}-day trial.`
+          : `Your active package runs on a ${cycleLabel(currentPackage.package_type).toLowerCase()} cycle.`
+      );
     }
     return parts.join(' ');
   };
@@ -5669,13 +5693,13 @@ function initPackagesPage() {
 
     currentTitleNode.textContent = `${text(pkg.package_name) || 'Unknown'} Package`;
     currentDescriptionNode.textContent = text(pkg.short_description) || 'No package description provided by the API.';
-    currentPriceNode.textContent = pricing.hasPrice ? formatCurrency(pricing.finalPrice) : '--';
+    currentPriceNode.textContent = pricing.hasPrice ? (pricing.priceLabel || formatCurrency(pricing.finalPrice)) : '--';
     currentCycleNode.textContent = pricing.billingLabel;
     currentPriceNoteNode.textContent = pricing.note || 'Live pricing is based on your current active billing cycle.';
     metaNameNode.textContent = text(pkg.package_name) || '--';
     metaActivatedNode.textContent = activatedText;
     metaExpiresNode.textContent = expiresText;
-    metaCycleNode.textContent = cycleLabel(normalizedCycle);
+    metaCycleNode.textContent = isTrialPackage(pkg) ? 'Trial' : cycleLabel(normalizedCycle);
 
     insightsTitleNode.textContent = `${text(pkg.package_name) || 'Current'} package snapshot`;
     insightsCopyNode.textContent = `${status.copy} Activated on ${activatedText} and valid until ${expiresText}.`;
@@ -5687,7 +5711,7 @@ function initPackagesPage() {
     setBadgeState(currentStatusNode, status.label, status.tone);
     setMessageState(
       summaryMessageNode,
-      `${status.copy} Current billing cycle: ${cycleLabel(normalizedCycle)}.`,
+      `${status.copy} Current billing cycle: ${isTrialPackage(pkg) ? `${trialDays(pkg)}-day trial` : cycleLabel(normalizedCycle)}.`,
       status.tone === 'paid' ? 'success' : status.tone === 'warning' ? 'warning' : 'danger'
     );
     setMessageState(
@@ -5713,8 +5737,11 @@ function initPackagesPage() {
     const pricing = resolvePricing(pkg, activeCycle);
     const features = Array.isArray(pkg?.features) ? pkg.features.filter((feature) => text(feature)) : [];
     const activeModules = enabledCapabilities(pkg);
+    const isTrial = isTrialPackage(pkg);
     const badgeLabel = isCurrent
       ? 'Current package'
+      : isTrial
+        ? 'Trial'
       : index === 0
         ? 'Start here'
         : index === 1
@@ -5722,7 +5749,9 @@ function initPackagesPage() {
           : 'Advanced';
     const buttonLabel = isCurrent
       ? 'Current Package'
-      : `Upgrade to ${text(pkg?.package_name) || 'Package'}`;
+      : isTrial
+        ? 'Start Trial'
+        : `Upgrade to ${text(pkg?.package_name) || 'Package'}`;
 
     return `
       <article class="billing-package-card ${isCurrent ? 'is-featured is-current' : ''} billing-package-card-${escapeHtml(accentForPackage(pkg, index))}">
@@ -5734,7 +5763,7 @@ function initPackagesPage() {
 
         <div class="billing-package-price-stack">
           <div class="billing-package-price">
-            <strong>${pricing.hasPrice ? escapeHtml(formatCurrency(pricing.finalPrice)) : '--'}</strong>
+            <strong>${pricing.hasPrice ? escapeHtml(pricing.priceLabel || formatCurrency(pricing.finalPrice)) : '--'}</strong>
             <span>${escapeHtml(pricing.unitLabel)}</span>
           </div>
           <div class="billing-package-price-note">
