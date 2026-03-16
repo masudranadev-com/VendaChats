@@ -79,7 +79,6 @@
               <tr>
                 <th>Domain</th>
                 <th>Type</th>
-                <th>DNS Required</th>
                 <th>Status</th>
                 <th>SSL</th>
               </tr>
@@ -92,7 +91,6 @@
                 <tr>
                   <td class="settings-cell-strong">{{ $domain['domain'] }}</td>
                   <td>{{ $domain['type'] }}</td>
-                  <td><span class="badge {{ $domain['dns_required'] === 'Yes' ? 'badge-warning' : 'badge-success' }}">{{ $domain['dns_required'] }}</span></td>
                   <td><span class="badge {{ $statusClass }}">{{ $domain['status'] }}</span></td>
                   <td>{{ $domain['ssl'] }}</td>
                 </tr>
