@@ -8,11 +8,6 @@
       <h1 class="page-title">{{ $title }}</h1>
       <p class="page-subtitle">{{ $subtitle }}</p>
     </div>
-
-    <div class="settings-header-actions">
-      <button type="button" class="btn btn-secondary">Run Verification Check</button>
-      <button type="button" class="btn btn-primary">Save Domain Changes</button>
-    </div>
   </div>
 
   <div class="settings-layout settings-layout-single mt-md">
