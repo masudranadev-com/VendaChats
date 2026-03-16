@@ -1133,7 +1133,7 @@ ul, ol { list-style: none; }
   padding: var(--spacing-md) var(--spacing-lg);
   box-shadow: var(--shadow-xl);
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   gap: 12px;
   transform: translateX(400px);
   animation: slideIn 0.3s forwards;
