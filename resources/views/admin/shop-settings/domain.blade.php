@@ -25,21 +25,9 @@
         <div class="card-header">
           <div>
             <h3 class="card-title">Add Domain</h3>
-            <p class="settings-panel-subtitle">Single-domain mode: user can create only one domain at a time.</p>
+            <p class="settings-panel-subtitle">Connect your domain and enjoy all the benefits it offers.</p>
           </div>
-          <span class="badge {{ $singleDomainLocked ? 'badge-warning' : 'badge-info' }}">{{ $singleDomainLocked ? 'Domain Limit Reached' : 'Guided setup' }}</span>
         </div>
-
-        @if ($singleDomainLocked)
-          <div class="settings-content-card">
-            <div class="settings-content-head">
-              <strong>Single Domain Restriction</strong>
-              <span class="badge badge-warning">One Domain Only</span>
-            </div>
-            <p>You already have one configured domain. Remove current domain first if you want to add another one.</p>
-            <small>NEW DOMAIN CREATION IS LOCKED UNTIL CURRENT DOMAIN IS REMOVED</small>
-          </div>
-        @endif
 
         <div class="settings-inline-actions">
           <button type="button" class="btn btn-primary btn-sm" data-domain-mode-btn data-mode="subdomain" aria-pressed="true">Subdomain</button>
