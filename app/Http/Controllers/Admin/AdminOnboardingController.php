@@ -173,6 +173,11 @@ class AdminOnboardingController extends Controller
             $subDomain = trim((string) ($data['sub_domain'] ?? $config['subdomain'] ?? ''));
             $config['subdomain'] = $subDomain;
             $config['username'] = $subDomain;
+            $config['connected_domain'] = trim((string) ($data['domain'] ?? $config['connected_domain'] ?? ''));
+            $config['domain_type'] = trim((string) ($data['domain_type'] ?? 'sub_domain'));
+            $config['domain_status'] = trim((string) ($data['domain_status'] ?? 'Connected'));
+            $config['subdomain_base'] = trim((string) ($data['subdomain_base'] ?? $config['subdomain_base'] ?? 'ametafy.shop'));
+            $config['domain'] = '';
         }
 
         if ($type === 'call_order') {

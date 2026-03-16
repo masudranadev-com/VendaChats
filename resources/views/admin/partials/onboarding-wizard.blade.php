@@ -5,6 +5,7 @@
   $panelLanguages = $localeOptions['admin_languages'] ?? $orderCallLanguages;
   $websiteLanguages = $localeOptions['website_languages'] ?? $orderCallLanguages;
   $timezones = $localeOptions['timezones'] ?? [];
+  $subdomainBase = trim((string) data_get($adminGlobalConfig ?? [], 'subdomain_base', 'ametafy.shop')) ?: 'ametafy.shop';
   $initialWebsiteName = trim((string) ($websiteName ?? 'A Metafy')) ?: 'A Metafy';
   $defaultSubdomain = \Illuminate\Support\Str::slug($initialWebsiteName, '-') ?: 'my-store';
   $stepIndexes = [
@@ -82,7 +83,7 @@
   data-admin-onboarding
   data-storage-key="admin_onboarding_draft_v1"
   data-hidden-key="admin_onboarding_completed_v1"
-  data-domain-suffix="vendachats.com"
+  data-domain-suffix="{{ $subdomainBase }}"
   data-continue-url="{{ route('admin.onboardingContinue') }}"
   data-dashboard-url="{{ route('admin.dashboard') }}"
   data-initial-current-step="{{ $initialCurrentStep }}"
@@ -248,7 +249,7 @@
 
             <div class="admin-onboarding-domain-preview">
               <span class="admin-onboarding-domain-label">Preview URL</span>
-              <strong data-admin-onboarding-domain-preview>{{ $defaultSubdomain }}.vendachats.com</strong>
+              <strong data-admin-onboarding-domain-preview>{{ $defaultSubdomain }}.{{ $subdomainBase }}</strong>
               <p>Customers will use this link to browse your storefront and place orders.</p>
               <ul class="admin-onboarding-domain-tips">
                 <li>Keep it short and brand-friendly.</li>

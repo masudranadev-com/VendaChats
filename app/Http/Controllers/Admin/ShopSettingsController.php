@@ -6,7 +6,9 @@ use App\Http\Controllers\Controller;
 use App\Support\AdminLocaleOptions;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Facades\Http;
 use Illuminate\View\View;
+use Throwable;
 
 class ShopSettingsController extends Controller
 {
@@ -87,7 +89,8 @@ class ShopSettingsController extends Controller
 
     private function generalData(Request $request): array
     {
-        $config = (array) $request->session()->get('admin.global_config', []);
+        $config = $this->latestAdminGlobalConfig($request);
+        $domainContext = $this->sessionDomainContext($config);
         $localeOptions = $this->localeOptions->load($request);
         $selectedProductType = $this->normalizeProductType((string) ($config['product_type'] ?? 'physical'));
         $timezone = $this->localeOptions->normalizeTimezone(
@@ -103,7 +106,8 @@ class ShopSettingsController extends Controller
             $localeOptions['website_languages'] ?? []
         );
         $storefrontUsername = trim((string) ($config['subdomain'] ?? 'yourbrand')) ?: 'yourbrand';
-        $storefrontUrl = $storefrontUsername.'.vendachats.com';
+        $subdomainBase = trim((string) ($config['subdomain_base'] ?? 'ametafy.shop')) ?: 'ametafy.shop';
+        $storefrontUrl = $domainContext['domain'] ?? ($storefrontUsername.'.'.$subdomainBase);
 
         return array_merge($this->shell(
             request: $request,
@@ -209,71 +213,30 @@ class ShopSettingsController extends Controller
 
     private function domainData(Request $request): array
     {
-        $connectedDomains = [
-            [
-                'domain' => 'yourbrand.ametafy.shop',
-                'type' => 'Subdomain',
-                'dns_required' => 'No',
-                'status' => 'Connected',
-                'ssl' => 'Auto SSL Active',
-            ],
-        ];
-
-        $canAddDomain = count($connectedDomains) === 0;
+        $config = $this->latestAdminGlobalConfig($request);
+        $apiConfig = $this->backendApiConfig($request);
 
         return array_merge($this->shell(
             request: $request,
             heading: 'Domain Setup',
             sectionSubtitle: 'Add your A Metafy subdomain quickly, or connect a custom domain if your package supports it.',
-            quickStats: [
-                ['label' => 'Current Package', 'value' => 'Starter', 'note' => 'Subdomain only', 'tone' => 'primary'],
-                ['label' => 'Connected Domains', 'value' => '1', 'note' => 'Single-domain mode enabled', 'tone' => 'success'],
-                ['label' => 'Custom Domain Access', 'value' => 'Locked', 'note' => 'Upgrade to Pro or higher', 'tone' => 'warning'],
-                ['label' => 'DNS Tasks', 'value' => '0', 'note' => 'No DNS pending on active domain', 'tone' => 'info'],
-            ]
+            quickStats: []
         ), [
-            'plan' => [
-                'name' => 'Starter',
-                'custom_domain_allowed' => false,
-                'subdomain_limit' => 1,
-                'custom_domain_limit' => 1,
-                'single_domain_mode' => true,
-                'upgrade_plan' => 'Pro',
-                'subdomain_base' => 'ametafy.shop',
-            ],
-            'canAddDomain' => $canAddDomain,
-            'accessRules' => [
-                [
-                    'name' => 'A Metafy Subdomain',
-                    'availability' => 'Available on all plans',
-                    'dns_rule' => 'No DNS setup needed',
-                    'status' => 'Open',
-                ],
-                [
-                    'name' => 'Custom Domain',
-                    'availability' => 'Pro and higher only',
-                    'dns_rule' => 'DNS setup required',
-                    'status' => 'Locked on Starter',
-                ],
-            ],
-            'connectedDomains' => $connectedDomains,
-            'dnsRecords' => [
-                ['host' => '@', 'type' => 'A', 'value' => '103.22.18.44', 'ttl' => '300s', 'notes' => 'Point root domain to server IP'],
-                ['host' => 'www', 'type' => 'CNAME', 'value' => 'yourbrand.com', 'ttl' => '300s', 'notes' => 'Alias www to root domain'],
-                ['host' => '_verify', 'type' => 'TXT', 'value' => 'ametafy-domain-verify=ab12cd34', 'ttl' => '3600s', 'notes' => 'Required for ownership verification'],
-            ],
+            'domainApiBaseUrl' => $apiConfig['apiBaseUrl'],
+            'domainRefreshToken' => $apiConfig['refreshToken'],
+            'initialSubdomainBase' => trim((string) ($config['subdomain_base'] ?? 'ametafy.shop')) ?: 'ametafy.shop',
         ]);
     }
 
     private function themeData(Request $request): array
     {
-        $connectedDomains = [
-            [
-                'domain' => 'yourbrand.ametafy.shop',
-                'type' => 'Subdomain',
-                'status' => 'Connected',
-            ],
-        ];
+        $config = $this->latestAdminGlobalConfig($request);
+        $connectedDomain = $this->sessionDomainContext($config);
+        $connectedDomains = $connectedDomain ? [[
+            'domain' => $connectedDomain['domain'],
+            'type' => $connectedDomain['type'],
+            'status' => $connectedDomain['status'],
+        ]] : [];
 
         $primaryDomain = $connectedDomains[0] ?? null;
         $hasDomain = $primaryDomain !== null;
@@ -692,5 +655,74 @@ class ShopSettingsController extends Controller
                 'footer_script' => '<script src=\"https://cdn.example.com/tracking.js\" defer></script>',
             ],
         ]);
+    }
+
+    private function backendApiConfig(Request $request): array
+    {
+        return [
+            'apiBaseUrl' => rtrim((string) config('services.backend.url', 'http://localhost:8082'), '/'),
+            'refreshToken' => (string) (
+                $request->session()->get('auth.refresh_token')
+                ?? $request->session()->get('refresh_token')
+                ?? ''
+            ),
+        ];
+    }
+
+    private function latestAdminGlobalConfig(Request $request): array
+    {
+        $config = (array) $request->session()->get('admin.global_config', []);
+        $apiConfig = $this->backendApiConfig($request);
+
+        if ($apiConfig['refreshToken'] === '') {
+            return $config;
+        }
+
+        try {
+            $response = Http::acceptJson()
+                ->withHeaders([
+                    'user-refres-token' => $apiConfig['refreshToken'],
+                ])
+                ->timeout(12)
+                ->get($apiConfig['apiBaseUrl'].'/api/admin/user/global/config/info');
+
+            if ($response->ok() && is_array($response->json())) {
+                $config = $response->json();
+                $request->session()->put('admin.global_config', $config);
+            }
+        } catch (Throwable) {
+            return $config;
+        }
+
+        return $config;
+    }
+
+    private function sessionDomainContext(array $config): ?array
+    {
+        $subdomainBase = trim((string) ($config['subdomain_base'] ?? 'ametafy.shop')) ?: 'ametafy.shop';
+        $connectedDomain = trim((string) ($config['connected_domain'] ?? ''));
+        $domainType = trim((string) ($config['domain_type'] ?? ''));
+        $domainStatus = trim((string) ($config['domain_status'] ?? ''));
+        $subdomain = trim((string) ($config['subdomain'] ?? $config['username'] ?? ''));
+
+        if ($connectedDomain === '' && $subdomain !== '') {
+            $connectedDomain = $subdomain.'.'.$subdomainBase;
+            $domainType = $domainType !== '' ? $domainType : 'sub_domain';
+            $domainStatus = $domainStatus !== '' ? $domainStatus : 'Connected';
+        }
+
+        if ($connectedDomain === '') {
+            return null;
+        }
+
+        $typeKey = $domainType === 'domain' ? 'domain' : 'sub_domain';
+
+        return [
+            'domain' => $connectedDomain,
+            'type' => $typeKey === 'domain' ? 'Custom Domain' : 'Subdomain',
+            'type_key' => $typeKey,
+            'status' => $domainStatus !== '' ? $domainStatus : 'Connected',
+            'subdomain_base' => $subdomainBase,
+        ];
     }
 }

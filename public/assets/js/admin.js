@@ -621,7 +621,7 @@ function initAdminOnboarding() {
 
   const storageKey = text(shell.dataset.storageKey) || 'admin_onboarding_draft_v1';
   const hiddenKey = text(shell.dataset.hiddenKey) || 'admin_onboarding_completed_v1';
-  const domainSuffix = text(shell.dataset.domainSuffix) || 'vendachats.com';
+  const domainSuffix = text(shell.dataset.domainSuffix) || 'ametafy.shop';
   const continueUrl = text(shell.dataset.continueUrl);
   const dashboardUrl = text(shell.dataset.dashboardUrl);
   const initialCurrentStepValue = Number(shell.dataset.initialCurrentStep);

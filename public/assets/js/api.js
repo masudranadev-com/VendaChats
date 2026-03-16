@@ -225,6 +225,65 @@
           });
         },
       },
+      Domains: {
+        get({apiBaseUrl, refreshToken, timeoutMs = 12000} = {}) {
+          const tokenText = toText(refreshToken || getToken());
+          if (!tokenText) {
+            throw new ApiError('Missing refresh token. Please login again.');
+          }
+
+          return request({
+            baseUrl: normalizeBaseUrl(apiBaseUrl),
+            path: '/api/admin/user/config/domain-get',
+            method: 'GET',
+            token: tokenText,
+            headers: {
+              'user-refres-token': tokenText,
+            },
+            includeRefreshToken: false,
+            timeoutMs,
+          });
+        },
+        create({apiBaseUrl, refreshToken, payload, timeoutMs = 12000} = {}) {
+          const tokenText = toText(refreshToken || getToken());
+          if (!tokenText) {
+            throw new ApiError('Missing refresh token. Please login again.');
+          }
+
+          return request({
+            baseUrl: normalizeBaseUrl(apiBaseUrl),
+            path: '/api/admin/user/config/domain-create',
+            method: 'POST',
+            token: tokenText,
+            headers: {
+              'user-refres-token': tokenText,
+            },
+            body: payload,
+            includeRefreshToken: false,
+            timeoutMs,
+          });
+        },
+      },
+      GlobalConfig: {
+        getInfo({apiBaseUrl, refreshToken, timeoutMs = 12000} = {}) {
+          const tokenText = toText(refreshToken || getToken());
+          if (!tokenText) {
+            throw new ApiError('Missing refresh token. Please login again.');
+          }
+
+          return request({
+            baseUrl: normalizeBaseUrl(apiBaseUrl),
+            path: '/api/admin/user/global/config/info',
+            method: 'GET',
+            token: tokenText,
+            headers: {
+              'user-refres-token': tokenText,
+            },
+            includeRefreshToken: false,
+            timeoutMs,
+          });
+        },
+      },
       Packages: {
         listAll({apiBaseUrl, refreshToken, timeoutMs = 12000} = {}) {
           const tokenText = toText(refreshToken || getToken());
