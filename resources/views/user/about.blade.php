@@ -1,6 +1,6 @@
 @extends('user.master')
 
-@section('title', 'Venda Motion Bot - আমাদের সম্পর্কে')
+@section('title', 'Ametafy - আমাদের সম্পর্কে')
 
 @section('user.master')
 
@@ -9,7 +9,7 @@
       <div class="container">
         <span class="section-tag">আমাদের গল্প</span>
         <h1 class="page-hero-title">বাংলাদেশের seller growth এর জন্য <span class="gradient-text">লোকাল AI টিম</span></h1>
-        <p class="page-hero-sub">Venda Motion Bot তৈরি হয়েছে বাস্তব inbox pressure, repeat প্রশ্ন, এবং lost order সমস্যা সমাধানের জন্য।</p>
+        <p class="page-hero-sub">Ametafy তৈরি হয়েছে বাস্তব inbox pressure, repeat প্রশ্ন, আর lost order সমস্যা সমাধানের জন্য।</p>
       </div>
     </section>
 
@@ -18,7 +18,7 @@
         <div class="about-story">
           <div class="about-text">
             <h2>কেন আমরা এই পণ্য বানিয়েছি</h2>
-            <p>প্রতিদিন হাজার হাজার seller একই সমস্যায় সময় হারায়: বারবার একই প্রশ্নের উত্তর, ঠিকানা ভুল, late follow-up, আর buyer drop। এই pain-point থেকেই Venda Motion Bot-এর শুরু।</p>
+            <p>প্রতিদিন হাজার হাজার seller একই সমস্যায় সময় হারায়: বারবার একই প্রশ্নের উত্তর, ঠিকানা ভুল, late follow-up, আর buyer drop। এই pain-point থেকেই Ametafy-এর শুরু।</p>
             <p>আমাদের লক্ষ্য একটাই, seller-এর জন্য এমন একটি AI assistant তৈরি করা যা শুধু reply দেয় না; বরং order flow, recovery, এবং performance insight একসাথে চালায়।</p>
             <p>আমরা স্থানীয় ভাষা, স্থানীয় আচরণ, এবং স্থানীয় market reality বুঝে product build করি, তাই আমাদের solution practical এবং দ্রুত deployable।</p>
           </div>
@@ -88,7 +88,7 @@
         <div class="mission-block">
           <div class="mission-icon">🏢</div>
           <h2>Central Team Operations</h2>
-          <p>Product, AI, এবং Growth execution সম্পূর্ণভাবে Venda Motion এর internal team দ্বারা পরিচালিত হয়। নিরাপত্তা ও গোপনীয়তার কারণে individual team member profile এখানে প্রকাশ করা হয় না। All rights reserved to Venda Motion.</p>
+          <p>Product, AI, এবং Growth execution সম্পূর্ণভাবে Ametafy-এর internal team দ্বারা পরিচালিত হয়। নিরাপত্তা ও গোপনীয়তার কারণে individual team member profile এখানে প্রকাশ করা হয় না। All rights reserved to Ametafy.</p>
         </div>
       </div>
     </section>

@@ -21,21 +21,21 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>@yield('title', 'Venda Motion Bot')</title>
+  <title>@yield('title', 'Ametafy')</title>
 
   {{-- Open Graph / Facebook --}}
   <meta property="fb:app_id"           content="1971085180493615">
-  <meta property="og:site_name"        content="Venda Motion Bot">
+  <meta property="og:site_name"        content="Ametafy">
   <meta property="og:type"             content="website">
   <meta property="og:url"              content="{{ url()->current() }}">
-  <meta property="og:title"            content="@yield('og_title', 'Venda Motion Bot – AI Sales Assistant')">
-  <meta property="og:description"      content="@yield('og_description', 'বাংলাদেশের সেলারদের জন্য সেরা AI সেলস সহকারী। ফেসবুক মেসেঞ্জারে অটোমেটিক অর্ডার, কাস্টমার সার্ভিস ও সেলস ম্যানেজমেন্ট।')">
+  <meta property="og:title"            content="@yield('og_title', 'Ametafy - AI Sales Automation for Bangladeshi Sellers')">
+  <meta property="og:description"      content="@yield('og_description', 'বাংলাদেশের অনলাইন সেলারদের জন্য AI sales automation, inbox reply, comment conversion, WhatsApp recovery, আর order operations এক প্ল্যাটফর্মে।')">
   <meta property="og:image"            content="@yield('og_image', asset('assets/images/og-image.png'))">
   <meta property="og:image:secure_url" content="@yield('og_image', asset('assets/images/og-image.png'))">
   <meta property="og:image:type"       content="image/png">
   <meta property="og:image:width"      content="1200">
   <meta property="og:image:height"     content="630">
-  <meta property="og:image:alt"        content="@yield('og_title', 'Venda Motion Bot – AI Sales Assistant')">
+  <meta property="og:image:alt"        content="@yield('og_title', 'Ametafy - AI Sales Automation for Bangladeshi Sellers')">
   <meta property="og:locale"           content="bn_BD">
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -46,7 +46,7 @@
 <body data-theme="light">
   <header class="navbar" id="navbar">
     <div class="container nav-inner">
-      <a href="{{ route('home.index') }}" class="logo"><span class="logo-icon">⚡</span><span class="logo-text"><span class="logo-accent">Venda</span>Motion</span></a>
+      <a href="{{ route('home.index') }}" class="logo"><span class="logo-icon">⚡</span><span class="logo-text"><span class="logo-accent">Ameta</span>fy</span></a>
       <nav class="nav-links" id="navLinks">
         <a href="{{ route('home.index') }}" class="nav-link {{ $currentPage === 'home' ? 'active' : '' }}" data-page="home">হোম</a>
         <a href="{{ route('features.index') }}" class="nav-link {{ $currentPage === 'features' ? 'active' : '' }}" data-page="features">ফিচারস</a>
@@ -67,7 +67,7 @@
     <div class="container">
       <div class="footer-grid">
         <div class="footer-brand">
-          <p>বাংলাদেশের সেলারদের জন্য AI সেলস সহকারী।</p>
+          <p>বাংলাদেশের অনলাইন সেলারদের জন্য AI sales automation workspace.</p>
         </div>
         <div class="footer-col">
           <h4>প্রোডাক্ট</h4>
@@ -93,7 +93,7 @@
         </div>
       </div>
       <div class="footer-bottom">
-        <p>&copy; 2026 Venda Motion Bot</p>
+        <p>&copy; 2026 Ametafy</p>
         <p>All rights reserved &bull; <a href="{{ route('terms.index') }}">Terms &amp; Conditions</a> | <a href="{{ route('privacy.index') }}">Privacy Policy</a> | <a href="{{ route('data-deletion.index') }}">User Data Deletion</a></p>
       </div>
     </div>

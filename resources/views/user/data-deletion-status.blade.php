@@ -1,6 +1,6 @@
 @extends('user.master')
 
-@section('title', 'Deletion Request Status | Venda Motion Bot')
+@section('title', 'Deletion Request Status | Ametafy')
 
 @section('user.master')
 

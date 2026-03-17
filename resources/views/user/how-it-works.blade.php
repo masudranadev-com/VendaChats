@@ -1,6 +1,6 @@
 @extends('user.master')
 
-@section('title', 'Venda Motion Bot - কিভাবে কাজ করে')
+@section('title', 'Ametafy - কিভাবে কাজ করে')
 
 @section('user.master')
 
@@ -205,15 +205,15 @@
       <div class="container">
         <div class="section-header">
           <span class="section-tag">Comparison</span>
-          <h2 class="section-title">ম্যানুয়াল বনাম Venda Motion Flow</h2>
+          <h2 class="section-title">ম্যানুয়াল বনাম Ametafy Flow</h2>
         </div>
         <div class="compare-table-wrap">
-          <table class="compare-table" aria-label="Manual vs Venda Motion comparison">
+          <table class="compare-table" aria-label="Manual vs Ametafy comparison">
             <thead>
               <tr>
                 <th>প্রসেস</th>
                 <th class="col-others">ম্যানুয়াল</th>
-                <th class="col-us">Venda Motion</th>
+                <th class="col-us">Ametafy</th>
               </tr>
             </thead>
             <tbody>

@@ -1,6 +1,6 @@
 @extends('user.master')
 
-@section('title', 'Venda Motion Bot - যোগাযোগ')
+@section('title', 'Ametafy - যোগাযোগ')
 
 @section('user.master')
 

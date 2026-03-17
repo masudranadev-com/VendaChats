@@ -1,6 +1,6 @@
 @extends('user.master')
 
-@section('title', 'Login - Venda Motion Bot')
+@section('title', 'Login - Ametafy')
 
 @section('user.master')
 
@@ -8,13 +8,13 @@
     <section class="page-hero">
       <div class="container">
         <span class="section-tag">Account</span>
-        <h1 class="page-hero-title">Login to your <span class="gradient-text">account</span></h1>
+        <h1 class="page-hero-title">Login to your <span class="gradient-text">Ametafy workspace</span></h1>
       </div>
     </section>
     <section class="section">
       <div class="container">
         <div class="contact-form-wrap" style="max-width: 460px; margin: 0 auto;">
-          <h2>Login</h2>
+          <h2>Sign in</h2>
 
           @if (session('status'))
             <div role="status" style="margin-bottom: 1rem; border: 1px solid #bbf7d0; background: #f0fdf4; color: #166534; border-radius: 10px; padding: 0.75rem 0.9rem;">
@@ -40,7 +40,7 @@
               <input type="password" name="password" required>
             </div>
             <button type="submit" class="btn btn-primary btn-block">Login</button>
-            <a href="{{ route('signup.index') }}" class="btn btn-ghost btn-block">Sign up</a>
+            <a href="{{ route('signup.index') }}" class="btn btn-ghost btn-block">Create account</a>
           </form>
         </div>
       </div>

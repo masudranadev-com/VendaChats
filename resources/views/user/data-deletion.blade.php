@@ -1,6 +1,6 @@
 @extends('user.master')
 
-@section('title', 'User Data Deletion | Venda Motion Bot')
+@section('title', 'User Data Deletion | Ametafy')
 
 @section('user.master')
 
@@ -16,7 +16,7 @@
       <div class="container">
         <div class="fd-card">
           <h3>How to Request Deletion via Facebook</h3>
-          <p>If you connected to Venda Motion Bot using Facebook Login, you can request deletion of your app data directly from Facebook.</p>
+          <p>If you connected to Ametafy using Facebook Login, you can request deletion of your app data directly from Facebook.</p>
           <p>Go to <strong>Facebook</strong> &gt; <strong>Settings &amp; Privacy</strong> &gt; <strong>Settings</strong> &gt; <strong>Apps and Websites</strong>, find this app, then click <strong>Send Request</strong>.</p>
 
           <h3>What Happens Next</h3>

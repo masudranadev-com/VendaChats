@@ -1,6 +1,6 @@
 @extends('user.master')
 
-@section('title', 'Venda Motion Bot - ফিচারস')
+@section('title', 'Ametafy - ফিচারস')
 
 @section('user.master')
 
@@ -9,7 +9,7 @@
       <div class="container">
         <span class="section-tag">ফিচারস</span>
         <h1 class="page-hero-title">সম্পূর্ণ <span class="gradient-text">১৬টি AI ফিচার</span></h1>
-        <p class="page-hero-sub">বাংলাদেশের Venda Motion seller workflow অনুযায়ী তৈরি end-to-end automation toolkit, inbox + comment automation সহ।</p>
+        <p class="page-hero-sub">বাংলাদেশের online seller workflow অনুযায়ী তৈরি Ametafy-এর end-to-end automation toolkit, inbox + comment conversion সহ।</p>
       </div>
     </section>
     <section class="section">
