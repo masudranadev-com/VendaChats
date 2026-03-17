@@ -264,6 +264,45 @@
           });
         },
       },
+      ThemeSettings: {
+        get({apiBaseUrl, refreshToken, timeoutMs = 12000} = {}) {
+          const tokenText = toText(refreshToken || getToken());
+          if (!tokenText) {
+            throw new ApiError('Missing refresh token. Please login again.');
+          }
+
+          return request({
+            baseUrl: normalizeBaseUrl(apiBaseUrl),
+            path: '/api/admin/user/config/theme-settings',
+            method: 'GET',
+            token: tokenText,
+            headers: {
+              'user-refres-token': tokenText,
+            },
+            includeRefreshToken: false,
+            timeoutMs,
+          });
+        },
+        update({apiBaseUrl, refreshToken, payload, timeoutMs = 12000} = {}) {
+          const tokenText = toText(refreshToken || getToken());
+          if (!tokenText) {
+            throw new ApiError('Missing refresh token. Please login again.');
+          }
+
+          return request({
+            baseUrl: normalizeBaseUrl(apiBaseUrl),
+            path: '/api/admin/user/config/theme-settings',
+            method: 'PUT',
+            token: tokenText,
+            headers: {
+              'user-refres-token': tokenText,
+            },
+            body: payload,
+            includeRefreshToken: false,
+            timeoutMs,
+          });
+        },
+      },
       GlobalConfig: {
         getInfo({apiBaseUrl, refreshToken, timeoutMs = 12000} = {}) {
           const tokenText = toText(refreshToken || getToken());
