@@ -13,7 +13,8 @@ class AdminWebsiteContentControllerTest extends TestCase
             ->get(route('admin.shop-settings.content'));
 
         $response->assertOk();
-        $response->assertSeeText('Homepage slider queue');
+        $response->assertSeeText('Homepage sliders');
+        $response->assertSeeText('Add Slider');
         $response->assertSeeText('Page Editor');
         $response->assertSeeText('Contact');
         $response->assertSeeText('Footer');

@@ -22,9 +22,12 @@
 
   <section class="settings-stats-grid">
     @foreach ($quickStats as $stat)
-      <article class="settings-stat-card is-{{ $stat['tone'] }}">
+      <article
+        class="settings-stat-card is-{{ $stat['tone'] }}"
+        @if (! empty($stat['key'])) data-content-stat="{{ $stat['key'] }}" @endif
+      >
         <span>{{ $stat['label'] }}</span>
-        <strong>{{ $stat['value'] }}</strong>
+        <strong @if (! empty($stat['key'])) data-content-stat-value @endif>{{ $stat['value'] }}</strong>
         <small>{{ $stat['note'] }}</small>
       </article>
     @endforeach

@@ -460,6 +460,74 @@
           });
         },
       },
+      Offers: {
+        get({apiBaseUrl, refreshToken, timeoutMs = 12000} = {}) {
+          return request({
+            baseUrl: normalizeBaseUrl(apiBaseUrl),
+            path: '/api/admin/shop-settings/offers',
+            method: 'GET',
+            token: refreshToken,
+            timeoutMs,
+          });
+        },
+        save({apiBaseUrl, refreshToken, payload, couponId = null, timeoutMs = 12000} = {}) {
+          const hasId = Number.isFinite(Number(couponId)) && Number(couponId) > 0;
+
+          return request({
+            baseUrl: normalizeBaseUrl(apiBaseUrl),
+            path: hasId
+              ? `/api/admin/shop-settings/offers/${encodeURIComponent(couponId)}`
+              : '/api/admin/shop-settings/offers',
+            method: hasId ? 'PUT' : 'POST',
+            token: refreshToken,
+            body: payload,
+            timeoutMs,
+          });
+        },
+        remove({apiBaseUrl, refreshToken, couponId, timeoutMs = 12000} = {}) {
+          return request({
+            baseUrl: normalizeBaseUrl(apiBaseUrl),
+            path: `/api/admin/shop-settings/offers/${encodeURIComponent(couponId)}`,
+            method: 'DELETE',
+            token: refreshToken,
+            timeoutMs,
+          });
+        },
+      },
+      WebsiteSliders: {
+        get({apiBaseUrl, refreshToken, timeoutMs = 12000} = {}) {
+          return request({
+            baseUrl: normalizeBaseUrl(apiBaseUrl),
+            path: '/api/admin/shop-settings/content/sliders',
+            method: 'GET',
+            token: refreshToken,
+            timeoutMs,
+          });
+        },
+        save({apiBaseUrl, refreshToken, payload, sliderId = null, timeoutMs = 12000} = {}) {
+          const hasId = Number.isFinite(Number(sliderId)) && Number(sliderId) > 0;
+
+          return request({
+            baseUrl: normalizeBaseUrl(apiBaseUrl),
+            path: hasId
+              ? `/api/admin/shop-settings/content/sliders/${encodeURIComponent(sliderId)}`
+              : '/api/admin/shop-settings/content/sliders',
+            method: hasId ? 'PUT' : 'POST',
+            token: refreshToken,
+            body: payload,
+            timeoutMs,
+          });
+        },
+        remove({apiBaseUrl, refreshToken, sliderId, timeoutMs = 12000} = {}) {
+          return request({
+            baseUrl: normalizeBaseUrl(apiBaseUrl),
+            path: `/api/admin/shop-settings/content/sliders/${encodeURIComponent(sliderId)}`,
+            method: 'DELETE',
+            token: refreshToken,
+            timeoutMs,
+          });
+        },
+      },
       Profile: {
         get({apiBaseUrl, refreshToken, timeoutMs = 12000} = {}) {
           return request({

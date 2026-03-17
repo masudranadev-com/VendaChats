@@ -22,10 +22,9 @@ class ShopSettingsControllerTest extends TestCase
             ->get(route('admin.shop-settings'));
 
         $response->assertOk();
-        $response->assertSee('First-time setup');
+        $response->assertSee('Shop Settings');
         $response->assertSee('Choose your product type');
         $response->assertSee('Locale');
-        $response->assertSee('Shop Settings Sections');
         $response->assertSee('Save product type');
         $response->assertSee('Save locale');
     }

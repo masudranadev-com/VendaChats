@@ -3,19 +3,37 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use Illuminate\Http\Request;
 use Illuminate\View\View;
 
 class AdminWebsiteContentController extends Controller
 {
-    public function slider(): View
+    public function slider(Request $request): View
     {
         $content = $this->contentRepository();
+        $apiConfig = $this->backendApiConfig($request);
 
         return view('admin.shop-settings.website-content.slider', array_merge(
             $this->shell('slider', $content),
             [
-                'sliderItems' => $content['sliderItems'],
-                'sliderProducts' => $content['sliderProducts'],
+                'quickStats' => [
+                    ['key' => 'live_slides', 'label' => 'Live Slides', 'value' => '--', 'note' => 'Loading live slider count', 'tone' => 'primary'],
+                    ['key' => 'draft_slides', 'label' => 'Draft Slides', 'value' => '--', 'note' => 'Loading draft slider count', 'tone' => 'warning'],
+                    ['key' => 'linked_products', 'label' => 'Linked Products', 'value' => '--', 'note' => 'Loading linked product count', 'tone' => 'info'],
+                    ['key' => 'queue_size', 'label' => 'Queue Size', 'value' => '--', 'note' => 'Loading total slider queue', 'tone' => 'success'],
+                ],
+                'slidersApiBaseUrl' => $apiConfig['apiBaseUrl'],
+                'slidersRefreshToken' => $apiConfig['refreshToken'],
+                'sliderDefaults' => [
+                    'id' => null,
+                    'title' => '',
+                    'product_id' => 0,
+                    'notes' => '',
+                    'priority' => 1,
+                    'status' => 'Draft',
+                ],
+                'sliderItems' => [],
+                'sliderProducts' => [],
             ]
         ));
     }
@@ -302,6 +320,18 @@ class AdminWebsiteContentController extends Controller
                 'header_script' => '<script>window.dataLayer = window.dataLayer || [];</script>',
                 'footer_script' => '<script src=\"https://cdn.example.com/tracking.js\" defer></script>',
             ],
+        ];
+    }
+
+    private function backendApiConfig(Request $request): array
+    {
+        return [
+            'apiBaseUrl' => rtrim((string) config('services.backend.url', 'http://localhost:8082'), '/'),
+            'refreshToken' => (string) (
+                $request->session()->get('auth.refresh_token')
+                ?? $request->session()->get('refresh_token')
+                ?? ''
+            ),
         ];
     }
 }

@@ -611,122 +611,49 @@ class ShopSettingsController extends Controller
 
     private function offersData(Request $request): array
     {
+        $apiConfig = $this->backendApiConfig($request);
+
         return array_merge($this->shell(
             request: $request,
             heading: 'Coupon Code Manager',
             sectionSubtitle: 'Create simple coupon codes with flat or percentage discount and manage them from one place.',
             quickStats: [
-                ['label' => 'Active Coupons', 'value' => '3', 'note' => 'Currently usable at checkout', 'tone' => 'success'],
-                ['label' => 'Used This Week', 'value' => '428', 'note' => 'Total redemptions', 'tone' => 'primary'],
-                ['label' => 'Avg Discount', 'value' => 'BDT 142', 'note' => 'Per successful order', 'tone' => 'info'],
-                ['label' => 'Expired Soon', 'value' => '1', 'note' => 'Ends within 48 hours', 'tone' => 'warning'],
+                ['key' => 'active_coupons', 'label' => 'Active Coupons', 'value' => '--', 'note' => 'Loading current coupon count', 'tone' => 'success'],
+                ['key' => 'total_redemptions', 'label' => 'Total Redemptions', 'value' => '--', 'note' => 'Loading coupon usage summary', 'tone' => 'primary'],
+                ['key' => 'average_discount_label', 'label' => 'Avg Discount', 'value' => '--', 'note' => 'Loading active coupon average', 'tone' => 'info'],
+                ['key' => 'expiring_soon', 'label' => 'Expiring Soon', 'value' => '--', 'note' => 'Loading upcoming expiries', 'tone' => 'warning'],
             ]
         ), [
-            'couponDefaults' => [
-                'id' => null,
-                'code' => 'WELCOME10',
-                'discount_type' => 'percentage',
-                'flat_value' => 120,
-                'percentage_value' => 10,
-                'minimum_order' => 500,
-                'max_discount' => 250,
-                'usage_count' => 0,
-                'usage_limit' => 200,
-                'per_user_limit' => 1,
-                'start_at' => '2026-02-23T00:00',
-                'end_at' => '2026-03-31T23:59',
-                'applies_to' => 'all_products',
-                'specific_product_ids' => [],
-                'status' => 'Active',
-            ],
-            'coupons' => [
-                [
-                    'id' => 'coupon_welcome10',
-                    'code' => 'WELCOME10',
-                    'discount_type' => 'percentage',
-                    'discount_type_label' => 'Percentage',
-                    'flat_value' => 120,
-                    'percentage_value' => 10,
-                    'discount_value_label' => '10%',
-                    'minimum_order' => 500,
-                    'minimum_order_label' => 'BDT 500',
-                    'max_discount' => 250,
-                    'usage_count' => 134,
-                    'usage_limit' => 200,
-                    'usage' => '134 / 200',
-                    'per_user_limit' => 1,
-                    'start_at' => '2026-02-23T00:00',
-                    'end_at' => '2026-03-31T23:59',
-                    'applies_to' => 'all_products',
-                    'specific_product_ids' => [],
-                    'status' => 'Active',
-                    'validity' => '23 Feb 2026 - 31 Mar 2026',
-                ],
-                [
-                    'id' => 'coupon_flat120',
-                    'code' => 'FLAT120',
-                    'discount_type' => 'flat',
-                    'discount_type_label' => 'Flat',
-                    'flat_value' => 120,
-                    'percentage_value' => 0,
-                    'discount_value_label' => 'BDT 120',
-                    'minimum_order' => 800,
-                    'minimum_order_label' => 'BDT 800',
-                    'max_discount' => 0,
-                    'usage_count' => 68,
-                    'usage_limit' => 150,
-                    'usage' => '68 / 150',
-                    'per_user_limit' => 1,
-                    'start_at' => '2026-02-15T00:00',
-                    'end_at' => '2026-02-28T23:59',
-                    'applies_to' => 'all_products',
-                    'specific_product_ids' => [],
-                    'status' => 'Active',
-                    'validity' => '15 Feb 2026 - 28 Feb 2026',
-                ],
-                [
-                    'id' => 'coupon_ramadan20',
-                    'code' => 'RAMADAN20',
-                    'discount_type' => 'percentage',
-                    'discount_type_label' => 'Percentage',
-                    'flat_value' => 120,
-                    'percentage_value' => 20,
-                    'discount_value_label' => '20%',
-                    'minimum_order' => 1200,
-                    'minimum_order_label' => 'BDT 1200',
-                    'max_discount' => 400,
-                    'usage_count' => 0,
-                    'usage_limit' => 300,
-                    'usage' => '0 / 300',
-                    'per_user_limit' => 2,
-                    'start_at' => '2026-03-01T00:00',
-                    'end_at' => '2026-03-20T23:59',
-                    'applies_to' => 'specific_products',
-                    'specific_product_ids' => ['prod_201', 'prod_202'],
-                    'status' => 'Scheduled',
-                    'validity' => '01 Mar 2026 - 20 Mar 2026',
-                ],
-            ],
-            'productGroups' => [
-                [
-                    'key' => 'category_1',
-                    'label' => 'Category 1',
-                    'products' => [
-                        ['value' => 'prod_101', 'label' => 'Product 1'],
-                        ['value' => 'prod_102', 'label' => 'Product 2'],
-                    ],
-                ],
-                [
-                    'key' => 'category_2',
-                    'label' => 'Category 2',
-                    'products' => [
-                        ['value' => 'prod_201', 'label' => 'Product 3'],
-                        ['value' => 'prod_202', 'label' => 'Product 4'],
-                        ['value' => 'prod_203', 'label' => 'Product 5'],
-                    ],
-                ],
-            ],
+            'offersApiBaseUrl' => $apiConfig['apiBaseUrl'],
+            'offersRefreshToken' => $apiConfig['refreshToken'],
+            'couponDefaults' => $this->defaultOfferCouponDefaults(),
+            'coupons' => [],
+            'productGroups' => [],
         ]);
+    }
+
+    private function defaultOfferCouponDefaults(): array
+    {
+        $startAt = now()->startOfMinute();
+        $endAt = (clone $startAt)->addDays(14);
+
+        return [
+            'id' => null,
+            'code' => 'WELCOME10',
+            'discount_type' => 'percentage',
+            'flat_value' => 120,
+            'percentage_value' => 10,
+            'minimum_order' => 500,
+            'max_discount' => 250,
+            'usage_count' => 0,
+            'usage_limit' => 200,
+            'per_user_limit' => 1,
+            'start_at' => $startAt->format('Y-m-d\TH:i'),
+            'end_at' => $endAt->format('Y-m-d\TH:i'),
+            'applies_to' => 'all_products',
+            'specific_product_ids' => [],
+            'status' => 'Active',
+        ];
     }
 
     private function contentData(Request $request): array
