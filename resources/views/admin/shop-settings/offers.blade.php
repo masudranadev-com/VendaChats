@@ -31,25 +31,6 @@
 
   <div class="settings-layout settings-layout-single mt-md" data-coupon-manager>
     <section class="settings-main-column">
-      <article class="card settings-panel">
-        <div class="card-header">
-          <div>
-            <h3 class="card-title">Coupon Popup Workflow</h3>
-            <p class="settings-panel-subtitle">Create and edit coupon codes from one popup form without leaving the coupon list.</p>
-          </div>
-          <span class="badge badge-primary">Popup Form</span>
-        </div>
-
-        <div class="settings-content-card">
-          <div class="settings-content-head">
-            <strong>Coupon Manager</strong>
-            <span class="badge badge-info">{{ count($coupons) }} coupons</span>
-          </div>
-          <p>Use Add Coupon to open the full form in a modal. Each row Edit button opens the same modal with coupon data prefilled.</p>
-          <small>The current page remains UI-only for now, so save actions update the demo workflow without backend persistence.</small>
-        </div>
-      </article>
-
       <article class="card settings-panel mt-md">
         <div class="card-header">
           <div>

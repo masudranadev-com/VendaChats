@@ -2,6 +2,9 @@
 (function initApiModule(global) {
   'use strict';
 
+  const LOGOUT_PATH = '/logout';
+  let unauthorizedLogoutTriggered = false;
+
   function toText(value) {
     return String(value ?? '').trim();
   }
@@ -14,6 +17,105 @@
     if (typeof document === 'undefined') return '';
     const node = document.querySelector('meta[name="x-refresh-token"]');
     return toText(node?.getAttribute('content'));
+  }
+
+  function clearLoginState() {
+    try {
+      global.localStorage?.removeItem?.('access_token');
+      global.localStorage?.removeItem?.('refresh_token');
+      global.localStorage?.removeItem?.('auth.refresh_token');
+      global.localStorage?.removeItem?.('auth.expires_at');
+    } catch {
+      // Ignore storage cleanup failures.
+    }
+
+    try {
+      global.sessionStorage?.removeItem?.('access_token');
+      global.sessionStorage?.removeItem?.('refresh_token');
+      global.sessionStorage?.removeItem?.('auth.refresh_token');
+      global.sessionStorage?.removeItem?.('auth.expires_at');
+    } catch {
+      // Ignore storage cleanup failures.
+    }
+
+    if (typeof document !== 'undefined') {
+      const metaToken = document.querySelector('meta[name="x-refresh-token"]');
+      if (metaToken instanceof HTMLMetaElement) {
+        metaToken.setAttribute('content', '');
+      }
+    }
+  }
+
+  function redirectToLogout() {
+    if (unauthorizedLogoutTriggered) return;
+    unauthorizedLogoutTriggered = true;
+
+    clearLoginState();
+
+    if (toText(global.location?.pathname) === LOGOUT_PATH) {
+      return;
+    }
+
+    if (typeof global.location?.assign === 'function') {
+      global.location.assign(LOGOUT_PATH);
+    }
+  }
+
+  function readHeaderValue(headers, headerName) {
+    if (!headers) return '';
+
+    if (typeof Headers !== 'undefined' && headers instanceof Headers) {
+      return toText(headers.get(headerName));
+    }
+
+    if (Array.isArray(headers)) {
+      const entry = headers.find(([name]) => toText(name).toLowerCase() === headerName.toLowerCase());
+      return toText(entry?.[1]);
+    }
+
+    if (typeof headers === 'object') {
+      for (const [name, value] of Object.entries(headers)) {
+        if (toText(name).toLowerCase() === headerName.toLowerCase()) {
+          return toText(value);
+        }
+      }
+    }
+
+    return '';
+  }
+
+  function isApiLikeRequest(url, init) {
+    const normalized = toText(url).toLowerCase();
+    if (!normalized) return false;
+
+    const acceptHeader = readHeaderValue(init?.headers, 'accept').toLowerCase();
+    const requestedWith = readHeaderValue(init?.headers, 'x-requested-with').toLowerCase();
+
+    return normalized.includes('/api/')
+      || normalized.includes(':8082/')
+      || normalized.includes(':8088/')
+      || normalized.includes('/facebook/webhook')
+      || acceptHeader.includes('application/json')
+      || requestedWith === 'xmlhttprequest';
+  }
+
+  const nativeFetch = typeof global.fetch === 'function'
+    ? global.fetch.bind(global)
+    : null;
+
+  if (nativeFetch) {
+    global.fetch = async function wrappedFetch(input, init) {
+      const response = await nativeFetch(input, init);
+      const requestUrl = typeof input === 'string'
+        ? input
+        : (input?.url || response?.url || '');
+
+      if (response?.status === 401 && isApiLikeRequest(requestUrl, init)) {
+        redirectToLogout();
+      }
+
+      return response;
+    };
   }
 
   function getToken() {
@@ -35,16 +137,7 @@
       || toText(global.localStorage?.getItem?.('refresh_token'));
     if (token) return token;
 
-    try {
-      if (typeof global.$ === 'function') {
-        const logoutForm = global.$('#autoLogoutForm');
-        if (logoutForm.length) {
-          logoutForm.submit();
-        }
-      }
-    } catch {
-      // Best-effort auto logout behavior.
-    }
+    redirectToLogout();
 
     return '';
   }
@@ -127,6 +220,10 @@
           ? payload
           : (payload?.error || payload?.message || '');
 
+        if (response.status === 401) {
+          redirectToLogout();
+        }
+
         throw new ApiError(
           toText(serverMessage) || `Request failed (${response.status}).`,
           {status: response.status, payload, method, url}
@@ -152,6 +249,8 @@
   const API = {
     getToken,
     request,
+    redirectToLogout,
+    clearLoginState,
     Admin: {
       FacebookAuth: {
         getStatus({apiBaseUrl, refreshToken, timeoutMs = 12000} = {}) {

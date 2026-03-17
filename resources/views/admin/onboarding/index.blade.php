@@ -20,6 +20,7 @@
   <script>
     window.__ADMIN_PAGE = 'onboarding';
   </script>
+  <script src="{{ asset('assets/js/api.js') }}"></script>
   <script src="{{ asset('assets/js/admin.js') }}"></script>
 </body>
 </html>
