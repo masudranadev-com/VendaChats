@@ -8,16 +8,7 @@
       <h1 class="page-title">{{ $title }}</h1>
       <p class="page-subtitle">{{ $subtitle }}</p>
     </div>
-
-    <div class="settings-header-actions">
-      <button type="button" class="btn btn-success" data-coupon-open-create>Add Coupon</button>
-    </div>
   </div>
-
-  <section class="settings-section-intro">
-    <h3>{{ $sectionHeading }}</h3>
-    <p>{{ $sectionSubtitle }}</p>
-  </section>
 
   <section class="settings-stats-grid">
     @foreach ($quickStats as $stat)
@@ -31,7 +22,7 @@
 
   <div class="settings-layout settings-layout-single mt-md" data-coupon-manager>
     <section class="settings-main-column">
-      <article class="card settings-panel mt-md">
+      <article class="card settings-panel">
         <div class="card-header">
           <div>
             <h3 class="card-title">Coupon Code List</h3>

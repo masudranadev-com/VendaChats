@@ -131,22 +131,6 @@
           <button type="button" class="btn btn-primary btn-sm" data-slider-preview-btn>Preview Order</button>
         </div>
       </article>
-
-      <article class="card settings-panel mt-md">
-        <div class="card-header">
-          <div>
-            <h3 class="card-title">Operator checklist</h3>
-            <p class="settings-panel-subtitle">A short workflow so the slider stays easy to manage.</p>
-          </div>
-          <span class="badge badge-info">Guide</span>
-        </div>
-
-        <div style="display: grid; gap: 12px; color: var(--text-secondary); font-size: 13px;">
-          <p style="margin: 0;">1. Add a short title that sales or support can recognize quickly.</p>
-          <p style="margin: 0;">2. Link the slide to a real product so the team can trace the campaign owner.</p>
-          <p style="margin: 0;">3. Keep only a few live slides at the top. Draft the rest for later campaigns.</p>
-        </div>
-      </article>
     </aside>
   </div>
 
