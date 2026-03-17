@@ -29,4 +29,26 @@ class ShopSettingsControllerTest extends TestCase
         $response->assertSee('Save product type');
         $response->assertSee('Save locale');
     }
+
+    public function test_theme_page_shows_live_theme_configuration_sections(): void
+    {
+        $response = $this
+            ->withSession([
+                'auth.refresh_token' => 'refresh-token',
+                'admin.global_config' => [
+                    'connected_domain' => 'store.ametafy.shop',
+                    'domain_type' => 'sub_domain',
+                    'domain_status' => 'Connected',
+                    'subdomain_base' => 'ametafy.shop',
+                ],
+            ])
+            ->get(route('admin.shop-settings.theme'));
+
+        $response->assertOk();
+        $response->assertSee('Theme Experience Summary');
+        $response->assertSee('Auto-Generated Theme Library');
+        $response->assertSee('Advanced Visual Settings');
+        $response->assertSee('Storefront Feature Switches');
+        $response->assertSee('Studio Luxe v2');
+    }
 }

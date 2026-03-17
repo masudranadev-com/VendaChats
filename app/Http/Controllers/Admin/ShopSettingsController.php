@@ -231,6 +231,7 @@ class ShopSettingsController extends Controller
     private function themeData(Request $request): array
     {
         $config = $this->latestAdminGlobalConfig($request);
+        $apiConfig = $this->backendApiConfig($request);
         $connectedDomain = $this->sessionDomainContext($config);
         $connectedDomains = $connectedDomain ? [[
             'domain' => $connectedDomain['domain'],
@@ -253,8 +254,8 @@ class ShopSettingsController extends Controller
                 'is_connected' => $domainIsConnected,
                 'default_theme_id' => $isCustomDomain ? 'atlas-grid-v3' : 'aurora-commerce-v4',
                 'available_theme_ids' => $isCustomDomain
-                    ? ['atlas-grid-v3']
-                    : ['aurora-commerce-v4', 'minimal-pulse-v5'],
+                    ? ['atlas-grid-v3', 'studio-luxe-v2']
+                    : ['aurora-commerce-v4', 'minimal-pulse-v5', 'studio-luxe-v2'],
             ];
         }
 
@@ -269,98 +270,343 @@ class ShopSettingsController extends Controller
                 ['label' => 'Creation Access', 'value' => 'Locked', 'note' => 'Manual theme creation disabled', 'tone' => 'warning'],
             ]
         ), [
+            'themeApiBaseUrl' => $apiConfig['apiBaseUrl'],
+            'themeRefreshToken' => $apiConfig['refreshToken'],
             'hasDomain' => $hasDomain,
             'domainContext' => $domainContext,
-            'themeCatalog' => [
-                [
-                    'id' => 'aurora-commerce-v4',
-                    'name' => 'Aurora Commerce v4',
-                    'note' => 'Balanced storytelling sections with conversion-first product cards.',
-                    'speed' => '92',
-                    'conversion' => '5.9%',
-                    'best_for' => 'Lifestyle and fashion',
-                    'generated_at' => 'Today 08:10 AM',
-                    'is_active' => true,
-                ],
-                [
-                    'id' => 'atlas-grid-v3',
-                    'name' => 'Atlas Grid v3',
-                    'note' => 'Dense category browsing, fast list pages, and compact checkout flow.',
-                    'speed' => '89',
-                    'conversion' => '5.1%',
-                    'best_for' => 'Large catalogs',
-                    'generated_at' => 'Today 08:10 AM',
-                    'is_active' => false,
-                ],
-                [
-                    'id' => 'minimal-pulse-v5',
-                    'name' => 'Minimal Pulse v5',
-                    'note' => 'Lightweight mobile-first layout with minimal distraction design.',
-                    'speed' => '96',
-                    'conversion' => '4.8%',
-                    'best_for' => 'Fast mobile storefronts',
-                    'generated_at' => 'Today 08:10 AM',
-                    'is_active' => false,
-                ],
-            ],
-            'advancedControls' => [
-                [
-                    'label' => 'Store Currency',
-                    'name' => 'store_currency',
-                    'value' => 'BDT (Bangladesh)',
-                    'options' => [
-                        'BDT (Bangladesh)',
-                        'INR (India / IND)',
-                        'USD (USA)',
-                        'EUR (Euro)',
-                        'GBP (United Kingdom)',
-                    ],
-                    'help' => 'Sets default storefront currency format for prices and checkout totals.',
-                ],
-                [
-                    'label' => 'Color Preset',
-                    'name' => 'color_preset',
-                    'value' => 'Ocean Blue',
-                    'options' => ['Ocean Blue', 'Emerald Green', 'Sunset Orange', 'Carbon Gray'],
-                    'help' => 'Controls brand color, CTA emphasis, and highlight chips.',
-                ],
-                [
-                    'label' => 'Typography Pack',
-                    'name' => 'typography_pack',
-                    'value' => 'Modern Sans',
-                    'options' => ['Modern Sans', 'Elegant Serif', 'Bold Contrast'],
-                    'help' => 'Applies heading + body font system across storefront pages.',
-                ],
-                [
-                    'label' => 'Section Spacing',
-                    'name' => 'section_spacing',
-                    'value' => 'Comfortable',
-                    'options' => ['Compact', 'Comfortable', 'Airy'],
-                    'help' => 'Controls vertical rhythm between major homepage sections.',
-                ],
-                [
-                    'label' => 'Corner Style',
-                    'name' => 'corner_style',
-                    'value' => 'Soft',
-                    'options' => ['Sharp', 'Soft', 'Rounded'],
-                    'help' => 'Applies to cards, buttons, and image placeholders.',
-                ],
-                [
-                    'label' => 'Product Grid Density',
-                    'name' => 'grid_density',
-                    'value' => 'Balanced',
-                    'options' => ['Compact', 'Balanced', 'Spacious'],
-                    'help' => 'Adjusts card count and information density in listing pages.',
-                ],
-                [
-                    'label' => 'Image Ratio Mode',
-                    'name' => 'image_ratio_mode',
-                    'value' => '4:5 Portrait',
-                    'options' => ['1:1 Square', '4:5 Portrait', '16:9 Landscape'],
-                    'help' => 'Defines default ratio for product thumbnails and featured banners.',
-                ],
-            ],
+            'themeCatalog' => $this->themeCatalog(),
+            'themeControlGroups' => $this->themeControlGroups(),
+            'themeFeatureToggles' => $this->themeFeatureToggles(),
         ]);
+    }
+
+    private function themeCatalog(): array
+    {
+        return [
+            [
+                'id' => 'aurora-commerce-v4',
+                'name' => 'Aurora Commerce v4',
+                'note' => 'Balanced storytelling sections with conversion-first product cards.',
+                'speed' => '92',
+                'conversion' => '5.9%',
+                'best_for' => 'Lifestyle and fashion',
+                'mode' => 'System library',
+                'highlights' => ['Conversion-first hero', 'Flexible campaign blocks', 'Fast checkout'],
+                'preview_from' => '#1352dc',
+                'preview_to' => '#0ea271',
+                'is_active' => true,
+            ],
+            [
+                'id' => 'atlas-grid-v3',
+                'name' => 'Atlas Grid v3',
+                'note' => 'Dense category browsing, fast list pages, and compact checkout flow.',
+                'speed' => '89',
+                'conversion' => '5.1%',
+                'best_for' => 'Large catalogs',
+                'mode' => 'Custom-domain ready',
+                'highlights' => ['Search-heavy layout', 'Large SKU support', 'Compact merchandising'],
+                'preview_from' => '#0f766e',
+                'preview_to' => '#111827',
+                'is_active' => false,
+            ],
+            [
+                'id' => 'minimal-pulse-v5',
+                'name' => 'Minimal Pulse v5',
+                'note' => 'Lightweight mobile-first layout with minimal distraction design.',
+                'speed' => '96',
+                'conversion' => '4.8%',
+                'best_for' => 'Fast mobile storefronts',
+                'mode' => 'Performance preset',
+                'highlights' => ['Smallest visual footprint', 'Thumb-friendly shopping', 'Lean product cards'],
+                'preview_from' => '#111827',
+                'preview_to' => '#2563eb',
+                'is_active' => false,
+            ],
+            [
+                'id' => 'studio-luxe-v2',
+                'name' => 'Studio Luxe v2',
+                'note' => 'Premium editorial framing for curated collections and high-AOV catalogs.',
+                'speed' => '90',
+                'conversion' => '5.4%',
+                'best_for' => 'Premium and branded drops',
+                'mode' => 'Brand-rich preset',
+                'highlights' => ['Editorial storytelling', 'Premium product framing', 'High-contrast CTAs'],
+                'preview_from' => '#7c2d12',
+                'preview_to' => '#f59e0b',
+                'is_active' => false,
+            ],
+        ];
+    }
+
+    private function themeControlGroups(): array
+    {
+        return [
+            [
+                'title' => 'Brand Foundation',
+                'subtitle' => 'Core identity decisions that define pricing, typography, and the overall brand surface.',
+                'controls' => [
+                    [
+                        'label' => 'Store Currency',
+                        'name' => 'store_currency',
+                        'value' => 'BDT',
+                        'options' => [
+                            ['value' => 'BDT', 'label' => 'BDT (Bangladesh)'],
+                            ['value' => 'INR', 'label' => 'INR (India)'],
+                            ['value' => 'USD', 'label' => 'USD (United States)'],
+                            ['value' => 'EUR', 'label' => 'EUR (Eurozone)'],
+                            ['value' => 'GBP', 'label' => 'GBP (United Kingdom)'],
+                        ],
+                        'help' => 'Sets default storefront currency formatting for cards, cart totals, and checkout.',
+                    ],
+                    [
+                        'label' => 'Color Preset',
+                        'name' => 'color_preset',
+                        'value' => 'ocean_blue',
+                        'options' => [
+                            ['value' => 'ocean_blue', 'label' => 'Ocean Blue'],
+                            ['value' => 'emerald_green', 'label' => 'Emerald Green'],
+                            ['value' => 'sunset_orange', 'label' => 'Sunset Orange'],
+                            ['value' => 'carbon_gray', 'label' => 'Carbon Gray'],
+                            ['value' => 'ruby_editorial', 'label' => 'Ruby Editorial'],
+                        ],
+                        'help' => 'Controls brand color, CTA emphasis, and merchandising accents.',
+                    ],
+                    [
+                        'label' => 'Typography Pack',
+                        'name' => 'typography_pack',
+                        'value' => 'modern_sans',
+                        'options' => [
+                            ['value' => 'modern_sans', 'label' => 'Modern Sans'],
+                            ['value' => 'elegant_serif', 'label' => 'Elegant Serif'],
+                            ['value' => 'bold_contrast', 'label' => 'Bold Contrast'],
+                            ['value' => 'humanist_grotesk', 'label' => 'Humanist Grotesk'],
+                        ],
+                        'help' => 'Applies the heading and body font system across the storefront.',
+                    ],
+                    [
+                        'label' => 'CTA Style',
+                        'name' => 'cta_style',
+                        'value' => 'bold_fill',
+                        'options' => [
+                            ['value' => 'bold_fill', 'label' => 'Bold Fill'],
+                            ['value' => 'soft_shadow', 'label' => 'Soft Shadow'],
+                            ['value' => 'outline_minimal', 'label' => 'Outline Minimal'],
+                        ],
+                        'help' => 'Sets how add-to-cart, checkout, and key landing buttons appear.',
+                    ],
+                    [
+                        'label' => 'Product Card Style',
+                        'name' => 'product_card_style',
+                        'value' => 'editorial',
+                        'options' => [
+                            ['value' => 'editorial', 'label' => 'Editorial'],
+                            ['value' => 'compact', 'label' => 'Compact'],
+                            ['value' => 'showcase', 'label' => 'Showcase'],
+                        ],
+                        'help' => 'Adjusts information density and hierarchy on catalog cards.',
+                    ],
+                ],
+            ],
+            [
+                'title' => 'Layout and Navigation',
+                'subtitle' => 'Tune browsing rhythm, image treatment, hero presentation, and mobile navigation.',
+                'controls' => [
+                    [
+                        'label' => 'Section Spacing',
+                        'name' => 'section_spacing',
+                        'value' => 'comfortable',
+                        'options' => [
+                            ['value' => 'compact', 'label' => 'Compact'],
+                            ['value' => 'comfortable', 'label' => 'Comfortable'],
+                            ['value' => 'airy', 'label' => 'Airy'],
+                        ],
+                        'help' => 'Controls vertical rhythm between major sections on the homepage and catalog.',
+                    ],
+                    [
+                        'label' => 'Corner Style',
+                        'name' => 'corner_style',
+                        'value' => 'soft',
+                        'options' => [
+                            ['value' => 'sharp', 'label' => 'Sharp'],
+                            ['value' => 'soft', 'label' => 'Soft'],
+                            ['value' => 'rounded', 'label' => 'Rounded'],
+                        ],
+                        'help' => 'Applies to cards, buttons, banners, and image placeholders.',
+                    ],
+                    [
+                        'label' => 'Product Grid Density',
+                        'name' => 'grid_density',
+                        'value' => 'balanced',
+                        'options' => [
+                            ['value' => 'compact', 'label' => 'Compact'],
+                            ['value' => 'balanced', 'label' => 'Balanced'],
+                            ['value' => 'spacious', 'label' => 'Spacious'],
+                        ],
+                        'help' => 'Changes card count and information density for listing pages.',
+                    ],
+                    [
+                        'label' => 'Image Ratio Mode',
+                        'name' => 'image_ratio_mode',
+                        'value' => 'portrait_4_5',
+                        'options' => [
+                            ['value' => 'square_1_1', 'label' => '1:1 Square'],
+                            ['value' => 'portrait_4_5', 'label' => '4:5 Portrait'],
+                            ['value' => 'landscape_16_9', 'label' => '16:9 Landscape'],
+                        ],
+                        'help' => 'Defines the default ratio for product thumbnails and featured blocks.',
+                    ],
+                    [
+                        'label' => 'Hero Layout',
+                        'name' => 'hero_layout',
+                        'value' => 'split_spotlight',
+                        'options' => [
+                            ['value' => 'split_spotlight', 'label' => 'Split Spotlight'],
+                            ['value' => 'editorial_stack', 'label' => 'Editorial Stack'],
+                            ['value' => 'immersive_banner', 'label' => 'Immersive Banner'],
+                        ],
+                        'help' => 'Sets how the hero section balances copy, product imagery, and campaigns.',
+                    ],
+                    [
+                        'label' => 'Header Style',
+                        'name' => 'header_style',
+                        'value' => 'glass',
+                        'options' => [
+                            ['value' => 'glass', 'label' => 'Glass'],
+                            ['value' => 'solid_brand', 'label' => 'Solid Brand'],
+                            ['value' => 'minimal_border', 'label' => 'Minimal Border'],
+                        ],
+                        'help' => 'Controls the visual treatment of the top navigation container.',
+                    ],
+                    [
+                        'label' => 'Navigation Behavior',
+                        'name' => 'navigation_behavior',
+                        'value' => 'sticky',
+                        'options' => [
+                            ['value' => 'sticky', 'label' => 'Sticky'],
+                            ['value' => 'static', 'label' => 'Static'],
+                            ['value' => 'smart_hide', 'label' => 'Smart Hide'],
+                        ],
+                        'help' => 'Defines how the header behaves while users scroll the storefront.',
+                    ],
+                    [
+                        'label' => 'Content Width',
+                        'name' => 'content_width',
+                        'value' => 'contained',
+                        'options' => [
+                            ['value' => 'contained', 'label' => 'Contained'],
+                            ['value' => 'wide', 'label' => 'Wide'],
+                            ['value' => 'full_bleed', 'label' => 'Full Bleed'],
+                        ],
+                        'help' => 'Changes max width and breathing room across catalog and landing sections.',
+                    ],
+                    [
+                        'label' => 'Mobile Navigation',
+                        'name' => 'mobile_nav_style',
+                        'value' => 'bottom_bar',
+                        'options' => [
+                            ['value' => 'bottom_bar', 'label' => 'Bottom Bar'],
+                            ['value' => 'drawer_menu', 'label' => 'Drawer Menu'],
+                            ['value' => 'hybrid_tabs', 'label' => 'Hybrid Tabs'],
+                        ],
+                        'help' => 'Optimizes how category, search, and cart access work on smaller screens.',
+                    ],
+                ],
+            ],
+            [
+                'title' => 'Conversion Rhythm',
+                'subtitle' => 'Finalize checkout flow and motion to match product type, catalog size, and buyer urgency.',
+                'controls' => [
+                    [
+                        'label' => 'Checkout Style',
+                        'name' => 'checkout_style',
+                        'value' => 'single_page',
+                        'options' => [
+                            ['value' => 'single_page', 'label' => 'Single Page'],
+                            ['value' => 'step_by_step', 'label' => 'Step by Step'],
+                            ['value' => 'express_focus', 'label' => 'Express Focus'],
+                        ],
+                        'help' => 'Controls how much friction or guidance the buyer sees before completing checkout.',
+                    ],
+                    [
+                        'label' => 'Animation Style',
+                        'name' => 'animation_style',
+                        'value' => 'subtle_reveal',
+                        'options' => [
+                            ['value' => 'subtle_reveal', 'label' => 'Subtle Reveal'],
+                            ['value' => 'snappy_hover', 'label' => 'Snappy Hover'],
+                            ['value' => 'minimal_motion', 'label' => 'Minimal Motion'],
+                        ],
+                        'help' => 'Sets how aggressively the storefront uses hover, reveal, and transition motion.',
+                    ],
+                ],
+            ],
+        ];
+    }
+
+    private function themeFeatureToggles(): array
+    {
+        return [
+            [
+                'name' => 'announcement_bar_enabled',
+                'label' => 'Announcement bar',
+                'enabled' => true,
+                'help' => 'Show a high-visibility strip for shipping, campaign, or urgency messages.',
+            ],
+            [
+                'name' => 'sticky_add_to_cart_enabled',
+                'label' => 'Sticky add to cart',
+                'enabled' => true,
+                'help' => 'Keep a compact buy action visible on product details while users scroll.',
+            ],
+            [
+                'name' => 'quick_view_enabled',
+                'label' => 'Quick view',
+                'enabled' => true,
+                'help' => 'Allow buyers to inspect a product without leaving the catalog grid.',
+            ],
+            [
+                'name' => 'wishlist_enabled',
+                'label' => 'Wishlist',
+                'enabled' => false,
+                'help' => 'Add lightweight save-for-later support for catalog discovery journeys.',
+            ],
+            [
+                'name' => 'show_stock_badges',
+                'label' => 'Stock badges',
+                'enabled' => true,
+                'help' => 'Surface low-stock and in-stock states directly on product cards.',
+            ],
+            [
+                'name' => 'show_sale_badges',
+                'label' => 'Sale badges',
+                'enabled' => true,
+                'help' => 'Highlight discounted or campaign-linked items with urgency markers.',
+            ],
+            [
+                'name' => 'show_trust_badges',
+                'label' => 'Trust badges',
+                'enabled' => true,
+                'help' => 'Show delivery, payment, and guarantee reassurance blocks near key CTAs.',
+            ],
+            [
+                'name' => 'show_breadcrumbs',
+                'label' => 'Breadcrumbs',
+                'enabled' => true,
+                'help' => 'Improve navigation clarity for large catalogs and multi-level collections.',
+            ],
+            [
+                'name' => 'enable_product_hover',
+                'label' => 'Product hover effects',
+                'enabled' => true,
+                'help' => 'Use hover zoom, alternate imagery, or layered metadata on desktop cards.',
+            ],
+            [
+                'name' => 'enable_scroll_reveal',
+                'label' => 'Scroll reveal',
+                'enabled' => true,
+                'help' => 'Apply staged section reveals to create more deliberate page progression.',
+            ],
+        ];
     }
 
     private function offersData(Request $request): array
