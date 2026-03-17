@@ -25,13 +25,6 @@
       </div>
     </div>
 
-    <section class="settings-section-intro shop-setup-intro">
-      <span class="shop-setup-kicker">{{ $sectionHeading }}</span>
-      <h3>Revisit your onboarding choices</h3>
-      <p>{{ $sectionSubtitle }}</p>
-      <strong class="shop-setup-storefront">Current storefront: {{ $storefrontUrl }}</strong>
-    </section>
-
     <div class="settings-layout mt-md shop-setup-layout">
       <section class="settings-main-column">
         <article class="card settings-panel shop-setup-panel">
@@ -72,8 +65,7 @@
             </div>
           </form>
         </article>
-
-        <article class="card settings-panel mt-md shop-setup-panel">
+        <article class="card settings-panel shop-setup-panel">
           <div class="card-header">
             <div>
               <span class="shop-setup-section-index">2. Locale</span>
@@ -123,30 +115,6 @@
           </form>
         </article>
       </section>
-
-      <aside class="settings-side-column">
-        <article class="card settings-panel shop-setup-panel">
-          <div class="card-header">
-            <div>
-              <span class="shop-setup-section-index">3. Shop Settings Sections</span>
-              <h3 class="card-title">Shop Settings Sections</h3>
-              <p class="settings-panel-subtitle">Move into the next shop settings pages after first-time setup choices are updated.</p>
-            </div>
-            <span class="badge badge-success">Shortcuts</span>
-          </div>
-
-          @foreach ($shopSections as $section)
-            <div class="settings-content-card">
-              <div class="settings-content-head">
-                <strong>{{ $section['label'] }}</strong>
-                <span class="badge {{ $section['badge'] }}">{{ $section['status'] }}</span>
-              </div>
-              <p>{{ $section['note'] }}</p>
-              <a href="{{ route($section['route']) }}" class="btn btn-secondary btn-sm">Open {{ $section['label'] }}</a>
-            </div>
-          @endforeach
-        </article>
-      </aside>
     </div>
   </div>
 

@@ -7005,8 +7005,9 @@ body.products-attention-open {
 
 .settings-layout {
   display: grid;
-  grid-template-columns: minmax(0, 1.25fr) minmax(0, 0.95fr);
+  grid-template-columns: minmax(0, 1.7fr) minmax(300px, 1fr);
   gap: var(--spacing-lg);
+  align-items: start;
 }
 
 .settings-layout-single {
@@ -7017,6 +7018,12 @@ body.products-attention-open {
 .settings-side-column {
   display: flex;
   flex-direction: column;
+  min-width: 0;
+}
+
+.settings-main-column > *,
+.settings-side-column > * {
+  min-width: 0;
 }
 
 .settings-panel .card-header {
@@ -7853,6 +7860,7 @@ body.products-attention-open {
 }
 
 .shop-setup-layout {
+  grid-template-columns: minmax(0, 1fr);
   align-items: start;
 }
 

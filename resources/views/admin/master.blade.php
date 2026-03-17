@@ -46,7 +46,7 @@
     'admin.packages' => 'packages',
   ];
   $shopSettingsRoutes = [
-    'admin.shop-settings' => 'First-time Setup',
+    'admin.shop-settings' => 'Setup',
     'admin.shop-settings.domain' => 'Domain',
     'admin.shop-settings.theme' => 'Theme',
     'admin.shop-settings.offers' => 'Offers',
