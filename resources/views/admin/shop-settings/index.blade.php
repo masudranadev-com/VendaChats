@@ -65,7 +65,7 @@
             </div>
           </form>
         </article>
-        <article class="card settings-panel shop-setup-panel">
+        <article class="card settings-panel shop-setup-panel mt-md">
           <div class="card-header">
             <div>
               <span class="shop-setup-section-index">2. Locale</span>
