@@ -459,6 +459,25 @@
             timeoutMs,
           });
         },
+        createPurchaseRequest({apiBaseUrl, refreshToken, payload, timeoutMs = 12000} = {}) {
+          const tokenText = toText(refreshToken || getToken());
+          if (!tokenText) {
+            throw new ApiError('Missing refresh token. Please login again.');
+          }
+
+          return request({
+            baseUrl: normalizeBaseUrl(apiBaseUrl),
+            path: '/api/admin/user/package/purchase-request',
+            method: 'POST',
+            token: tokenText,
+            headers: {
+              'user-refres-token': tokenText,
+            },
+            body: payload,
+            includeRefreshToken: false,
+            timeoutMs,
+          });
+        },
       },
       Offers: {
         get({apiBaseUrl, refreshToken, timeoutMs = 12000} = {}) {

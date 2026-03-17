@@ -158,5 +158,67 @@
         @endfor
       </div>
     </section>
+
+    <div class="modal-overlay" id="packagePurchaseModal" aria-hidden="true">
+      <div class="modal settings-coupon-modal" role="dialog" aria-modal="true" aria-labelledby="packagePurchaseModalTitle">
+        <div class="modal-header">
+          <div>
+            <h3 class="modal-title" id="packagePurchaseModalTitle">Buy Package</h3>
+            <p class="page-subtitle" data-package-purchase-modal-subtitle>Generate a payment reference and complete the payment manually.</p>
+          </div>
+          <button type="button" class="modal-close" data-package-purchase-close aria-label="Close package purchase modal">x</button>
+        </div>
+
+        <div class="modal-body">
+          <div class="settings-field-grid settings-modal-grid">
+            <div class="settings-field">
+              <label class="form-label" for="packagePurchasePackageName">Package</label>
+              <input id="packagePurchasePackageName" type="text" class="form-input" data-package-purchase-name readonly>
+              <input type="hidden" data-package-purchase-package-id>
+            </div>
+
+            <div class="settings-field">
+              <label class="form-label" for="packagePurchaseValidity">Billing Cycle</label>
+              <select id="packagePurchaseValidity" class="form-select" data-package-purchase-validity>
+                <option value="monthly">Monthly</option>
+                <option value="quarterly">Quarterly</option>
+                <option value="yearly">Yearly</option>
+              </select>
+            </div>
+
+            <div class="settings-field">
+              <label class="form-label" for="packagePurchaseMethod">Payment Method</label>
+              <select id="packagePurchaseMethod" class="form-select" data-package-purchase-method>
+                <option value="bkash">bKash</option>
+                <option value="nagad">Nagad</option>
+                <option value="rocket">Rocket</option>
+                <option value="upay">Upay</option>
+              </select>
+            </div>
+
+            <div class="settings-field">
+              <label class="form-label" for="packagePurchaseNumber">Your Payment Number</label>
+              <input id="packagePurchaseNumber" type="text" class="form-input" data-package-purchase-number placeholder="01XXXXXXXXX or +8801XXXXXXXXX">
+              <small class="form-help">Use the same number you will send money from, if possible.</small>
+            </div>
+          </div>
+
+          <div class="billing-card-message is-info" data-package-purchase-message>
+            We will create a unique 5-digit reference for this package purchase request.
+          </div>
+
+          <div class="billing-empty-state billing-empty-state-info" data-package-purchase-result hidden>
+            <strong data-package-purchase-reference-label>Reference: -----</strong>
+            <p data-package-purchase-result-copy>Payment instructions will appear here after the request is created.</p>
+            <ul class="billing-package-features" data-package-purchase-checklist></ul>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn btn-ghost" data-package-purchase-close>Cancel</button>
+          <button type="button" class="btn btn-primary" data-package-purchase-submit>Create Payment Request</button>
+        </div>
+      </div>
+    </div>
   </div>
 @endsection
