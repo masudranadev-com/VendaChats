@@ -4,7 +4,9 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Http;
 use Illuminate\View\View;
+use Throwable;
 
 class AdminWebsiteContentController extends Controller
 {
@@ -38,14 +40,19 @@ class AdminWebsiteContentController extends Controller
         ));
     }
 
-    public function pageEditor(): View
+    public function pageEditor(Request $request): View
     {
         $content = $this->contentRepository();
+        $apiConfig = $this->backendApiConfig($request);
+        $legalPages = $this->pageEditorPages($request, $content['legalPages']);
+        $content['legalPages'] = $legalPages;
 
         return view('admin.shop-settings.website-content.page-editor', array_merge(
             $this->shell('page-editor', $content),
             [
-                'legalPages' => $content['legalPages'],
+                'legalPages' => $legalPages,
+                'pagesApiBaseUrl' => $apiConfig['apiBaseUrl'],
+                'pagesRefreshToken' => $apiConfig['refreshToken'],
             ]
         ));
     }
@@ -333,5 +340,32 @@ class AdminWebsiteContentController extends Controller
                 ?? ''
             ),
         ];
+    }
+
+    private function pageEditorPages(Request $request, array $fallback): array
+    {
+        $apiConfig = $this->backendApiConfig($request);
+
+        if ($apiConfig['refreshToken'] === '') {
+            return $fallback;
+        }
+
+        try {
+            $response = Http::acceptJson()
+                ->withHeaders([
+                    'user-refres-token' => $apiConfig['refreshToken'],
+                ])
+                ->timeout(12)
+                ->get($apiConfig['apiBaseUrl'].'/api/admin/shop-settings/content/pages');
+
+            $payload = $response->json();
+            if ($response->ok() && is_array($payload) && is_array($payload['pages'] ?? null)) {
+                return $payload['pages'];
+            }
+        } catch (Throwable) {
+            return $fallback;
+        }
+
+        return $fallback;
     }
 }
