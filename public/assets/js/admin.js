@@ -11869,6 +11869,11 @@ function initOrderCallPage() {
     if (!Number.isFinite(parsed) || parsed < 0) return 0;
     return Math.floor(parsed);
   };
+  const normalizeTotalCalling = (value) => {
+    const parsed = Number(value);
+    if (!Number.isFinite(parsed) || parsed < 0) return 0;
+    return Math.floor(parsed);
+  };
   const sanitizeState = (state = {}) => ({
     pageName: text(state.pageName) || defaultPageName,
     language: normalizeLanguage(state.language || defaultLanguage),
@@ -11959,7 +11964,11 @@ function initOrderCallPage() {
   const render = (state, options = {}) => {
     const resolvedState = sanitizeState(state);
     const syncFormControls = options.syncFormControls !== false;
-    const progressValue = Math.max(0, Math.min(100, resolvedState.availableCalling));
+    const resolvedTotalCalling = Math.max(totalCallingAllowance, resolvedState.availableCalling);
+    const usedCalling = Math.max(0, resolvedTotalCalling - resolvedState.availableCalling);
+    const progressValue = resolvedTotalCalling > 0
+      ? Math.max(0, Math.min(100, (usedCalling / resolvedTotalCalling) * 100))
+      : 0;
     const resolvedLanguageLabel = languageLabel(resolvedState.language);
     const resolvedScopeLabel = callScopeLabel(resolvedState.scope);
 
@@ -11986,9 +11995,13 @@ function initOrderCallPage() {
     if (sideScopeNode) sideScopeNode.textContent = resolvedScopeLabel;
     if (availableCountNode) availableCountNode.textContent = String(resolvedState.availableCalling);
     if (availableCopyNode) {
-      availableCopyNode.textContent = resolvedState.availableCalling === 1
-        ? '1 call available for automated confirmation.'
-        : `${resolvedState.availableCalling} calls available for automated confirmation.`;
+      if (resolvedTotalCalling > 0) {
+        availableCopyNode.textContent = `${resolvedState.availableCalling} of ${resolvedTotalCalling} calls remaining for automated confirmation.`;
+      } else {
+        availableCopyNode.textContent = resolvedState.availableCalling === 1
+          ? '1 call available for automated confirmation.'
+          : `${resolvedState.availableCalling} calls available for automated confirmation.`;
+      }
     }
     if (usageRingNode instanceof HTMLElement) {
       usageRingNode.style.setProperty('--usage-progress', String(progressValue));
@@ -12001,7 +12014,9 @@ function initOrderCallPage() {
       usageProgressFillNode.style.width = `${progressValue}%`;
     }
     if (availableMetaNode) {
-      availableMetaNode.textContent = `${resolvedState.availableCalling} ${resolvedState.availableCalling === 1 ? 'Call' : 'Calls'}`;
+      availableMetaNode.textContent = resolvedTotalCalling > 0
+        ? `${resolvedState.availableCalling} / ${resolvedTotalCalling} Calls`
+        : `${resolvedState.availableCalling} ${resolvedState.availableCalling === 1 ? 'Call' : 'Calls'}`;
     }
     if (languageMetaNode) languageMetaNode.textContent = resolvedLanguageLabel;
     if (scopeMetaNode) scopeMetaNode.textContent = resolvedScopeLabel;
@@ -12070,6 +12085,7 @@ function initOrderCallPage() {
   });
   let draftState = {...savedState};
   let hasLoaded = false;
+  let totalCallingAllowance = 0;
 
   const loadConfig = async () => {
     if (!apiBaseUrl) {
@@ -12101,15 +12117,32 @@ function initOrderCallPage() {
     setLiveBadge('Loading', 'info');
 
     try {
-      const payload = await window.API.Admin.OrderCall.getConfig({
-        apiBaseUrl,
-        refreshToken,
-        timeoutMs: 12000,
-      });
+      const [configResult, packageResult] = await Promise.allSettled([
+        window.API.Admin.OrderCall.getConfig({
+          apiBaseUrl,
+          refreshToken,
+          timeoutMs: 12000,
+        }),
+        window.API?.Admin?.Packages?.getInfo
+          ? window.API.Admin.Packages.getInfo({
+              apiBaseUrl,
+              refreshToken,
+              timeoutMs: 12000,
+            })
+          : Promise.resolve(null),
+      ]);
 
-      savedState = stateFromApi(payload);
+      if (configResult.status !== 'fulfilled') {
+        throw configResult.reason;
+      }
+
+      savedState = stateFromApi(configResult.value);
       draftState = {...savedState};
       hasLoaded = true;
+      totalCallingAllowance = packageResult.status === 'fulfilled'
+        ? normalizeTotalCalling(packageResult.value?.calling_credits)
+        : 0;
+      totalCallingAllowance = Math.max(totalCallingAllowance, savedState.availableCalling);
 
       render(savedState);
       writeStoredState(savedState);
