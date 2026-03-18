@@ -5301,6 +5301,20 @@ function initPackagesPage() {
   const insightsModulesNode = section.querySelector('[data-packages-insight-modules]');
   const insightsMessageNode = section.querySelector('[data-packages-insights-message]');
 
+  const purchaseModal = document.getElementById('packagePurchaseModal');
+  const purchaseCloseButtons = Array.from(document.querySelectorAll('[data-package-purchase-close]'));
+  const purchaseNameInput = purchaseModal?.querySelector('[data-package-purchase-name]');
+  const purchasePackageIdInput = purchaseModal?.querySelector('[data-package-purchase-package-id]');
+  const purchaseValiditySelect = purchaseModal?.querySelector('[data-package-purchase-validity]');
+  const purchaseMethodSelect = purchaseModal?.querySelector('[data-package-purchase-method]');
+  const purchaseNumberInput = purchaseModal?.querySelector('[data-package-purchase-number]');
+  const purchaseSubmitButton = purchaseModal?.querySelector('[data-package-purchase-submit]');
+  const purchaseMessageNode = purchaseModal?.querySelector('[data-package-purchase-message]');
+  const purchaseResultWrap = purchaseModal?.querySelector('[data-package-purchase-result]');
+  const purchaseReferenceNode = purchaseModal?.querySelector('[data-package-purchase-reference-label]');
+  const purchaseResultCopyNode = purchaseModal?.querySelector('[data-package-purchase-result-copy]');
+  const purchaseChecklistNode = purchaseModal?.querySelector('[data-package-purchase-checklist]');
+
   if (
     !gridNode ||
     !introCopyNode ||
@@ -5432,6 +5446,33 @@ function initPackagesPage() {
             ? 'is-danger'
             : 'is-info'
     );
+  };
+  const openPurchaseModal = () => {
+    if (!(purchaseModal instanceof HTMLElement)) return;
+    purchaseModal.classList.add('active');
+    purchaseModal.setAttribute('aria-hidden', 'false');
+  };
+  const closePurchaseModal = () => {
+    if (!(purchaseModal instanceof HTMLElement)) return;
+    purchaseModal.classList.remove('active');
+    purchaseModal.setAttribute('aria-hidden', 'true');
+  };
+  const resetPurchaseResult = () => {
+    if (purchaseResultWrap instanceof HTMLElement) purchaseResultWrap.hidden = true;
+    if (purchaseReferenceNode instanceof HTMLElement) purchaseReferenceNode.textContent = 'Reference: -----';
+    if (purchaseResultCopyNode instanceof HTMLElement) {
+      purchaseResultCopyNode.textContent = 'Payment instructions will appear here after the request is created.';
+    }
+    if (purchaseChecklistNode instanceof HTMLElement) purchaseChecklistNode.innerHTML = '';
+    setMessageState(purchaseMessageNode, 'We will create a unique 5-digit reference for this package purchase request.', 'info');
+  };
+  const setPurchaseSubmitState = (loading) => {
+    if (!(purchaseSubmitButton instanceof HTMLButtonElement)) return;
+    if (!purchaseSubmitButton.dataset.defaultLabel) {
+      purchaseSubmitButton.dataset.defaultLabel = text(purchaseSubmitButton.textContent) || 'Create Payment Request';
+    }
+    purchaseSubmitButton.disabled = loading;
+    purchaseSubmitButton.textContent = loading ? 'Creating...' : purchaseSubmitButton.dataset.defaultLabel;
   };
   const getVariant = (pkg, cycle) => {
     const variants = Array.isArray(pkg?.variant_prices) ? pkg.variant_prices : [];
@@ -5808,6 +5849,8 @@ function initPackagesPage() {
             class="btn ${isCurrent ? 'btn-secondary' : 'btn-primary'}"
             ${isCurrent ? 'disabled' : ''}
             data-package-upgrade="${escapeHtml(text(pkg?.package_name) || '')}"
+            data-package-id="${escapeHtml(String(pkg?.package_id ?? ''))}"
+            data-package-cycle="${escapeHtml(activeCycle)}"
           >
             ${escapeHtml(buttonLabel)}
           </button>
@@ -5827,10 +5870,103 @@ function initPackagesPage() {
     introCopyNode.textContent = buildIntroCopy();
     gridNode.innerHTML = allPackages.map((pkg, index) => buildPackageCardHtml(pkg, index)).join('');
   };
+  const openPurchaseFlow = (pkg, cycle = activeCycle) => {
+    if (!(purchaseModal instanceof HTMLElement) || !pkg) return;
+
+    selectedPurchasePackage = pkg;
+    if (purchaseNameInput instanceof HTMLInputElement) {
+      purchaseNameInput.value = text(pkg?.package_name) || 'Selected package';
+    }
+    if (purchasePackageIdInput instanceof HTMLInputElement) {
+      purchasePackageIdInput.value = String(pkg?.package_id ?? '');
+    }
+    if (purchaseValiditySelect instanceof HTMLSelectElement) {
+      purchaseValiditySelect.value = normalizeCycle(cycle);
+    }
+    if (purchaseMethodSelect instanceof HTMLSelectElement && !purchaseMethodSelect.value) {
+      purchaseMethodSelect.value = 'bkash';
+    }
+    resetPurchaseResult();
+    openPurchaseModal();
+    if (purchaseNumberInput instanceof HTMLInputElement) {
+      window.setTimeout(() => purchaseNumberInput.focus(), 40);
+    }
+  };
+  const submitPurchaseRequest = async () => {
+    if (!window.API?.Admin?.Packages?.createPurchaseRequest) {
+      setMessageState(purchaseMessageNode, 'Package purchase API client is unavailable.', 'danger');
+      return;
+    }
+
+    const packageID = Number(purchasePackageIdInput instanceof HTMLInputElement ? purchasePackageIdInput.value : 0);
+    const validity = purchaseValiditySelect instanceof HTMLSelectElement ? normalizeCycle(purchaseValiditySelect.value) : '';
+    const paymentMethod = purchaseMethodSelect instanceof HTMLSelectElement ? text(purchaseMethodSelect.value).toLowerCase() : '';
+    const customerNumber = purchaseNumberInput instanceof HTMLInputElement ? text(purchaseNumberInput.value) : '';
+
+    if (!packageID || !validity || !paymentMethod || !customerNumber) {
+      setMessageState(purchaseMessageNode, 'Package, billing cycle, payment method, and your payment number are required.', 'danger');
+      return;
+    }
+
+    const refreshToken = resolveRefreshToken();
+    if (!refreshToken) {
+      setMessageState(purchaseMessageNode, 'Missing refresh token. Please login again.', 'danger');
+      return;
+    }
+
+    setPurchaseSubmitState(true);
+    setMessageState(purchaseMessageNode, 'Creating your payment request...', 'info');
+
+    try {
+      const response = await window.API.Admin.Packages.createPurchaseRequest({
+        apiBaseUrl,
+        refreshToken,
+        payload: {
+          package_id: packageID,
+          validity,
+          payment_method: paymentMethod,
+          customer_number: customerNumber,
+        },
+        timeoutMs: 12000,
+      });
+
+      const request = response?.request || {};
+      const method = response?.method || {};
+      const checklist = Array.isArray(response?.checklist) ? response.checklist : [];
+      if (purchaseResultWrap instanceof HTMLElement) purchaseResultWrap.hidden = false;
+      if (purchaseReferenceNode instanceof HTMLElement) {
+        purchaseReferenceNode.textContent = `Reference: ${text(request.reference_code) || '-----'}`;
+      }
+      if (purchaseResultCopyNode instanceof HTMLElement) {
+        purchaseResultCopyNode.textContent = text(response?.message)
+          || `Send the payment to ${text(method.account_number) || 'the configured payment number'} and use the reference code shown above.`;
+      }
+      if (purchaseChecklistNode instanceof HTMLElement) {
+        purchaseChecklistNode.innerHTML = [
+          `Receiver number: ${escapeHtml(text(method.account_number) || 'Not configured yet')}`,
+          `Payment method: ${escapeHtml(text(method.label) || text(paymentMethod))}`,
+          `Request amount: ${escapeHtml(formatCurrency(request.amount || 0))}`,
+          ...checklist.map((item) => escapeHtml(text(item))),
+          text(method.instructions) ? escapeHtml(text(method.instructions)) : '',
+        ].filter(Boolean).map((item) => `<li>${item}</li>`).join('');
+      }
+      setMessageState(purchaseMessageNode, 'Payment request created. Use the reference exactly as shown before sending money.', 'success');
+      if (typeof window.showSuccess === 'function') {
+        window.showSuccess('Payment request created successfully.');
+      }
+    } catch (error) {
+      const message = resolveRequestError(error, 'Unable to create package payment request.');
+      setMessageState(purchaseMessageNode, message, 'danger');
+      if (typeof window.showError === 'function') window.showError(message);
+    } finally {
+      setPurchaseSubmitState(false);
+    }
+  };
 
   let allPackages = [];
   let currentPackage = null;
   let activeCycle = 'monthly';
+  let selectedPurchasePackage = null;
 
   const loadPackages = async () => {
     if (!apiBaseUrl) {
@@ -5940,11 +6076,35 @@ function initPackagesPage() {
     const button = event.target.closest('[data-package-upgrade]');
     if (!(button instanceof HTMLButtonElement) || button.disabled) return;
 
-    const packageName = text(button.dataset.packageUpgrade) || 'this package';
-    if (typeof window.showInfo === 'function') {
-      window.showInfo(`Upgrade flow for ${packageName} is not connected yet.`);
+    const packageID = Number(button.dataset.packageId || 0);
+    const pkg = allPackages.find((item) => Number(item?.package_id) === packageID);
+    openPurchaseFlow(pkg, button.dataset.packageCycle || activeCycle);
+  });
+
+  purchaseCloseButtons.forEach((button) => {
+    if (!(button instanceof HTMLButtonElement)) return;
+    button.addEventListener('click', closePurchaseModal);
+  });
+
+  if (purchaseModal instanceof HTMLElement) {
+    purchaseModal.addEventListener('click', (event) => {
+      if (event.target === purchaseModal) {
+        closePurchaseModal();
+      }
+    });
+  }
+
+  document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape' && purchaseModal instanceof HTMLElement && purchaseModal.classList.contains('active')) {
+      closePurchaseModal();
     }
   });
+
+  if (purchaseSubmitButton instanceof HTMLButtonElement) {
+    purchaseSubmitButton.addEventListener('click', () => {
+      void submitPurchaseRequest();
+    });
+  }
 
   syncCycleButtons();
   setCycleButtonsDisabled(true);
