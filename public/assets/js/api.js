@@ -516,6 +516,55 @@
           });
         },
       },
+      Campaigns: {
+        getPageData({
+          apiBaseUrl,
+          refreshToken,
+          page = 1,
+          perPage = 6,
+          search = '',
+          status = 'all',
+          timeoutMs = 12000
+        } = {}) {
+          const params = new URLSearchParams();
+          params.set('page', String(Math.max(1, Number(page) || 1)));
+          params.set('per_page', String(Math.max(1, Number(perPage) || 6)));
+          if (toText(search)) {
+            params.set('search', toText(search));
+          }
+          if (toText(status) && toText(status).toLowerCase() !== 'all') {
+            params.set('status', toText(status).toLowerCase());
+          }
+
+          return request({
+            baseUrl: normalizeBaseUrl(apiBaseUrl),
+            path: `/api/admin/campaigns?${params.toString()}`,
+            method: 'GET',
+            token: refreshToken,
+            timeoutMs,
+          });
+        },
+        create({apiBaseUrl, refreshToken, payload, timeoutMs = 12000} = {}) {
+          return request({
+            baseUrl: normalizeBaseUrl(apiBaseUrl),
+            path: '/api/admin/campaigns',
+            method: 'POST',
+            token: refreshToken,
+            body: payload,
+            timeoutMs,
+          });
+        },
+        runAction({apiBaseUrl, refreshToken, campaignId, payload, timeoutMs = 12000} = {}) {
+          return request({
+            baseUrl: normalizeBaseUrl(apiBaseUrl),
+            path: `/api/admin/campaigns/${encodeURIComponent(campaignId)}/actions`,
+            method: 'POST',
+            token: refreshToken,
+            body: payload,
+            timeoutMs,
+          });
+        },
+      },
       Offers: {
         get({apiBaseUrl, refreshToken, timeoutMs = 12000} = {}) {
           return request({

@@ -76,8 +76,8 @@
             <strong data-packages-insight-products>--</strong>
           </article>
           <article>
-            <span>Calling Credits</span>
-            <strong data-packages-insight-calls>--</strong>
+            <span>Call Minutes</span>
+            <strong data-packages-insight-minutes>--</strong>
           </article>
           <article>
             <span>SMS Credits</span>
