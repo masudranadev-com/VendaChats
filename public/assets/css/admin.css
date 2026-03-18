@@ -3072,6 +3072,8 @@ ul, ol { list-style: none; }
 
 .campaign-quick-grid strong {
   font-size: 14px;
+  line-height: 1.35;
+  word-break: break-word;
 }
 
 .campaign-progress {

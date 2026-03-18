@@ -1999,18 +1999,8 @@ function initCampaignsPage() {
 
         <div class="campaign-quick-grid">
           <div><span>Launch Mode</span><strong>${escapeHtml(text(item?.launch_mode_label) || 'Unknown')}</strong></div>
-          <div><span>Reach</span><strong>${escapeHtml(text(item?.reach_estimate) || '0')}</strong></div>
-          <div><span>Conversion</span><strong>${escapeHtml(text(item?.conversion_label) || '0.0%')}</strong></div>
-        </div>
-
-        <div class="campaign-progress">
-          <div class="campaign-progress-label">
-            <span>Execution Progress</span>
-            <strong>${escapeHtml(`${Number(item?.progress_percent || 0)}%`)}</strong>
-          </div>
-          <div class="campaign-progress-track">
-            <span style="width: ${Math.max(0, Math.min(100, Number(item?.progress_percent) || 0))}%"></span>
-          </div>
+          <div><span>Created</span><strong>${escapeHtml(formatDateTime(item?.created_at, 'Unknown'))}</strong></div>
+          <div><span>Last Update</span><strong>${escapeHtml(formatDateTime(item?.updated_at, 'Unknown'))}</strong></div>
         </div>
 
         ${actions.length ? `
