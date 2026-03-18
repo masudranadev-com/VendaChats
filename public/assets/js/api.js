@@ -459,6 +459,43 @@
             timeoutMs,
           });
         },
+        listSubscriptions({apiBaseUrl, refreshToken, timeoutMs = 12000} = {}) {
+          const tokenText = toText(refreshToken || getToken());
+          if (!tokenText) {
+            throw new ApiError('Missing refresh token. Please login again.');
+          }
+
+          return request({
+            baseUrl: normalizeBaseUrl(apiBaseUrl),
+            path: '/api/admin/user/package/subscriptions',
+            method: 'GET',
+            token: tokenText,
+            headers: {
+              'user-refres-token': tokenText,
+            },
+            includeRefreshToken: false,
+            timeoutMs,
+          });
+        },
+        startTrial({apiBaseUrl, refreshToken, payload, timeoutMs = 12000} = {}) {
+          const tokenText = toText(refreshToken || getToken());
+          if (!tokenText) {
+            throw new ApiError('Missing refresh token. Please login again.');
+          }
+
+          return request({
+            baseUrl: normalizeBaseUrl(apiBaseUrl),
+            path: '/api/admin/user/package/start-trial',
+            method: 'POST',
+            token: tokenText,
+            headers: {
+              'user-refres-token': tokenText,
+            },
+            body: payload,
+            includeRefreshToken: false,
+            timeoutMs,
+          });
+        },
         createPurchaseRequest({apiBaseUrl, refreshToken, payload, timeoutMs = 12000} = {}) {
           const tokenText = toText(refreshToken || getToken());
           if (!tokenText) {
@@ -944,6 +981,69 @@
             path: `/api/admin/categories/${encodeURIComponent(categoryId)}`,
             method: 'DELETE',
             token,
+            timeoutMs,
+          });
+        },
+      },
+    },
+    SuperAdmin: {
+      Packages: {
+        listSubscriptions({apiBaseUrl, refreshToken, status = 'pending', timeoutMs = 12000} = {}) {
+          const tokenText = toText(refreshToken || getToken());
+          if (!tokenText) {
+            throw new ApiError('Missing refresh token. Please login again.');
+          }
+
+          const params = new URLSearchParams();
+          if (toText(status)) params.set('status', toText(status));
+
+          return request({
+            baseUrl: normalizeBaseUrl(apiBaseUrl),
+            path: `/api/super-admin/package/subscriptions${params.toString() ? `?${params.toString()}` : ''}`,
+            method: 'GET',
+            token: tokenText,
+            headers: {
+              'user-refres-token': tokenText,
+            },
+            includeRefreshToken: false,
+            timeoutMs,
+          });
+        },
+        approveSubscription({apiBaseUrl, refreshToken, subscriptionId, payload = {}, timeoutMs = 12000} = {}) {
+          const tokenText = toText(refreshToken || getToken());
+          if (!tokenText) {
+            throw new ApiError('Missing refresh token. Please login again.');
+          }
+
+          return request({
+            baseUrl: normalizeBaseUrl(apiBaseUrl),
+            path: `/api/super-admin/package/subscriptions/${encodeURIComponent(subscriptionId)}/approve`,
+            method: 'POST',
+            token: tokenText,
+            headers: {
+              'user-refres-token': tokenText,
+            },
+            body: payload,
+            includeRefreshToken: false,
+            timeoutMs,
+          });
+        },
+        rejectSubscription({apiBaseUrl, refreshToken, subscriptionId, payload = {}, timeoutMs = 12000} = {}) {
+          const tokenText = toText(refreshToken || getToken());
+          if (!tokenText) {
+            throw new ApiError('Missing refresh token. Please login again.');
+          }
+
+          return request({
+            baseUrl: normalizeBaseUrl(apiBaseUrl),
+            path: `/api/super-admin/package/subscriptions/${encodeURIComponent(subscriptionId)}/reject`,
+            method: 'POST',
+            token: tokenText,
+            headers: {
+              'user-refres-token': tokenText,
+            },
+            body: payload,
+            includeRefreshToken: false,
             timeoutMs,
           });
         },

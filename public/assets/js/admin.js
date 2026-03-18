@@ -5275,9 +5275,16 @@ function initPackagesPage() {
 
   const apiBaseUrl = String(section.dataset.apiBaseUrl || '').replace(/\/+$/, '');
   const reloadButtons = Array.from(section.querySelectorAll('[data-packages-reload]'));
+  const subscriptionsReloadButtons = Array.from(section.querySelectorAll('[data-packages-subscriptions-reload]'));
+  const superadminReloadButtons = Array.from(section.querySelectorAll('[data-superadmin-packages-reload]'));
   const cycleButtons = Array.from(section.querySelectorAll('[data-package-cycle-tab]'));
   const gridNode = section.querySelector('[data-packages-grid]');
   const introCopyNode = section.querySelector('[data-packages-intro-copy]');
+  const subscriptionsGridNode = section.querySelector('[data-packages-subscriptions-grid]');
+  const subscriptionsIntroNode = section.querySelector('[data-packages-subscriptions-intro]');
+  const superadminPanel = section.querySelector('[data-superadmin-packages-panel]');
+  const superadminGridNode = section.querySelector('[data-superadmin-packages-grid]');
+  const superadminIntroNode = section.querySelector('[data-superadmin-packages-intro]');
 
   const summaryCard = section.querySelector('[data-packages-summary-card]');
   const currentTitleNode = section.querySelector('[data-packages-current-title]');
@@ -5318,6 +5325,10 @@ function initPackagesPage() {
   if (
     !gridNode ||
     !introCopyNode ||
+    !subscriptionsGridNode ||
+    !subscriptionsIntroNode ||
+    !superadminGridNode ||
+    !superadminIntroNode ||
     !currentTitleNode ||
     !currentDescriptionNode ||
     !currentStatusNode ||
@@ -5360,6 +5371,11 @@ function initPackagesPage() {
     const date = toDate(value);
     return date ? formatDate(date) : '--';
   };
+  const formatDateTimeSafe = (value) => {
+    const date = toDate(value);
+    if (!date) return '--';
+    return `${formatDate(date)} ${date.toLocaleTimeString('en-BD', {hour: 'numeric', minute: '2-digit'})}`;
+  };
   const titleCase = (value) => text(value)
     .toLowerCase()
     .split(/[\s_-]+/g)
@@ -5372,11 +5388,7 @@ function initPackagesPage() {
     if (normalized === 'quarterly' || normalized === 'quarter') return 'quarterly';
     return 'monthly';
   };
-  const cycleMonths = {
-    monthly: 1,
-    quarterly: 3,
-    yearly: 12,
-  };
+  const cycleMonths = {monthly: 1, quarterly: 3, yearly: 12};
   const cycleLabel = (value) => {
     const normalized = normalizeCycle(value);
     if (normalized === 'yearly') return 'Yearly';
@@ -5408,16 +5420,30 @@ function initPackagesPage() {
     if (normalizedName.includes('scale')) return 'scale';
     return ['starter', 'growth', 'scale'][index % 3];
   };
-  const resolveRefreshToken = () => text(
-    window.API?.getToken?.()
-    || (typeof window.getToken === 'function' ? window.getToken() : '')
-  );
+  const resolveRefreshToken = () => text(window.API?.getToken?.() || (typeof window.getToken === 'function' ? window.getToken() : ''));
   const resolveRequestError = (error, fallbackMessage) => {
     if (error?.isTimeout) return 'Request timed out. Please try again.';
-    if (error?.status === 401) {
-      return 'Unauthorized (401). Server-provided refresh token is invalid or expired. Please re-login.';
-    }
+    if (error?.status === 401) return 'Unauthorized (401). Server-provided refresh token is invalid or expired. Please re-login.';
+    if (error?.status === 403) return 'You are not allowed to perform this action.';
     return text(error?.message) || fallbackMessage;
+  };
+  const setButtonsLoading = (buttons, loading, loadingLabel) => {
+    buttons.forEach((button) => {
+      if (!(button instanceof HTMLButtonElement)) return;
+      if (!button.dataset.defaultLabel) {
+        button.dataset.defaultLabel = text(button.textContent) || 'Refresh';
+      }
+      button.disabled = loading;
+      button.textContent = loading ? loadingLabel : button.dataset.defaultLabel;
+    });
+  };
+  const setActionButtonLoading = (button, loading, loadingLabel) => {
+    if (!(button instanceof HTMLButtonElement)) return;
+    if (!button.dataset.defaultLabel) {
+      button.dataset.defaultLabel = text(button.textContent) || 'Submit';
+    }
+    button.disabled = loading;
+    button.textContent = loading ? loadingLabel : button.dataset.defaultLabel;
   };
   const setBadgeState = (node, label, tone = 'info') => {
     if (!(node instanceof HTMLElement)) return;
@@ -5461,18 +5487,18 @@ function initPackagesPage() {
     if (purchaseResultWrap instanceof HTMLElement) purchaseResultWrap.hidden = true;
     if (purchaseReferenceNode instanceof HTMLElement) purchaseReferenceNode.textContent = 'Reference: -----';
     if (purchaseResultCopyNode instanceof HTMLElement) {
-      purchaseResultCopyNode.textContent = 'Payment instructions will appear here after the request is created.';
+      purchaseResultCopyNode.textContent = 'Payment instructions will appear here after the package request is created.';
     }
     if (purchaseChecklistNode instanceof HTMLElement) purchaseChecklistNode.innerHTML = '';
-    setMessageState(purchaseMessageNode, 'We will create a unique 5-digit reference for this package purchase request.', 'info');
+    setMessageState(purchaseMessageNode, 'We will create a unique 5-digit reference and keep this request pending until super-admin approval.', 'info');
   };
   const setPurchaseSubmitState = (loading) => {
     if (!(purchaseSubmitButton instanceof HTMLButtonElement)) return;
     if (!purchaseSubmitButton.dataset.defaultLabel) {
-      purchaseSubmitButton.dataset.defaultLabel = text(purchaseSubmitButton.textContent) || 'Create Payment Request';
+      purchaseSubmitButton.dataset.defaultLabel = text(purchaseSubmitButton.textContent) || 'Submit Package Request';
     }
     purchaseSubmitButton.disabled = loading;
-    purchaseSubmitButton.textContent = loading ? 'Creating...' : purchaseSubmitButton.dataset.defaultLabel;
+    purchaseSubmitButton.textContent = loading ? 'Submitting...' : purchaseSubmitButton.dataset.defaultLabel;
   };
   const getVariant = (pkg, cycle) => {
     const variants = Array.isArray(pkg?.variant_prices) ? pkg.variant_prices : [];
@@ -5483,7 +5509,6 @@ function initPackagesPage() {
     if (isTrialPackage(pkg)) {
       const days = trialDays(pkg);
       return {
-        basePrice: 0,
         finalPrice: 0,
         hasPrice: true,
         note: `${days}-day free trial`,
@@ -5515,9 +5540,7 @@ function initPackagesPage() {
       }
     }
 
-    const averagePerMonth = Number.isFinite(finalPrice)
-      ? finalPrice / (cycleMonths[normalizedCycle] || 1)
-      : NaN;
+    const averagePerMonth = Number.isFinite(finalPrice) ? finalPrice / (cycleMonths[normalizedCycle] || 1) : NaN;
     const noteParts = [];
     if (discountLabel && hasBasePrice) {
       noteParts.push(`Regular ${formatCurrency(basePrice)}`);
@@ -5528,7 +5551,6 @@ function initPackagesPage() {
     }
 
     return {
-      basePrice,
       finalPrice,
       hasPrice: Number.isFinite(finalPrice),
       note: noteParts.join(' • '),
@@ -5548,42 +5570,22 @@ function initPackagesPage() {
     ['is_domain', 'Domain'],
     ['is_wordpress', 'WordPress'],
   ];
-  const enabledCapabilities = (pkg) => capabilityLabels
-    .filter(([key]) => Boolean(pkg?.[key]))
-    .map(([, label]) => label);
+  const enabledCapabilities = (pkg) => capabilityLabels.filter(([key]) => Boolean(pkg?.[key])).map(([, label]) => label);
   const resolvePackageStatus = (pkg) => {
     const expiresAt = toDate(pkg?.expired_in);
     if (!expiresAt) {
-      return {
-        label: 'Active',
-        tone: 'paid',
-        copy: 'Package info loaded successfully.',
-      };
+      return {label: 'Active', tone: 'paid', copy: 'Package info loaded successfully.'};
     }
 
     const diffMs = expiresAt.getTime() - Date.now();
     const daysLeft = Math.ceil(diffMs / 86400000);
     if (daysLeft < 0) {
-      return {
-        label: 'Expired',
-        tone: 'unpaid',
-        copy: `Expired on ${formatDate(expiresAt)}.`,
-      };
+      return {label: 'Expired', tone: 'unpaid', copy: `Expired on ${formatDate(expiresAt)}.`};
     }
-
     if (daysLeft <= 7) {
-      return {
-        label: 'Renew Soon',
-        tone: 'warning',
-        copy: `${daysLeft} day${daysLeft === 1 ? '' : 's'} left before expiry.`,
-      };
+      return {label: 'Renew Soon', tone: 'warning', copy: `${daysLeft} day${daysLeft === 1 ? '' : 's'} left before expiry.`};
     }
-
-    return {
-      label: 'Active',
-      tone: 'paid',
-      copy: `${daysLeft} day${daysLeft === 1 ? '' : 's'} remaining in the current cycle.`,
-    };
+    return {label: 'Active', tone: 'paid', copy: `${daysLeft} day${daysLeft === 1 ? '' : 's'} remaining in the current cycle.`};
   };
   const buildIntroCopy = () => {
     const packageCount = Array.isArray(allPackages) ? allPackages.length : 0;
@@ -5594,6 +5596,8 @@ function initPackagesPage() {
           ? `Your active package is running on a ${trialDays(currentPackage)}-day trial.`
           : `Your active package runs on a ${cycleLabel(currentPackage.package_type).toLowerCase()} cycle.`
       );
+    } else {
+      parts.push('Start the free trial instantly or submit a paid package for manual approval.');
     }
     return parts.join(' ');
   };
@@ -5607,20 +5611,10 @@ function initPackagesPage() {
   };
   const setCycleButtonsDisabled = (disabled) => {
     cycleButtons.forEach((button) => {
-      if (!(button instanceof HTMLButtonElement)) return;
-      button.disabled = disabled;
+      if (button instanceof HTMLButtonElement) button.disabled = disabled;
     });
   };
-  const setReloadState = (loading) => {
-    reloadButtons.forEach((button) => {
-      if (!(button instanceof HTMLButtonElement)) return;
-      if (!button.dataset.defaultLabel) {
-        button.dataset.defaultLabel = text(button.textContent) || 'Refresh Data';
-      }
-      button.disabled = loading;
-      button.textContent = loading ? 'Refreshing...' : button.dataset.defaultLabel;
-    });
-  };
+  const setReloadState = (loading) => setButtonsLoading(reloadButtons, loading, 'Refreshing...');
   const buildSkeletonCardsHtml = (count = 3) => Array.from({length: count}).map(() => `
     <article class="billing-package-card is-skeleton" aria-hidden="true">
       <div class="billing-package-head">
@@ -5636,34 +5630,12 @@ function initPackagesPage() {
         </div>
         <div class="billing-skeleton billing-skeleton-block is-copy"></div>
       </div>
-      <div class="billing-package-credit-grid">
-        <article class="billing-package-credit">
-          <span class="billing-skeleton billing-skeleton-block is-copy"></span>
-          <strong class="billing-skeleton billing-skeleton-block is-copy"></strong>
-        </article>
-        <article class="billing-package-credit">
-          <span class="billing-skeleton billing-skeleton-block is-copy"></span>
-          <strong class="billing-skeleton billing-skeleton-block is-copy"></strong>
-        </article>
-        <article class="billing-package-credit">
-          <span class="billing-skeleton billing-skeleton-block is-copy"></span>
-          <strong class="billing-skeleton billing-skeleton-block is-copy"></strong>
-        </article>
-      </div>
-      <div class="billing-package-capabilities">
-        <span class="billing-package-capability billing-skeleton billing-skeleton-block is-chip"></span>
-        <span class="billing-package-capability billing-skeleton billing-skeleton-block is-chip"></span>
-        <span class="billing-package-capability billing-skeleton billing-skeleton-block is-chip"></span>
-      </div>
       <ul class="billing-package-features">
         <li><span class="billing-skeleton billing-skeleton-block is-copy"></span></li>
         <li><span class="billing-skeleton billing-skeleton-block is-copy"></span></li>
         <li><span class="billing-skeleton billing-skeleton-block is-copy"></span></li>
         <li><span class="billing-skeleton billing-skeleton-block is-copy"></span></li>
       </ul>
-      <div class="billing-package-footer">
-        <span class="billing-skeleton billing-skeleton-block is-button"></span>
-      </div>
     </article>
   `).join('');
   const buildEmptyStateHtml = (title, copy, tone = 'info') => `
@@ -5716,8 +5688,30 @@ function initPackagesPage() {
     setMessageState(summaryMessageNode, message, 'danger');
     setMessageState(insightsMessageNode, message, 'danger');
   };
+  const renderNoCurrentPackage = () => {
+    if (summaryCard instanceof HTMLElement) summaryCard.setAttribute('aria-busy', 'false');
+    if (insightsCard instanceof HTMLElement) insightsCard.setAttribute('aria-busy', 'false');
+    currentTitleNode.textContent = 'No active package yet';
+    currentDescriptionNode.textContent = 'Start the free trial instantly or submit a paid package request from the catalog below.';
+    currentPriceNode.textContent = '--';
+    currentCycleNode.textContent = 'No active billing cycle';
+    currentPriceNoteNode.textContent = 'Your account will show live package details here after activation.';
+    metaNameNode.textContent = '--';
+    metaActivatedNode.textContent = '--';
+    metaExpiresNode.textContent = '--';
+    metaCycleNode.textContent = '--';
+    insightsTitleNode.textContent = 'Package snapshot unavailable';
+    insightsCopyNode.textContent = 'No package is active on this account right now.';
+    insightsProductsNode.textContent = '--';
+    insightsCallsNode.textContent = '--';
+    insightsSmsNode.textContent = '--';
+    insightsModulesNode.textContent = '--';
+    setBadgeState(currentStatusNode, 'No Package', 'warning');
+    setMessageState(summaryMessageNode, 'Choose a package below. Free trials start immediately, and paid plans stay pending until super-admin approval.', 'warning');
+    setMessageState(insightsMessageNode, 'Once a package is activated, credits and enabled modules will appear here.', 'info');
+  };
   const renderCurrentPackage = (pkg) => {
-    if (!pkg || typeof pkg !== 'object') {
+    if (!pkg || typeof pkg !== 'object' || Number(pkg?.package_id) <= 0) {
       renderSummaryError('Active package data is not available.');
       return;
     }
@@ -5750,18 +5744,8 @@ function initPackagesPage() {
     insightsModulesNode.textContent = `${activeModules.length} module${activeModules.length === 1 ? '' : 's'}`;
 
     setBadgeState(currentStatusNode, status.label, status.tone);
-    setMessageState(
-      summaryMessageNode,
-      `${status.copy} Current billing cycle: ${isTrialPackage(pkg) ? `${trialDays(pkg)}-day trial` : cycleLabel(normalizedCycle)}.`,
-      status.tone === 'paid' ? 'success' : status.tone === 'warning' ? 'warning' : 'danger'
-    );
-    setMessageState(
-      insightsMessageNode,
-      activeModules.length
-        ? `Enabled modules: ${activeModules.join(', ')}.`
-        : 'This package currently exposes only the base toolkit modules.',
-      'info'
-    );
+    setMessageState(summaryMessageNode, `${status.copy} Current billing cycle: ${isTrialPackage(pkg) ? `${trialDays(pkg)}-day trial` : cycleLabel(normalizedCycle)}.`, status.tone === 'paid' ? 'success' : status.tone === 'warning' ? 'warning' : 'danger');
+    setMessageState(insightsMessageNode, activeModules.length ? `Enabled modules: ${activeModules.join(', ')}.` : 'This package currently exposes only the base toolkit modules.', 'info');
   };
   const renderCatalogLoading = () => {
     gridNode.setAttribute('aria-busy', 'true');
@@ -5773,26 +5757,127 @@ function initPackagesPage() {
     gridNode.innerHTML = buildEmptyStateHtml('Unable to load packages', message, 'danger');
     introCopyNode.textContent = 'Package catalog could not be loaded from the API.';
   };
+  const subscriptionTone = (status) => {
+    const normalized = text(status).toLowerCase();
+    if (normalized === 'active') return 'success';
+    if (normalized === 'pending') return 'warning';
+    if (normalized === 'rejected' || normalized === 'cancelled') return 'danger';
+    return 'info';
+  };
+  const subscriptionStatusLabel = (status) => {
+    const normalized = text(status).toLowerCase();
+    if (normalized === 'active') return 'Active';
+    if (normalized === 'pending') return 'Pending Review';
+    if (normalized === 'rejected') return 'Rejected';
+    if (normalized === 'expired') return 'Expired';
+    if (normalized === 'cancelled') return 'Cancelled';
+    return titleCase(normalized || 'Unknown');
+  };
+  const paymentStatusLabel = (status) => {
+    const normalized = text(status).toLowerCase();
+    if (normalized === 'not_required') return 'No payment required';
+    if (normalized === 'pending_manual_review') return 'Manual payment pending review';
+    if (normalized === 'approved') return 'Payment approved';
+    if (normalized === 'rejected') return 'Payment rejected';
+    return titleCase(normalized || 'Unknown');
+  };
+  const buildSubscriptionCardHtml = (subscription, isSuperadmin = false) => {
+    const details = [
+      `Status: ${subscriptionStatusLabel(subscription?.status)}`,
+      `Source: ${titleCase(subscription?.source || '') || 'Unknown'}`,
+      `Payment: ${paymentStatusLabel(subscription?.payment_status)}`,
+      `Submitted: ${formatDateTimeSafe(subscription?.created_at)}`,
+      `Cycle: ${text(subscription?.validity).toLowerCase() === 'trial' ? 'Trial' : cycleLabel(subscription?.validity)}`,
+      subscription?.activated_at ? `Activated: ${formatDateSafe(subscription?.activated_at)}` : '',
+      subscription?.expires_at ? `Expires: ${formatDateSafe(subscription?.expires_at)}` : '',
+      subscription?.payment_method ? `Method: ${titleCase(subscription?.payment_method)}` : '',
+      subscription?.reference_code ? `Reference: ${text(subscription?.reference_code)}` : '',
+      subscription?.customer_number ? `Customer number: ${text(subscription?.customer_number)}` : '',
+      Number(subscription?.amount) > 0 ? `Amount: ${formatCurrency(subscription?.amount)}` : 'Amount: Free',
+      subscription?.admin_note ? `Admin note: ${text(subscription?.admin_note)}` : '',
+    ].filter(Boolean);
+
+    const actions = isSuperadmin && text(subscription?.status).toLowerCase() === 'pending'
+      ? `
+        <div class="billing-package-footer">
+          <button type="button" class="btn btn-primary" data-superadmin-package-approve="${escapeHtml(String(subscription?.id ?? ''))}">Approve</button>
+          <button type="button" class="btn btn-secondary" data-superadmin-package-reject="${escapeHtml(String(subscription?.id ?? ''))}">Reject</button>
+        </div>
+      `
+      : '';
+
+    return `
+      <article class="billing-package-card billing-package-card-${escapeHtml(accentForPackage({package_name: subscription?.package_name}, 0))}">
+        <div class="billing-package-head">
+          <span class="billing-package-badge">${escapeHtml(subscriptionStatusLabel(subscription?.status))}</span>
+          <h3>${escapeHtml(text(subscription?.package_name) || 'Unnamed Package')}</h3>
+          <p>${escapeHtml(isSuperadmin ? `${text(subscription?.subscriber_name) || 'Unknown user'} • ${text(subscription?.subscriber_email) || 'No email'}` : paymentStatusLabel(subscription?.payment_status))}</p>
+        </div>
+        <div class="billing-card-message is-${subscriptionTone(subscription?.status)}">
+          ${escapeHtml(paymentStatusLabel(subscription?.payment_status))}
+        </div>
+        <ul class="billing-package-features">
+          ${details.map((item) => `<li>${escapeHtml(item)}</li>`).join('')}
+        </ul>
+        ${actions}
+      </article>
+    `;
+  };
+  const renderSubscriptionsLoading = () => {
+    subscriptionsGridNode.setAttribute('aria-busy', 'true');
+    subscriptionsGridNode.innerHTML = buildSkeletonCardsHtml(2);
+    subscriptionsIntroNode.textContent = 'Loading your package requests, trial activity, and manual payment submissions...';
+  };
+  const renderSubscriptions = () => {
+    subscriptionsGridNode.setAttribute('aria-busy', 'false');
+    if (!Array.isArray(mySubscriptions) || !mySubscriptions.length) {
+      subscriptionsGridNode.innerHTML = buildEmptyStateHtml('No package requests yet', 'Trial starts and paid package submissions will appear here after you take action.', 'info');
+      subscriptionsIntroNode.textContent = 'You have not started a trial or submitted a paid package yet.';
+      return;
+    }
+
+    subscriptionsIntroNode.textContent = `Showing ${mySubscriptions.length} package activit${mySubscriptions.length === 1 ? 'y' : 'ies'} from your account.`;
+    subscriptionsGridNode.innerHTML = mySubscriptions.map((subscription) => buildSubscriptionCardHtml(subscription)).join('');
+  };
+  const renderSubscriptionsError = (message) => {
+    subscriptionsGridNode.setAttribute('aria-busy', 'false');
+    subscriptionsGridNode.innerHTML = buildEmptyStateHtml('Unable to load package requests', message, 'danger');
+    subscriptionsIntroNode.textContent = 'Your package request history could not be loaded from the API.';
+  };
+  const renderSuperadminLoading = () => {
+    if (superadminPanel instanceof HTMLElement) superadminPanel.hidden = false;
+    superadminGridNode.setAttribute('aria-busy', 'true');
+    superadminGridNode.innerHTML = buildSkeletonCardsHtml(2);
+    superadminIntroNode.textContent = 'Loading pending package submissions that need manual approval...';
+  };
+  const renderSuperadminQueue = () => {
+    if (!(superadminPanel instanceof HTMLElement)) return;
+    superadminPanel.hidden = false;
+    superadminGridNode.setAttribute('aria-busy', 'false');
+    if (!Array.isArray(superadminSubscriptions) || !superadminSubscriptions.length) {
+      superadminGridNode.innerHTML = buildEmptyStateHtml('No pending package requests', 'Every submitted paid package has already been reviewed.', 'info');
+      superadminIntroNode.textContent = 'There are no pending package submissions waiting for approval.';
+      return;
+    }
+
+    superadminIntroNode.textContent = `Showing ${superadminSubscriptions.length} package request${superadminSubscriptions.length === 1 ? '' : 's'} waiting for your review.`;
+    superadminGridNode.innerHTML = superadminSubscriptions.map((subscription) => buildSubscriptionCardHtml(subscription, true)).join('');
+  };
+  const renderSuperadminError = (message) => {
+    if (!(superadminPanel instanceof HTMLElement)) return;
+    superadminPanel.hidden = false;
+    superadminGridNode.setAttribute('aria-busy', 'false');
+    superadminGridNode.innerHTML = buildEmptyStateHtml('Unable to load super-admin queue', message, 'danger');
+    superadminIntroNode.textContent = 'The super-admin approval queue could not be loaded.';
+  };
   const buildPackageCardHtml = (pkg, index) => {
     const isCurrent = Number(pkg?.package_id) === Number(currentPackage?.package_id);
     const pricing = resolvePricing(pkg, activeCycle);
     const features = Array.isArray(pkg?.features) ? pkg.features.filter((feature) => text(feature)) : [];
     const activeModules = enabledCapabilities(pkg);
     const isTrial = isTrialPackage(pkg);
-    const badgeLabel = isCurrent
-      ? 'Current package'
-      : isTrial
-        ? 'Trial'
-      : index === 0
-        ? 'Start here'
-        : index === 1
-          ? 'Popular'
-          : 'Advanced';
-    const buttonLabel = isCurrent
-      ? 'Current Package'
-      : isTrial
-        ? 'Start Trial'
-        : `Upgrade to ${text(pkg?.package_name) || 'Package'}`;
+    const badgeLabel = isCurrent ? 'Current package' : isTrial ? 'Trial' : index === 0 ? 'Start here' : index === 1 ? 'Popular' : 'Advanced';
+    const buttonLabel = isCurrent ? 'Current Package' : isTrial ? 'Start Trial' : `Upgrade to ${text(pkg?.package_name) || 'Package'}`;
 
     return `
       <article class="billing-package-card ${isCurrent ? 'is-featured is-current' : ''} billing-package-card-${escapeHtml(accentForPackage(pkg, index))}">
@@ -5801,7 +5886,6 @@ function initPackagesPage() {
           <h3>${escapeHtml(text(pkg?.package_name) || 'Unnamed Package')}</h3>
           <p>${escapeHtml(text(pkg?.short_description) || 'No description available.')}</p>
         </div>
-
         <div class="billing-package-price-stack">
           <div class="billing-package-price">
             <strong>${pricing.hasPrice ? escapeHtml(pricing.priceLabel || formatCurrency(pricing.finalPrice)) : '--'}</strong>
@@ -5811,38 +5895,17 @@ function initPackagesPage() {
             ${escapeHtml(pricing.note || `${cycleBillingLabel(activeCycle)} pricing loaded from API.`)}
           </div>
         </div>
-
         <div class="billing-package-credit-grid">
-          <article class="billing-package-credit">
-            <span>Products</span>
-            <strong>${escapeHtml(formatCount(pkg?.products_credits))}</strong>
-          </article>
-          <article class="billing-package-credit">
-            <span>Calls</span>
-            <strong>${escapeHtml(formatCount(pkg?.calling_credits))}</strong>
-          </article>
-          <article class="billing-package-credit">
-            <span>SMS</span>
-            <strong>${escapeHtml(formatCount(pkg?.sms_credits))}</strong>
-          </article>
+          <article class="billing-package-credit"><span>Products</span><strong>${escapeHtml(formatCount(pkg?.products_credits))}</strong></article>
+          <article class="billing-package-credit"><span>Calls</span><strong>${escapeHtml(formatCount(pkg?.calling_credits))}</strong></article>
+          <article class="billing-package-credit"><span>SMS</span><strong>${escapeHtml(formatCount(pkg?.sms_credits))}</strong></article>
         </div>
-
         <div class="billing-package-capabilities">
-          ${
-            activeModules.length
-              ? activeModules.map((label) => `<span class="billing-package-capability">${escapeHtml(label)}</span>`).join('')
-              : '<span class="billing-package-capability is-empty">Base toolkit</span>'
-          }
+          ${activeModules.length ? activeModules.map((label) => `<span class="billing-package-capability">${escapeHtml(label)}</span>`).join('') : '<span class="billing-package-capability is-empty">Base toolkit</span>'}
         </div>
-
         <ul class="billing-package-features">
-          ${
-            features.length
-              ? features.map((feature) => `<li>${escapeHtml(feature)}</li>`).join('')
-              : '<li>No features were returned by the API.</li>'
-          }
+          ${features.length ? features.map((feature) => `<li>${escapeHtml(feature)}</li>`).join('') : '<li>No features were returned by the API.</li>'}
         </ul>
-
         <div class="billing-package-footer">
           <button
             type="button"
@@ -5860,7 +5923,6 @@ function initPackagesPage() {
   };
   const renderCatalog = () => {
     gridNode.setAttribute('aria-busy', 'false');
-
     if (!Array.isArray(allPackages) || !allPackages.length) {
       gridNode.innerHTML = buildEmptyStateHtml('No packages available', 'The package catalog API returned an empty list.', 'info');
       introCopyNode.textContent = 'No package plans were returned from the catalog API.';
@@ -5872,102 +5934,17 @@ function initPackagesPage() {
   };
   const openPurchaseFlow = (pkg, cycle = activeCycle) => {
     if (!(purchaseModal instanceof HTMLElement) || !pkg) return;
-
     selectedPurchasePackage = pkg;
-    if (purchaseNameInput instanceof HTMLInputElement) {
-      purchaseNameInput.value = text(pkg?.package_name) || 'Selected package';
-    }
-    if (purchasePackageIdInput instanceof HTMLInputElement) {
-      purchasePackageIdInput.value = String(pkg?.package_id ?? '');
-    }
-    if (purchaseValiditySelect instanceof HTMLSelectElement) {
-      purchaseValiditySelect.value = normalizeCycle(cycle);
-    }
-    if (purchaseMethodSelect instanceof HTMLSelectElement && !purchaseMethodSelect.value) {
-      purchaseMethodSelect.value = 'bkash';
-    }
+    if (purchaseNameInput instanceof HTMLInputElement) purchaseNameInput.value = text(pkg?.package_name) || 'Selected package';
+    if (purchasePackageIdInput instanceof HTMLInputElement) purchasePackageIdInput.value = String(pkg?.package_id ?? '');
+    if (purchaseValiditySelect instanceof HTMLSelectElement) purchaseValiditySelect.value = normalizeCycle(cycle);
+    if (purchaseMethodSelect instanceof HTMLSelectElement && !purchaseMethodSelect.value) purchaseMethodSelect.value = 'bkash';
     resetPurchaseResult();
     openPurchaseModal();
     if (purchaseNumberInput instanceof HTMLInputElement) {
       window.setTimeout(() => purchaseNumberInput.focus(), 40);
     }
   };
-  const submitPurchaseRequest = async () => {
-    if (!window.API?.Admin?.Packages?.createPurchaseRequest) {
-      setMessageState(purchaseMessageNode, 'Package purchase API client is unavailable.', 'danger');
-      return;
-    }
-
-    const packageID = Number(purchasePackageIdInput instanceof HTMLInputElement ? purchasePackageIdInput.value : 0);
-    const validity = purchaseValiditySelect instanceof HTMLSelectElement ? normalizeCycle(purchaseValiditySelect.value) : '';
-    const paymentMethod = purchaseMethodSelect instanceof HTMLSelectElement ? text(purchaseMethodSelect.value).toLowerCase() : '';
-    const customerNumber = purchaseNumberInput instanceof HTMLInputElement ? text(purchaseNumberInput.value) : '';
-
-    if (!packageID || !validity || !paymentMethod || !customerNumber) {
-      setMessageState(purchaseMessageNode, 'Package, billing cycle, payment method, and your payment number are required.', 'danger');
-      return;
-    }
-
-    const refreshToken = resolveRefreshToken();
-    if (!refreshToken) {
-      setMessageState(purchaseMessageNode, 'Missing refresh token. Please login again.', 'danger');
-      return;
-    }
-
-    setPurchaseSubmitState(true);
-    setMessageState(purchaseMessageNode, 'Creating your payment request...', 'info');
-
-    try {
-      const response = await window.API.Admin.Packages.createPurchaseRequest({
-        apiBaseUrl,
-        refreshToken,
-        payload: {
-          package_id: packageID,
-          validity,
-          payment_method: paymentMethod,
-          customer_number: customerNumber,
-        },
-        timeoutMs: 12000,
-      });
-
-      const request = response?.request || {};
-      const method = response?.method || {};
-      const checklist = Array.isArray(response?.checklist) ? response.checklist : [];
-      if (purchaseResultWrap instanceof HTMLElement) purchaseResultWrap.hidden = false;
-      if (purchaseReferenceNode instanceof HTMLElement) {
-        purchaseReferenceNode.textContent = `Reference: ${text(request.reference_code) || '-----'}`;
-      }
-      if (purchaseResultCopyNode instanceof HTMLElement) {
-        purchaseResultCopyNode.textContent = text(response?.message)
-          || `Send the payment to ${text(method.account_number) || 'the configured payment number'} and use the reference code shown above.`;
-      }
-      if (purchaseChecklistNode instanceof HTMLElement) {
-        purchaseChecklistNode.innerHTML = [
-          `Receiver number: ${escapeHtml(text(method.account_number) || 'Not configured yet')}`,
-          `Payment method: ${escapeHtml(text(method.label) || text(paymentMethod))}`,
-          `Request amount: ${escapeHtml(formatCurrency(request.amount || 0))}`,
-          ...checklist.map((item) => escapeHtml(text(item))),
-          text(method.instructions) ? escapeHtml(text(method.instructions)) : '',
-        ].filter(Boolean).map((item) => `<li>${item}</li>`).join('');
-      }
-      setMessageState(purchaseMessageNode, 'Payment request created. Use the reference exactly as shown before sending money.', 'success');
-      if (typeof window.showSuccess === 'function') {
-        window.showSuccess('Payment request created successfully.');
-      }
-    } catch (error) {
-      const message = resolveRequestError(error, 'Unable to create package payment request.');
-      setMessageState(purchaseMessageNode, message, 'danger');
-      if (typeof window.showError === 'function') window.showError(message);
-    } finally {
-      setPurchaseSubmitState(false);
-    }
-  };
-
-  let allPackages = [];
-  let currentPackage = null;
-  let activeCycle = 'monthly';
-  let selectedPurchasePackage = null;
-
   const loadPackages = async () => {
     if (!apiBaseUrl) {
       const message = 'Missing backend API URL.';
@@ -5976,7 +5953,6 @@ function initPackagesPage() {
       if (typeof window.showError === 'function') window.showError(message);
       return;
     }
-
     if (!window.API?.Admin?.Packages?.listAll || !window.API?.Admin?.Packages?.getInfo) {
       const message = 'Package API client is unavailable.';
       renderSummaryError(message);
@@ -6000,34 +5976,25 @@ function initPackagesPage() {
     setCycleButtonsDisabled(true);
 
     const [catalogResult, currentResult] = await Promise.allSettled([
-      window.API.Admin.Packages.listAll({
-        apiBaseUrl,
-        refreshToken,
-        timeoutMs: 12000,
-      }),
-      window.API.Admin.Packages.getInfo({
-        apiBaseUrl,
-        refreshToken,
-        timeoutMs: 12000,
-      }),
+      window.API.Admin.Packages.listAll({apiBaseUrl, refreshToken, timeoutMs: 12000}),
+      window.API.Admin.Packages.getInfo({apiBaseUrl, refreshToken, timeoutMs: 12000}),
     ]);
 
     setReloadState(false);
     setCycleButtonsDisabled(false);
 
     const errors = [];
-
-    if (currentResult.status === 'fulfilled' && currentResult.value && typeof currentResult.value === 'object') {
+    if (currentResult.status === 'fulfilled' && currentResult.value && typeof currentResult.value === 'object' && Number(currentResult.value?.package_id) > 0) {
       currentPackage = currentResult.value;
       activeCycle = normalizeCycle(currentPackage.package_type || activeCycle);
       syncCycleButtons();
       renderCurrentPackage(currentPackage);
+    } else if (currentResult.status === 'rejected' && Number(currentResult.reason?.status) === 404) {
+      currentPackage = null;
+      renderNoCurrentPackage();
     } else {
       currentPackage = null;
-      const message = resolveRequestError(
-        currentResult.reason,
-        'Unable to load active package details.'
-      );
+      const message = resolveRequestError(currentResult.reason, 'Unable to load active package details.');
       renderSummaryError(message);
       errors.push(message);
     }
@@ -6037,22 +6004,212 @@ function initPackagesPage() {
       renderCatalog();
     } else {
       allPackages = [];
-      const message = resolveRequestError(
-        catalogResult.reason,
-        'Unable to load package catalog.'
-      );
+      const message = resolveRequestError(catalogResult.reason, 'Unable to load package catalog.');
       renderCatalogError(message);
       errors.push(message);
     }
 
-    if (errors.length === 1) {
-      if (typeof window.showError === 'function') window.showError(errors[0]);
-    } else if (errors.length > 1) {
-      if (typeof window.showError === 'function') {
-        window.showError('Some package data could not be loaded. Please refresh and try again.');
-      }
+    if (errors.length === 1 && typeof window.showError === 'function') {
+      window.showError(errors[0]);
+    } else if (errors.length > 1 && typeof window.showError === 'function') {
+      window.showError('Some package data could not be loaded. Please refresh and try again.');
     }
   };
+  const loadSubscriptions = async () => {
+    if (!window.API?.Admin?.Packages?.listSubscriptions) {
+      renderSubscriptionsError('Package subscription API client is unavailable.');
+      return;
+    }
+
+    const refreshToken = resolveRefreshToken();
+    if (!refreshToken) {
+      renderSubscriptionsError('Missing refresh token. Please login again.');
+      return;
+    }
+
+    renderSubscriptionsLoading();
+    setButtonsLoading(subscriptionsReloadButtons, true, 'Refreshing...');
+    try {
+      const response = await window.API.Admin.Packages.listSubscriptions({apiBaseUrl, refreshToken, timeoutMs: 12000});
+      mySubscriptions = Array.isArray(response) ? response : [];
+      renderSubscriptions();
+    } catch (error) {
+      mySubscriptions = [];
+      renderSubscriptionsError(resolveRequestError(error, 'Unable to load package subscriptions.'));
+    } finally {
+      setButtonsLoading(subscriptionsReloadButtons, false, 'Refreshing...');
+    }
+  };
+  const loadSuperadminQueue = async () => {
+    if (!window.API?.SuperAdmin?.Packages?.listSubscriptions || !(superadminPanel instanceof HTMLElement)) return;
+
+    const refreshToken = resolveRefreshToken();
+    if (!refreshToken) {
+      superadminPanel.hidden = true;
+      return;
+    }
+
+    renderSuperadminLoading();
+    setButtonsLoading(superadminReloadButtons, true, 'Refreshing...');
+    try {
+      const response = await window.API.SuperAdmin.Packages.listSubscriptions({apiBaseUrl, refreshToken, status: 'pending', timeoutMs: 12000});
+      isSuperAdminView = true;
+      superadminSubscriptions = Array.isArray(response) ? response : [];
+      renderSuperadminQueue();
+    } catch (error) {
+      if (Number(error?.status) === 403) {
+        isSuperAdminView = false;
+        superadminSubscriptions = [];
+        if (superadminPanel instanceof HTMLElement) superadminPanel.hidden = true;
+      } else {
+        isSuperAdminView = true;
+        superadminSubscriptions = [];
+        renderSuperadminError(resolveRequestError(error, 'Unable to load pending package submissions.'));
+      }
+    } finally {
+      setButtonsLoading(superadminReloadButtons, false, 'Refreshing...');
+    }
+  };
+  const submitPurchaseRequest = async () => {
+    if (!window.API?.Admin?.Packages?.createPurchaseRequest) {
+      setMessageState(purchaseMessageNode, 'Package purchase API client is unavailable.', 'danger');
+      return;
+    }
+
+    const packageID = Number(purchasePackageIdInput instanceof HTMLInputElement ? purchasePackageIdInput.value : 0);
+    const validity = purchaseValiditySelect instanceof HTMLSelectElement ? normalizeCycle(purchaseValiditySelect.value) : '';
+    const paymentMethod = purchaseMethodSelect instanceof HTMLSelectElement ? text(purchaseMethodSelect.value).toLowerCase() : '';
+    const customerNumber = purchaseNumberInput instanceof HTMLInputElement ? text(purchaseNumberInput.value) : '';
+    if (!packageID || !validity || !paymentMethod || !customerNumber) {
+      setMessageState(purchaseMessageNode, 'Package, billing cycle, payment method, and your payment number are required.', 'danger');
+      return;
+    }
+
+    const refreshToken = resolveRefreshToken();
+    if (!refreshToken) {
+      setMessageState(purchaseMessageNode, 'Missing refresh token. Please login again.', 'danger');
+      return;
+    }
+
+    setPurchaseSubmitState(true);
+    setMessageState(purchaseMessageNode, 'Submitting your package request...', 'info');
+
+    try {
+      const response = await window.API.Admin.Packages.createPurchaseRequest({
+        apiBaseUrl,
+        refreshToken,
+        payload: {
+          package_id: packageID,
+          validity,
+          payment_method: paymentMethod,
+          customer_number: customerNumber,
+        },
+        timeoutMs: 12000,
+      });
+
+      const request = response?.request || {};
+      const method = response?.method || {};
+      const checklist = Array.isArray(response?.checklist) ? response.checklist : [];
+      if (purchaseResultWrap instanceof HTMLElement) purchaseResultWrap.hidden = false;
+      if (purchaseReferenceNode instanceof HTMLElement) {
+        purchaseReferenceNode.textContent = `Reference: ${text(request.reference_code) || '-----'}`;
+      }
+      if (purchaseResultCopyNode instanceof HTMLElement) {
+        purchaseResultCopyNode.textContent = text(response?.message) || `Send the payment to ${text(method.account_number) || 'the configured payment number'} and use the reference code shown above.`;
+      }
+      if (purchaseChecklistNode instanceof HTMLElement) {
+        purchaseChecklistNode.innerHTML = [
+          `Receiver number: ${escapeHtml(text(method.account_number) || 'Not configured yet')}`,
+          `Payment method: ${escapeHtml(text(method.label) || text(paymentMethod))}`,
+          `Request amount: ${escapeHtml(formatCurrency(request.amount || 0))}`,
+          ...checklist.map((item) => escapeHtml(text(item))),
+          text(method.instructions) ? escapeHtml(text(method.instructions)) : '',
+        ].filter(Boolean).map((item) => `<li>${item}</li>`).join('');
+      }
+      setMessageState(purchaseMessageNode, 'Package request submitted. Use the reference exactly as shown before sending money.', 'success');
+      if (typeof window.showSuccess === 'function') window.showSuccess('Package request submitted successfully.');
+      await Promise.all([loadPackages(), loadSubscriptions(), loadSuperadminQueue()]);
+    } catch (error) {
+      const message = resolveRequestError(error, 'Unable to submit the package request.');
+      setMessageState(purchaseMessageNode, message, 'danger');
+      if (typeof window.showError === 'function') window.showError(message);
+    } finally {
+      setPurchaseSubmitState(false);
+    }
+  };
+  const startTrialPackage = async (pkg, button) => {
+    if (!window.API?.Admin?.Packages?.startTrial) {
+      if (typeof window.showError === 'function') window.showError('Trial API client is unavailable.');
+      return;
+    }
+
+    const packageID = Number(pkg?.package_id);
+    const refreshToken = resolveRefreshToken();
+    if (!packageID || !refreshToken) {
+      if (typeof window.showError === 'function') window.showError('Missing refresh token. Please login again.');
+      return;
+    }
+
+    setActionButtonLoading(button, true, 'Starting...');
+    try {
+      const response = await window.API.Admin.Packages.startTrial({
+        apiBaseUrl,
+        refreshToken,
+        payload: {package_id: packageID},
+        timeoutMs: 12000,
+      });
+      if (typeof window.showSuccess === 'function') {
+        window.showSuccess(text(response?.message) || 'Trial started successfully.');
+      }
+      await Promise.all([loadPackages(), loadSubscriptions(), loadSuperadminQueue()]);
+    } catch (error) {
+      const message = resolveRequestError(error, 'Unable to start the free trial.');
+      if (typeof window.showError === 'function') window.showError(message);
+    } finally {
+      setActionButtonLoading(button, false, 'Starting...');
+    }
+  };
+  const reviewPackageRequest = async (action, subscriptionId, button) => {
+    if (!isSuperAdminView || !window.API?.SuperAdmin?.Packages || !subscriptionId) return;
+
+    const refreshToken = resolveRefreshToken();
+    if (!refreshToken) {
+      if (typeof window.showError === 'function') window.showError('Missing refresh token. Please login again.');
+      return;
+    }
+
+    setActionButtonLoading(button, true, action === 'approve' ? 'Approving...' : 'Rejecting...');
+    try {
+      const apiMethod = action === 'approve'
+        ? window.API.SuperAdmin.Packages.approveSubscription
+        : window.API.SuperAdmin.Packages.rejectSubscription;
+
+      const response = await apiMethod({
+        apiBaseUrl,
+        refreshToken,
+        subscriptionId,
+        payload: {},
+        timeoutMs: 12000,
+      });
+      if (typeof window.showSuccess === 'function') {
+        window.showSuccess(text(response?.message) || `Package request ${action === 'approve' ? 'approved' : 'rejected'} successfully.`);
+      }
+      await Promise.all([loadPackages(), loadSubscriptions(), loadSuperadminQueue()]);
+    } catch (error) {
+      const message = resolveRequestError(error, `Unable to ${action} the package request.`);
+      if (typeof window.showError === 'function') window.showError(message);
+    } finally {
+      setActionButtonLoading(button, false, action === 'approve' ? 'Approving...' : 'Rejecting...');
+    }
+  };
+
+  let allPackages = [];
+  let currentPackage = null;
+  let activeCycle = 'monthly';
+  let selectedPurchasePackage = null;
+  let mySubscriptions = [];
+  let superadminSubscriptions = [];
+  let isSuperAdminView = false;
 
   cycleButtons.forEach((button) => {
     if (!(button instanceof HTMLButtonElement)) return;
@@ -6066,10 +6223,19 @@ function initPackagesPage() {
   });
 
   reloadButtons.forEach((button) => {
-    if (!(button instanceof HTMLButtonElement)) return;
-    button.addEventListener('click', () => {
-      void loadPackages();
-    });
+    if (button instanceof HTMLButtonElement) {
+      button.addEventListener('click', () => void loadPackages());
+    }
+  });
+  subscriptionsReloadButtons.forEach((button) => {
+    if (button instanceof HTMLButtonElement) {
+      button.addEventListener('click', () => void loadSubscriptions());
+    }
+  });
+  superadminReloadButtons.forEach((button) => {
+    if (button instanceof HTMLButtonElement) {
+      button.addEventListener('click', () => void loadSuperadminQueue());
+    }
   });
 
   gridNode.addEventListener('click', (event) => {
@@ -6078,19 +6244,34 @@ function initPackagesPage() {
 
     const packageID = Number(button.dataset.packageId || 0);
     const pkg = allPackages.find((item) => Number(item?.package_id) === packageID);
+    if (!pkg) return;
+    if (isTrialPackage(pkg)) {
+      void startTrialPackage(pkg, button);
+      return;
+    }
     openPurchaseFlow(pkg, button.dataset.packageCycle || activeCycle);
   });
 
+  superadminGridNode.addEventListener('click', (event) => {
+    const approveButton = event.target.closest('[data-superadmin-package-approve]');
+    if (approveButton instanceof HTMLButtonElement && !approveButton.disabled) {
+      void reviewPackageRequest('approve', Number(approveButton.dataset.superadminPackageApprove || 0), approveButton);
+      return;
+    }
+
+    const rejectButton = event.target.closest('[data-superadmin-package-reject]');
+    if (rejectButton instanceof HTMLButtonElement && !rejectButton.disabled) {
+      void reviewPackageRequest('reject', Number(rejectButton.dataset.superadminPackageReject || 0), rejectButton);
+    }
+  });
+
   purchaseCloseButtons.forEach((button) => {
-    if (!(button instanceof HTMLButtonElement)) return;
-    button.addEventListener('click', closePurchaseModal);
+    if (button instanceof HTMLButtonElement) button.addEventListener('click', closePurchaseModal);
   });
 
   if (purchaseModal instanceof HTMLElement) {
     purchaseModal.addEventListener('click', (event) => {
-      if (event.target === purchaseModal) {
-        closePurchaseModal();
-      }
+      if (event.target === purchaseModal) closePurchaseModal();
     });
   }
 
@@ -6101,16 +6282,16 @@ function initPackagesPage() {
   });
 
   if (purchaseSubmitButton instanceof HTMLButtonElement) {
-    purchaseSubmitButton.addEventListener('click', () => {
-      void submitPurchaseRequest();
-    });
+    purchaseSubmitButton.addEventListener('click', () => void submitPurchaseRequest());
   }
 
   syncCycleButtons();
   setCycleButtonsDisabled(true);
   renderSummaryLoading();
   renderCatalogLoading();
-  void loadPackages();
+  renderSubscriptionsLoading();
+  if (superadminPanel instanceof HTMLElement) superadminPanel.hidden = true;
+  void Promise.all([loadPackages(), loadSubscriptions(), loadSuperadminQueue()]);
 }
 
 // ══════════════════════════════════════════
