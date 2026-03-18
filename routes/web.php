@@ -53,58 +53,6 @@ Route::get('/user-data-deletion', [DataDeletionController::class, 'index'])->nam
 Route::post('/facebook/data-deletion', [DataDeletionController::class, 'callback'])->name('data-deletion.callback');
 Route::get('/facebook/data-deletion/status/{code}', [DataDeletionController::class, 'status'])->name('data-deletion.status');
 
-if (app()->environment('local')) {
-    Route::prefix('_debug')->name('debug.')->group(function () {
-        Route::get('/session', function (Request $request) {
-            $sessionData = $request->session()->all();
-            ksort($sessionData);
-
-            return view('debug.session-inspector', [
-                'sessionData' => $sessionData,
-                'sessionId' => $request->session()->getId(),
-                'sessionDriver' => config('session.driver'),
-            ]);
-        })->name('session.index');
-
-        Route::post('/session/set', function (Request $request) {
-            $validated = $request->validate([
-                'key' => ['required', 'string', 'max:255'],
-                'value' => ['nullable', 'string'],
-            ]);
-
-            $rawValue = $validated['value'] ?? '';
-            $decoded = json_decode($rawValue, true);
-            $value = json_last_error() === JSON_ERROR_NONE ? $decoded : $rawValue;
-
-            $request->session()->put($validated['key'], $value);
-
-            return redirect()
-                ->route('debug.session.index')
-                ->with('status', "Session key '{$validated['key']}' updated.");
-        })->name('session.set');
-
-        Route::post('/session/forget', function (Request $request) {
-            $validated = $request->validate([
-                'key' => ['required', 'string', 'max:255'],
-            ]);
-
-            $request->session()->forget($validated['key']);
-
-            return redirect()
-                ->route('debug.session.index')
-                ->with('status', "Session key '{$validated['key']}' removed.");
-        })->name('session.forget');
-
-        Route::post('/session/flush', function (Request $request) {
-            $request->session()->flush();
-
-            return redirect()
-                ->route('debug.session.index')
-                ->with('status', 'Session flushed.');
-        })->name('session.flush');
-    });
-}
-
 // webhook
 // Route::any('/webhook', [HomeController::class, 'webhook'])->name('home.webhook');
 // Route::prefix('facebook')->name('facebook.')->group(function () {
