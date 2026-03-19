@@ -6,6 +6,12 @@ class EcommerceController extends Controller
 {
     public function index()
     {
-        return 'hello world';
+        return view("ecommerce.theme1.index");
+    }
+
+    // Product 
+    public function productDetails()
+    {
+        return view("ecommerce.theme1.product-details");
     }
 }
