@@ -36,7 +36,7 @@ use App\Http\Controllers\User\PricingController;
 */
 
 // Users
-Route::get('/', [HomeController::class, 'index'])->name('home.index');
+// Route::get('/', [HomeController::class, 'index'])->name('home.index');
 Route::get('/features', [InfoController::class, 'features'])->name('features.index');
 Route::get('/pricing', [PricingController::class, 'index'])->name('pricing.index');
 Route::get('/how-it-works', [InfoController::class, 'howItWorks'])->name('how-it-works.index');

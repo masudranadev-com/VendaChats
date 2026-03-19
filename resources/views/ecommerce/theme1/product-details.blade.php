@@ -231,31 +231,31 @@
                         <div class="col-xl-6">
                             <div class="single-carousel owl-carousel">
                                 <div class="single-item"
-                                    data-dot="<img class='img-fluid' src='img/product-4.png' alt=''>">
+                                    data-dot="<img class='img-fluid' src='{{ asset("assets/theme1/") }}/img/product-4.png' alt=''>">
                                     <div class="single-inner bg-light rounded">
                                         <img src="{{ asset("assets/theme1/") }}/img/product-4.png" class="img-fluid rounded" alt="Image">
                                     </div>
                                 </div>
                                 <div class="single-item"
-                                    data-dot="<img class='img-fluid' src='img/product-5.png' alt=''>">
+                                    data-dot="<img class='img-fluid' src='{{ asset("assets/theme1/") }}/img/product-5.png' alt=''>">
                                     <div class="single-inner bg-light rounded">
                                         <img src="{{ asset("assets/theme1/") }}/img/product-5.png" class="img-fluid rounded" alt="Image">
                                     </div>
                                 </div>
                                 <div class="single-item"
-                                    data-dot="<img class='img-fluid' src='img/product-6.png' alt=''>">
+                                    data-dot="<img class='img-fluid' src='{{ asset("assets/theme1/") }}/img/product-6.png' alt=''>">
                                     <div class="single-inner bg-light rounded">
                                         <img src="{{ asset("assets/theme1/") }}/img/product-6.png" class="img-fluid rounded" alt="Image">
                                     </div>
                                 </div>
                                 <div class="single-item"
-                                    data-dot="<img class='img-fluid' src='img/product-7.png' alt=''>">
+                                    data-dot="<img class='img-fluid' src='{{ asset("assets/theme1/") }}/img/product-7.png' alt=''>">
                                     <div class="single-inner bg-light rounded">
                                         <img src="{{ asset("assets/theme1/") }}/img/product-7.png" class="img-fluid rounded" alt="Image">
                                     </div>
                                 </div>
                                 <div class="single-item"
-                                    data-dot="<img class='img-fluid' src='img/product-3.png' alt=''>">
+                                    data-dot="<img class='img-fluid' src='{{ asset("assets/theme1/") }}/img/product-3.png' alt=''>">
                                     <div class="single-inner bg-light rounded">
                                         <img src="{{ asset("assets/theme1/") }}/img/product-3.png" class="img-fluid rounded" alt="Image">
                                     </div>

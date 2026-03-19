@@ -98,7 +98,7 @@
                             <h1 class="display-3 text-secondary mb-0">40% <span
                                     class="text-primary fw-normal">Off</span></h1>
                         </div>
-                        <img src="img/product-1.png" class="img-fluid" alt="">
+                        <img src="{{ asset("assets/theme1/") }}/img/product-1.png" class="img-fluid" alt="">
                     </a>
                 </div>
                 <div class="col-lg-6 wow fadeInRight" data-wow-delay="0.3s">
@@ -109,7 +109,7 @@
                             <h1 class="display-3 text-secondary mb-0">20% <span
                                     class="text-primary fw-normal">Off</span></h1>
                         </div>
-                        <img src="img/product-2.png" class="img-fluid" alt="">
+                        <img src="{{ asset("assets/theme1/") }}/img/product-2.png" class="img-fluid" alt="">
                     </a>
                 </div>
             </div>
@@ -223,7 +223,7 @@
                         <h4 class="mb-3">Featured products</h4>
                         <div class="featured-product-item">
                             <div class="rounded me-4" style="width: 100px; height: 100px;">
-                                <img src="img/product-3.png" class="img-fluid rounded" alt="Image">
+                                <img src="{{ asset("assets/theme1/") }}/img/product-3.png" class="img-fluid rounded" alt="Image">
                             </div>
                             <div>
                                 <h6 class="mb-2">SmartPhone</h6>
@@ -242,7 +242,7 @@
                         </div>
                         <div class="featured-product-item">
                             <div class="rounded me-4" style="width: 100px; height: 100px;">
-                                <img src="img/product-4.png" class="img-fluid rounded" alt="Image">
+                                <img src="{{ asset("assets/theme1/") }}/img/product-4.png" class="img-fluid rounded" alt="Image">
                             </div>
                             <div>
                                 <h6 class="mb-2">Smart Camera</h6>
@@ -261,7 +261,7 @@
                         </div>
                         <div class="featured-product-item">
                             <div class="rounded me-4" style="width: 100px; height: 100px;">
-                                <img src="img/product-5.png" class="img-fluid rounded" alt="Image">
+                                <img src="{{ asset("assets/theme1/") }}/img/product-5.png" class="img-fluid rounded" alt="Image">
                             </div>
                             <div>
                                 <h6 class="mb-2">Camera Leance</h6>
@@ -284,7 +284,7 @@
                     </div>
                     <a href="#">
                         <div class="position-relative">
-                            <img src="img/product-banner-2.jpg" class="img-fluid w-100 rounded" alt="Image">
+                            <img src="{{ asset("assets/theme1/") }}/img/product-banner-2.jpg" class="img-fluid w-100 rounded" alt="Image">
                             <div class="text-center position-absolute d-flex flex-column align-items-center justify-content-center rounded p-4"
                                 style="width: 100%; height: 100%; top: 0; right: 0; background: rgba(242, 139, 0, 0.3);">
                                 <h5 class="display-6 text-primary">SALE</h5>
@@ -311,7 +311,7 @@
                 </div>
                 <div class="col-lg-9 wow fadeInUp" data-wow-delay="0.1s">
                     <div class="rounded mb-4 position-relative">
-                        <img src="img/product-banner-3.jpg" class="img-fluid rounded w-100" style="height: 250px;"
+                        <img src="{{ asset("assets/theme1/") }}/img/product-banner-3.jpg" class="img-fluid rounded w-100" style="height: 250px;"
                             alt="Image">
                         <div class="position-absolute rounded d-flex flex-column align-items-center justify-content-center text-center"
                             style="width: 100%; height: 250px; top: 0; left: 0; background: rgba(242, 139, 0, 0.3);">
@@ -366,7 +366,7 @@
                                     <div class="product-item rounded wow fadeInUp" data-wow-delay="0.1s">
                                         <div class="product-item-inner border rounded">
                                             <div class="product-item-inner-item">
-                                                <img src="img/product-3.png" class="img-fluid w-100 rounded-top" alt="">
+                                                <img src="{{ asset("assets/theme1/") }}/img/product-3.png" class="img-fluid w-100 rounded-top" alt="">
                                                 <div class="product-new">New</div>
                                                 <div class="product-details">
                                                     <a href="#"><i class="fa fa-eye fa-1x"></i></a>
@@ -410,7 +410,7 @@
                                     <div class="product-item rounded wow fadeInUp" data-wow-delay="0.3s">
                                         <div class="product-item-inner border rounded">
                                             <div class="product-item-inner-item">
-                                                <img src="img/product-4.png" class="img-fluid w-100 rounded-top" alt="">
+                                                <img src="{{ asset("assets/theme1/") }}/img/product-4.png" class="img-fluid w-100 rounded-top" alt="">
                                                 <div class="product-new">New</div>
                                                 <div class="product-details">
                                                     <a href="#"><i class="fa fa-eye fa-1x"></i></a>
@@ -454,7 +454,7 @@
                                     <div class="product-item rounded wow fadeInUp" data-wow-delay="0.5s">
                                         <div class="product-item-inner border rounded">
                                             <div class="product-item-inner-item">
-                                                <img src="img/product-5.png" class="img-fluid w-100 rounded-top" alt="">
+                                                <img src="{{ asset("assets/theme1/") }}/img/product-5.png" class="img-fluid w-100 rounded-top" alt="">
                                                 <div class="product-new">New</div>
                                                 <div class="product-details">
                                                     <a href="#"><i class="fa fa-eye fa-1x"></i></a>
@@ -498,7 +498,7 @@
                                     <div class="product-item rounded wow fadeInUp" data-wow-delay="0.1s">
                                         <div class="product-item-inner border rounded">
                                             <div class="product-item-inner-item">
-                                                <img src="img/product-6.png" class="img-fluid w-100 rounded-top" alt="">
+                                                <img src="{{ asset("assets/theme1/") }}/img/product-6.png" class="img-fluid w-100 rounded-top" alt="">
                                                 <div class="product-new">New</div>
                                                 <div class="product-details">
                                                     <a href="#"><i class="fa fa-eye fa-1x"></i></a>
@@ -542,7 +542,7 @@
                                     <div class="product-item rounded wow fadeInUp" data-wow-delay="0.3s">
                                         <div class="product-item-inner border rounded">
                                             <div class="product-item-inner-item">
-                                                <img src="img/product-7.png" class="img-fluid w-100 rounded-top" alt="">
+                                                <img src="{{ asset("assets/theme1/") }}/img/product-7.png" class="img-fluid w-100 rounded-top" alt="">
                                                 <div class="product-new">New</div>
                                                 <div class="product-details">
                                                     <a href="#"><i class="fa fa-eye fa-1x"></i></a>
@@ -586,7 +586,7 @@
                                     <div class="product-item rounded wow fadeInUp" data-wow-delay="0.5s">
                                         <div class="product-item-inner border rounded">
                                             <div class="product-item-inner-item">
-                                                <img src="img/product-8.png" class="img-fluid w-100 rounded-top" alt="">
+                                                <img src="{{ asset("assets/theme1/") }}/img/product-8.png" class="img-fluid w-100 rounded-top" alt="">
                                                 <div class="product-new">New</div>
                                                 <div class="product-details">
                                                     <a href="#"><i class="fa fa-eye fa-1x"></i></a>
@@ -630,7 +630,7 @@
                                     <div class="product-item rounded wow fadeInUp" data-wow-delay="0.1s">
                                         <div class="product-item-inner border rounded">
                                             <div class="product-item-inner-item">
-                                                <img src="img/product-9.png" class="img-fluid w-100 rounded-top" alt="">
+                                                <img src="{{ asset("assets/theme1/") }}/img/product-9.png" class="img-fluid w-100 rounded-top" alt="">
                                                 <div class="product-new">New</div>
                                                 <div class="product-details">
                                                     <a href="#"><i class="fa fa-eye fa-1x"></i></a>
@@ -674,7 +674,7 @@
                                     <div class="product-item rounded wow fadeInUp" data-wow-delay="0.3s">
                                         <div class="product-item-inner border rounded">
                                             <div class="product-item-inner-item">
-                                                <img src="img/product-10.png" class="img-fluid w-100 rounded-top"
+                                                <img src="{{ asset("assets/theme1/") }}/img/product-10.png" class="img-fluid w-100 rounded-top"
                                                     alt="">
                                                 <div class="product-new">New</div>
                                                 <div class="product-details">
@@ -719,7 +719,7 @@
                                     <div class="product-item rounded wow fadeInUp" data-wow-delay="0.5s">
                                         <div class="product-item-inner border rounded">
                                             <div class="product-item-inner-item">
-                                                <img src="img/product-11.png" class="img-fluid w-100 rounded-top"
+                                                <img src="{{ asset("assets/theme1/") }}/img/product-11.png" class="img-fluid w-100 rounded-top"
                                                     alt="">
                                                 <div class="product-new">New</div>
                                                 <div class="product-details">
@@ -781,7 +781,7 @@
                                         <div class="row g-0">
                                             <div class="col-5">
                                                 <div class="products-mini-img border-end h-100">
-                                                    <img src="img/product-3.png" class="img-fluid w-100 h-100"
+                                                    <img src="{{ asset("assets/theme1/") }}/img/product-3.png" class="img-fluid w-100 h-100"
                                                         alt="Image">
                                                     <div class="products-mini-icon rounded-circle bg-primary">
                                                         <a href="#"><i class="fa fa-eye fa-1x text-white"></i></a>
@@ -819,7 +819,7 @@
                                         <div class="row g-0">
                                             <div class="col-5">
                                                 <div class="products-mini-img border-end h-100">
-                                                    <img src="img/product-4.png" class="img-fluid w-100 h-100"
+                                                    <img src="{{ asset("assets/theme1/") }}/img/product-4.png" class="img-fluid w-100 h-100"
                                                         alt="Image">
                                                     <div class="products-mini-icon rounded-circle bg-primary">
                                                         <a href="#"><i class="fa fa-eye fa-1x text-white"></i></a>
@@ -857,7 +857,7 @@
                                         <div class="row g-0">
                                             <div class="col-5">
                                                 <div class="products-mini-img border-end h-100">
-                                                    <img src="img/product-5.png" class="img-fluid w-100 h-100"
+                                                    <img src="{{ asset("assets/theme1/") }}/img/product-5.png" class="img-fluid w-100 h-100"
                                                         alt="Image">
                                                     <div class="products-mini-icon rounded-circle bg-primary">
                                                         <a href="#"><i class="fa fa-eye fa-1x text-white"></i></a>
@@ -895,7 +895,7 @@
                                         <div class="row g-0">
                                             <div class="col-5">
                                                 <div class="products-mini-img border-end h-100">
-                                                    <img src="img/product-6.png" class="img-fluid w-100 h-100"
+                                                    <img src="{{ asset("assets/theme1/") }}/img/product-6.png" class="img-fluid w-100 h-100"
                                                         alt="Image">
                                                     <div class="products-mini-icon rounded-circle bg-primary">
                                                         <a href="#"><i class="fa fa-eye fa-1x text-white"></i></a>
@@ -933,7 +933,7 @@
                                         <div class="row g-0">
                                             <div class="col-5">
                                                 <div class="products-mini-img border-end h-100">
-                                                    <img src="img/product-7.png" class="img-fluid w-100 h-100"
+                                                    <img src="{{ asset("assets/theme1/") }}/img/product-7.png" class="img-fluid w-100 h-100"
                                                         alt="Image">
                                                     <div class="products-mini-icon rounded-circle bg-primary">
                                                         <a href="#"><i class="fa fa-eye fa-1x text-white"></i></a>
@@ -971,7 +971,7 @@
                                         <div class="row g-0">
                                             <div class="col-5">
                                                 <div class="products-mini-img border-end h-100">
-                                                    <img src="img/product-8.png" class="img-fluid w-100 h-100"
+                                                    <img src="{{ asset("assets/theme1/") }}/img/product-8.png" class="img-fluid w-100 h-100"
                                                         alt="Image">
                                                     <div class="products-mini-icon rounded-circle bg-primary">
                                                         <a href="#"><i class="fa fa-eye fa-1x text-white"></i></a>
@@ -1009,7 +1009,7 @@
                                         <div class="row g-0">
                                             <div class="col-5">
                                                 <div class="products-mini-img border-end h-100">
-                                                    <img src="img/product-9.png" class="img-fluid w-100 h-100"
+                                                    <img src="{{ asset("assets/theme1/") }}/img/product-9.png" class="img-fluid w-100 h-100"
                                                         alt="Image">
                                                     <div class="products-mini-icon rounded-circle bg-primary">
                                                         <a href="#"><i class="fa fa-eye fa-1x text-white"></i></a>
@@ -1047,7 +1047,7 @@
                                         <div class="row g-0">
                                             <div class="col-5">
                                                 <div class="products-mini-img border-end h-100">
-                                                    <img src="img/product-12.png" class="img-fluid w-100 h-100"
+                                                    <img src="{{ asset("assets/theme1/") }}/img/product-12.png" class="img-fluid w-100 h-100"
                                                         alt="Image">
                                                     <div class="products-mini-icon rounded-circle bg-primary">
                                                         <a href="#"><i class="fa fa-eye fa-1x text-white"></i></a>
@@ -1085,7 +1085,7 @@
                                         <div class="row g-0">
                                             <div class="col-5">
                                                 <div class="products-mini-img border-end h-100">
-                                                    <img src="img/product-13.png" class="img-fluid w-100 h-100"
+                                                    <img src="{{ asset("assets/theme1/") }}/img/product-13.png" class="img-fluid w-100 h-100"
                                                         alt="Image">
                                                     <div class="products-mini-icon rounded-circle bg-primary">
                                                         <a href="#"><i class="fa fa-eye fa-1x text-white"></i></a>
@@ -1123,7 +1123,7 @@
                                         <div class="row g-0">
                                             <div class="col-5">
                                                 <div class="products-mini-img border-end h-100">
-                                                    <img src="img/product-14.png" class="img-fluid w-100 h-100"
+                                                    <img src="{{ asset("assets/theme1/") }}/img/product-14.png" class="img-fluid w-100 h-100"
                                                         alt="Image">
                                                     <div class="products-mini-icon rounded-circle bg-primary">
                                                         <a href="#"><i class="fa fa-eye fa-1x text-white"></i></a>
@@ -1161,7 +1161,7 @@
                                         <div class="row g-0">
                                             <div class="col-5">
                                                 <div class="products-mini-img border-end h-100">
-                                                    <img src="img/product-15.png" class="img-fluid w-100 h-100"
+                                                    <img src="{{ asset("assets/theme1/") }}/img/product-15.png" class="img-fluid w-100 h-100"
                                                         alt="Image">
                                                     <div class="products-mini-icon rounded-circle bg-primary">
                                                         <a href="#"><i class="fa fa-eye fa-1x text-white"></i></a>
@@ -1199,7 +1199,7 @@
                                         <div class="row g-0">
                                             <div class="col-5">
                                                 <div class="products-mini-img border-end h-100">
-                                                    <img src="img/product-16.png" class="img-fluid w-100 h-100"
+                                                    <img src="{{ asset("assets/theme1/") }}/img/product-16.png" class="img-fluid w-100 h-100"
                                                         alt="Image">
                                                     <div class="products-mini-icon rounded-circle bg-primary">
                                                         <a href="#"><i class="fa fa-eye fa-1x text-white"></i></a>
@@ -1260,7 +1260,7 @@
                 <div class="col-lg-6 wow fadeInLeft" data-wow-delay="0.1s">
                     <a href="#">
                         <div class="bg-primary rounded position-relative">
-                            <img src="img/product-banner.jpg" class="img-fluid w-100 rounded" alt="">
+                            <img src="{{ asset("assets/theme1/") }}/img/product-banner.jpg" class="img-fluid w-100 rounded" alt="">
                             <div class="position-absolute top-0 start-0 w-100 h-100 d-flex flex-column justify-content-center rounded p-4"
                                 style="background: rgba(255, 255, 255, 0.5);">
                                 <h3 class="display-5 text-primary">EOS Rebel <br> <span>T7i Kit</span></h3>
@@ -1273,7 +1273,7 @@
                 <div class="col-lg-6 wow fadeInRight" data-wow-delay="0.2s">
                     <a href="#">
                         <div class="text-center bg-primary rounded position-relative">
-                            <img src="img/product-banner-2.jpg" class="img-fluid w-100" alt="">
+                            <img src="{{ asset("assets/theme1/") }}/img/product-banner-2.jpg" class="img-fluid w-100" alt="">
                             <div class="position-absolute top-0 start-0 w-100 h-100 d-flex flex-column justify-content-center rounded p-4"
                                 style="background: rgba(242, 139, 0, 0.5);">
                                 <h2 class="display-2 text-secondary">SALE</h2>
