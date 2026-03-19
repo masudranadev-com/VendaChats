@@ -141,18 +141,18 @@
           </a>
         </div>
 
-        <div class="nav-group">
+        {{-- <div class="nav-group">
           <div class="nav-group-title">Intelligence</div>
           <a href="{{ route('admin.competition') }}" class="nav-item {{ $currentPage === 'competition' ? 'active' : '' }}">
             <span class="nav-icon" aria-hidden="true">{{ $navIcon('competition') }}</span>
             <span class="nav-label">Competition Monitor</span>
           </a>
-          {{-- <a href="{{ route('admin.coach') }}" class="nav-item {{ $currentPage === 'coach' ? 'active' : '' }}">
+          <a href="{{ route('admin.coach') }}" class="nav-item {{ $currentPage === 'coach' ? 'active' : '' }}">
             <span class="nav-icon">📊</span>
             <span class="nav-label">Performance Coach</span>
-          </a> --}}
+          </a>
 
-        </div>
+        </div> --}}
 
         <div class="nav-group">
           <div class="nav-group-title">Settings</div>
