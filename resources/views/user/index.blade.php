@@ -1,6 +1,6 @@
 @extends('user.master')
 
-@section('title', 'Venda Motion Bot - হোম')
+@section('title', 'Ametafy - হোম')
 
 @section('user.master')
 
@@ -27,7 +27,7 @@
       <div class="container">
         <div class="section-header">
           <span class="section-tag">আমাদের ফোকাস</span>
-          <h2 class="section-title">Venda Motion এর জন্য বাস্তব সমাধান</h2>
+          <h2 class="section-title">Ametafy seller workflow-এর জন্য বাস্তব সমাধান</h2>
         </div>
         <div class="features-grid">
           <a class="feature-card" href="{{ route('features.index') }}">
@@ -139,7 +139,7 @@
         <div class="section-header">
           <span class="section-tag">আমাদের সম্পর্কে</span>
           <h2 class="section-title">লোকাল টিম, লোকাল সমস্যা সমাধান</h2>
-          <p class="section-sub">Venda Motion seller-এর daily pain-point থেকে তৈরি practical product।</p>
+          <p class="section-sub">Ametafy তৈরি হয়েছে seller-এর daily pain-point, lost order, আর slow follow-up কমানোর জন্য।</p>
         </div>
         <div class="about-visual">
           <div class="about-card">

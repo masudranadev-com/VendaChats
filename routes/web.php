@@ -4,6 +4,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Admin\BotSettingsController;
 use App\Http\Controllers\Admin\AdminProductsController;
+use App\Http\Controllers\Admin\AdminCampaignController;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\AdminUsersController;
 use App\Http\Controllers\Admin\AdminPostController;
@@ -112,7 +113,7 @@ Route::prefix('admin')->name('admin.')->middleware('admin.auth')->group(function
     Route::get('/posts', [AdminPostController::class, 'posts'])->name('posts');
 
     Route::get('/bargaining', [DashboardController::class, 'bargaining'])->name('bargaining');
-    Route::get('/campaigns', [DashboardController::class, 'campaigns'])->name('campaigns');
+    Route::get('/campaigns', [AdminCampaignController::class, 'index'])->name('campaigns');
     Route::get('/competition', [CompetitionController::class, 'index'])->name('competition');
     Route::post('/competition/competitors', [CompetitionController::class, 'store'])->name('competition.store');
     Route::post('/competition/{competitor}/sync', [CompetitionController::class, 'sync'])->name('competition.sync');

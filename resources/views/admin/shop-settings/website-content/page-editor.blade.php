@@ -5,7 +5,12 @@
     $defaultPage = $legalPages[0] ?? null;
   @endphp
 
-  <div class="settings-layout settings-layout-single mt-md" data-policy-editor-root>
+  <div
+    class="settings-layout settings-layout-single mt-md"
+    data-policy-editor-root
+    data-pages-api-base-url="{{ $pagesApiBaseUrl ?? '' }}"
+    data-pages-refresh-token="{{ $pagesRefreshToken ?? '' }}"
+  >
     <section class="settings-main-column">
       <article class="card settings-panel">
         <div class="card-header">
@@ -16,7 +21,6 @@
 
           <div class="settings-inline-actions mt-0">
             <button type="button" class="btn btn-secondary btn-sm" data-policy-source-toggle-btn>HTML / Code Mode</button>
-            <button type="button" class="btn btn-primary btn-sm" data-policy-preview-btn>Preview Page</button>
             <button type="button" class="btn btn-success btn-sm" data-policy-save-btn>Save Page</button>
           </div>
         </div>
@@ -109,6 +113,9 @@
         return;
       }
 
+      const apiBaseUrl = String(root.dataset.pagesApiBaseUrl || '').trim();
+      const refreshToken = String(root.dataset.pagesRefreshToken || window.API?.getToken?.() || '').trim();
+
       let policies = [];
       try {
         policies = JSON.parse(dataScript.textContent || '[]');
@@ -129,8 +136,8 @@
       const policyLastUpdated = root.querySelector('[data-policy-last-updated]');
       const policyReviewCycle = root.querySelector('[data-policy-review-cycle]');
       const sourceToggleButton = root.querySelector('[data-policy-source-toggle-btn]');
-      const previewButton = root.querySelector('[data-policy-preview-btn]');
       const saveButton = root.querySelector('[data-policy-save-btn]');
+      const stats = Array.from(document.querySelectorAll('[data-content-stat]'));
 
       const policyMap = new Map();
       policies.forEach((policy) => {
@@ -138,6 +145,24 @@
       });
 
       let sourceMode = false;
+
+      const showError = (message) => {
+        if (typeof window.showError === 'function') {
+          window.showError(message);
+          return;
+        }
+
+        window.alert(message);
+      };
+
+      const showSuccess = (message) => {
+        if (typeof window.showSuccess === 'function') {
+          window.showSuccess(message);
+          return;
+        }
+
+        window.alert(message);
+      };
 
       function currentPolicy() {
         if (!(policyKeyInput instanceof HTMLInputElement)) {
@@ -173,6 +198,14 @@
         return policyContentInput.value;
       }
 
+      function currentContentValue() {
+        if (sourceMode && policySourceTextarea instanceof HTMLTextAreaElement) {
+          return policySourceTextarea.value;
+        }
+
+        return getEditorData();
+      }
+
       function setEditorData(value) {
         if (!(policyContentInput instanceof HTMLTextAreaElement)) {
           return;
@@ -188,6 +221,48 @@
 
       function statusClass(status) {
         return status === 'Published' ? 'badge-success' : 'badge-info';
+      }
+
+      function normalizeInt(value, fallback = 0) {
+        const parsed = Number.parseInt(String(value ?? '').trim(), 10);
+        return Number.isFinite(parsed) ? parsed : fallback;
+      }
+
+      function renderStats() {
+        const summary = {
+          published_pages: policies.filter((policy) => String(policy.status || '') === 'Published').length,
+          footer_links: policies.filter((policy) => Boolean(policy.show_in_footer)).length,
+          review_cycles: new Set(
+            policies
+              .map((policy) => String(policy.review_cycle || '').trim())
+              .filter(Boolean)
+          ).size,
+          editor_modes: 2,
+        };
+
+        stats.forEach((card) => {
+          const statKey = String(card.getAttribute('data-content-stat') || '').trim();
+          const valueNode = card.querySelector('[data-content-stat-value]');
+          if (!statKey || !(valueNode instanceof HTMLElement)) {
+            return;
+          }
+
+          if (Object.prototype.hasOwnProperty.call(summary, statKey)) {
+            valueNode.textContent = String(normalizeInt(summary[statKey], 0));
+          }
+        });
+      }
+
+      function buildDraftPolicy(policy) {
+        return {
+          ...policy,
+          title: policyTitleInput instanceof HTMLInputElement ? policyTitleInput.value.trim() : String(policy.title || '').trim(),
+          slug: policySlugInput instanceof HTMLInputElement ? policySlugInput.value.trim() : String(policy.slug || '').trim(),
+          seo_title: policySeoTitleInput instanceof HTMLInputElement ? policySeoTitleInput.value.trim() : String(policy.seo_title || '').trim(),
+          meta_description: policyMetaDescriptionInput instanceof HTMLTextAreaElement ? policyMetaDescriptionInput.value.trim() : String(policy.meta_description || '').trim(),
+          content: currentContentValue(),
+          show_in_footer: policyFooterToggle instanceof HTMLInputElement ? policyFooterToggle.checked : Boolean(policy.show_in_footer),
+        };
       }
 
       function activateButton(targetKey) {
@@ -318,20 +393,18 @@
         setSourceMode(!sourceMode);
       });
 
-      previewButton?.addEventListener('click', () => {
+      saveButton?.addEventListener('click', async () => {
         const policy = currentPolicy();
         if (!policy) {
           return;
         }
 
-        if (typeof window.showInfo === 'function') {
-          window.showInfo(`Preview ready for ${policy.slug || '/'}`);
+        if (!(saveButton instanceof HTMLButtonElement)) {
+          return;
         }
-      });
 
-      saveButton?.addEventListener('click', () => {
-        const policy = currentPolicy();
-        if (!policy) {
+        if (!apiBaseUrl || !refreshToken) {
+          showError('Missing refresh token. Please login again.');
           return;
         }
 
@@ -339,20 +412,54 @@
           setSourceMode(false);
         }
 
-        policy.title = policyTitleInput instanceof HTMLInputElement ? policyTitleInput.value.trim() : policy.title;
-        policy.slug = policySlugInput instanceof HTMLInputElement ? policySlugInput.value.trim() : policy.slug;
-        policy.seo_title = policySeoTitleInput instanceof HTMLInputElement ? policySeoTitleInput.value.trim() : policy.seo_title;
-        policy.meta_description = policyMetaDescriptionInput instanceof HTMLTextAreaElement ? policyMetaDescriptionInput.value.trim() : policy.meta_description;
-        policy.content = getEditorData();
-        policy.show_in_footer = policyFooterToggle instanceof HTMLInputElement ? policyFooterToggle.checked : policy.show_in_footer;
-        policy.status = 'Published';
-        policy.last_updated = 'Just now';
+        const payload = buildDraftPolicy(policy);
+        const originalLabel = saveButton.textContent;
 
-        syncPolicyToSidebar(policy);
-        fillPolicy(policy.key);
+        saveButton.disabled = true;
+        saveButton.textContent = 'Saving...';
 
-        if (typeof window.showSuccess === 'function') {
-          window.showSuccess(`${policy.title || 'Page'} saved.`);
+        try {
+          const response = await fetch(
+            `${apiBaseUrl}/api/admin/shop-settings/content/pages/${encodeURIComponent(policy.key)}`,
+            {
+              method: 'PUT',
+              headers: {
+                'Accept': 'application/json',
+                'Content-Type': 'application/json',
+                'x-refresh-token': refreshToken,
+              },
+              body: JSON.stringify({
+                title: payload.title,
+                slug: payload.slug,
+                seo_title: payload.seo_title,
+                meta_description: payload.meta_description,
+                content: payload.content,
+                show_in_footer: payload.show_in_footer,
+              }),
+            }
+          );
+
+          const result = await response.json().catch(() => ({}));
+          if (!response.ok) {
+            throw new Error(String(result.error || result.message || 'Unable to save the page right now.'));
+          }
+
+          const updatedPolicy = result && typeof result === 'object' && result.page && typeof result.page === 'object'
+            ? result.page
+            : payload;
+
+          policyMap.set(updatedPolicy.key, updatedPolicy);
+          policies = policies.map((item) => item.key === updatedPolicy.key ? updatedPolicy : item);
+
+          syncPolicyToSidebar(updatedPolicy);
+          fillPolicy(updatedPolicy.key);
+          renderStats();
+          showSuccess(`${updatedPolicy.title || 'Page'} saved.`);
+        } catch (error) {
+          showError(error instanceof Error ? error.message : 'Unable to save the page right now.');
+        } finally {
+          saveButton.disabled = false;
+          saveButton.textContent = originalLabel;
         }
       });
 
@@ -360,6 +467,7 @@
       if (firstKey) {
         fillPolicy(firstKey);
       }
+      renderStats();
     });
   </script>
 @endsection

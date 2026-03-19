@@ -24,9 +24,9 @@
         <article class="card order-call-usage-card">
           <div class="order-call-card-top">
             <div>
-              <span class="order-call-card-kicker">Call Balance</span>
-              <h3 class="card-title">Remaining Calls Available</h3>
-              <p>Live call balance and active call settings are loaded directly from the calling configuration API.</p>
+              <span class="order-call-card-kicker">Minute Balance</span>
+              <h3 class="card-title">Remaining Minutes Available</h3>
+              <p>Live minute balance and active call settings are loaded directly from the calling configuration API.</p>
             </div>
 
             <div class="order-call-active-badges">
@@ -39,12 +39,12 @@
             <div>
               <span class="order-call-usage-label">Available Now</span>
               <strong data-order-call-available-count>--</strong>
-              <small data-order-call-available-copy>Loading current call balance...</small>
+              <small data-order-call-available-copy>Loading current minute balance...</small>
             </div>
             <div class="order-call-usage-ring" data-order-call-usage-ring style="--usage-progress: 0;">
               <span>
                 <strong data-order-call-usage-ring-value>--</strong>
-                <small data-order-call-usage-ring-label>Calls Left</small>
+                <small data-order-call-usage-ring-label>Minutes Left</small>
               </span>
             </div>
           </div>
@@ -56,7 +56,7 @@
           <div class="order-call-usage-meta">
             <article>
               <span>Available</span>
-              <strong data-order-call-available-meta>-- Calls</strong>
+              <strong data-order-call-available-meta>-- Minutes</strong>
             </article>
             <article>
               <span>Language</span>
@@ -99,7 +99,7 @@
 
           <div class="order-call-active-note">
             <strong>Included With {{ $packageLabel }}</strong>
-            <p>This call confirmation service is now part of your main package, so this screen focuses on live settings and your available call balance.</p>
+            <p>This call confirmation service is now part of your main package, so this screen focuses on live settings and your available minute balance.</p>
           </div>
         </article>
       </div>

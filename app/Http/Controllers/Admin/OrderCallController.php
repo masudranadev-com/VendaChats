@@ -17,7 +17,7 @@ class OrderCallController extends Controller
 
         return view('admin.order-call.index', [
             'title' => 'Order Call Confirmation',
-            'subtitle' => 'Manage live AI-powered voice call confirmation settings and review the remaining call balance included with your main package.',
+            'subtitle' => 'Manage live AI-powered voice call confirmation settings and review the remaining minute balance included with your main package.',
             'orderCallApiBaseUrl' => rtrim((string) Config::get('services.backend.url', 'http://localhost:8082'), '/'),
             'packageLabel' => $packageLabel,
             'pageName' => $pageName,

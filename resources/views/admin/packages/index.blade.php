@@ -76,8 +76,8 @@
             <strong data-packages-insight-products>--</strong>
           </article>
           <article>
-            <span>Calling Credits</span>
-            <strong data-packages-insight-calls>--</strong>
+            <span>Call Minutes</span>
+            <strong data-packages-insight-minutes>--</strong>
           </article>
           <article>
             <span>SMS Credits</span>
@@ -93,6 +93,43 @@
           Waiting for the active package snapshot.
         </div>
       </aside>
+    </section>
+
+    <section class="billing-package-section mt-xl">
+      <div class="billing-section-toolbar">
+        <div class="billing-package-intro">
+          <div>
+            <span class="billing-eyebrow">Your Requests</span>
+            <h2>Subscription activity and approval status</h2>
+            <p data-packages-subscriptions-intro>Loading your package requests, trial activity, and manual payment submissions...</p>
+          </div>
+        </div>
+
+        <button type="button" class="btn btn-secondary" data-packages-subscriptions-reload>Refresh Requests</button>
+      </div>
+
+      <div class="billing-package-grid" data-packages-subscriptions-grid aria-busy="true">
+        @for ($i = 0; $i < 2; $i++)
+          <article class="billing-package-card is-skeleton" aria-hidden="true">
+            <div class="billing-package-head">
+              <span class="billing-package-badge billing-skeleton billing-skeleton-block"></span>
+              <div class="billing-skeleton billing-skeleton-block is-title"></div>
+              <div class="billing-skeleton billing-skeleton-block is-copy"></div>
+            </div>
+
+            <div class="billing-package-price-stack">
+              <div class="billing-skeleton billing-skeleton-block is-copy"></div>
+              <div class="billing-skeleton billing-skeleton-block is-copy"></div>
+            </div>
+
+            <ul class="billing-package-features">
+              @for ($j = 0; $j < 4; $j++)
+                <li><span class="billing-skeleton billing-skeleton-block is-copy"></span></li>
+              @endfor
+            </ul>
+          </article>
+        @endfor
+      </div>
     </section>
 
     <section class="billing-package-section mt-xl" id="packagesCatalog">
@@ -159,12 +196,28 @@
       </div>
     </section>
 
+    <section class="billing-package-section mt-xl" data-superadmin-packages-panel hidden>
+      <div class="billing-section-toolbar">
+        <div class="billing-package-intro">
+          <div>
+            <span class="billing-eyebrow">Super Admin</span>
+            <h2>Pending user package approvals</h2>
+            <p data-superadmin-packages-intro>Loading pending package submissions that need manual approval...</p>
+          </div>
+        </div>
+
+        <button type="button" class="btn btn-secondary" data-superadmin-packages-reload>Refresh Queue</button>
+      </div>
+
+      <div class="billing-package-grid" data-superadmin-packages-grid aria-busy="true"></div>
+    </section>
+
     <div class="modal-overlay" id="packagePurchaseModal" aria-hidden="true">
       <div class="modal settings-coupon-modal" role="dialog" aria-modal="true" aria-labelledby="packagePurchaseModalTitle">
         <div class="modal-header">
           <div>
-            <h3 class="modal-title" id="packagePurchaseModalTitle">Buy Package</h3>
-            <p class="page-subtitle" data-package-purchase-modal-subtitle>Generate a payment reference and complete the payment manually.</p>
+            <h3 class="modal-title" id="packagePurchaseModalTitle">Submit Paid Package</h3>
+            <p class="page-subtitle" data-package-purchase-modal-subtitle>Select a manual payment method, submit the request, and wait for super-admin approval.</p>
           </div>
           <button type="button" class="modal-close" data-package-purchase-close aria-label="Close package purchase modal">x</button>
         </div>
@@ -204,19 +257,19 @@
           </div>
 
           <div class="billing-card-message is-info" data-package-purchase-message>
-            We will create a unique 5-digit reference for this package purchase request.
+            We will create a unique 5-digit reference and keep this subscription request pending until super-admin approval.
           </div>
 
           <div class="billing-empty-state billing-empty-state-info" data-package-purchase-result hidden>
             <strong data-package-purchase-reference-label>Reference: -----</strong>
-            <p data-package-purchase-result-copy>Payment instructions will appear here after the request is created.</p>
+            <p data-package-purchase-result-copy>Payment instructions will appear here after the package request is created.</p>
             <ul class="billing-package-features" data-package-purchase-checklist></ul>
           </div>
         </div>
 
         <div class="modal-footer">
           <button type="button" class="btn btn-ghost" data-package-purchase-close>Cancel</button>
-          <button type="button" class="btn btn-primary" data-package-purchase-submit>Create Payment Request</button>
+          <button type="button" class="btn btn-primary" data-package-purchase-submit>Submit Package Request</button>
         </div>
       </div>
     </div>

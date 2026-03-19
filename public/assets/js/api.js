@@ -459,6 +459,43 @@
             timeoutMs,
           });
         },
+        listSubscriptions({apiBaseUrl, refreshToken, timeoutMs = 12000} = {}) {
+          const tokenText = toText(refreshToken || getToken());
+          if (!tokenText) {
+            throw new ApiError('Missing refresh token. Please login again.');
+          }
+
+          return request({
+            baseUrl: normalizeBaseUrl(apiBaseUrl),
+            path: '/api/admin/user/package/subscriptions',
+            method: 'GET',
+            token: tokenText,
+            headers: {
+              'user-refres-token': tokenText,
+            },
+            includeRefreshToken: false,
+            timeoutMs,
+          });
+        },
+        startTrial({apiBaseUrl, refreshToken, payload, timeoutMs = 12000} = {}) {
+          const tokenText = toText(refreshToken || getToken());
+          if (!tokenText) {
+            throw new ApiError('Missing refresh token. Please login again.');
+          }
+
+          return request({
+            baseUrl: normalizeBaseUrl(apiBaseUrl),
+            path: '/api/admin/user/package/start-trial',
+            method: 'POST',
+            token: tokenText,
+            headers: {
+              'user-refres-token': tokenText,
+            },
+            body: payload,
+            includeRefreshToken: false,
+            timeoutMs,
+          });
+        },
         createPurchaseRequest({apiBaseUrl, refreshToken, payload, timeoutMs = 12000} = {}) {
           const tokenText = toText(refreshToken || getToken());
           if (!tokenText) {
@@ -475,6 +512,55 @@
             },
             body: payload,
             includeRefreshToken: false,
+            timeoutMs,
+          });
+        },
+      },
+      Campaigns: {
+        getPageData({
+          apiBaseUrl,
+          refreshToken,
+          page = 1,
+          perPage = 6,
+          search = '',
+          status = 'all',
+          timeoutMs = 12000
+        } = {}) {
+          const params = new URLSearchParams();
+          params.set('page', String(Math.max(1, Number(page) || 1)));
+          params.set('per_page', String(Math.max(1, Number(perPage) || 6)));
+          if (toText(search)) {
+            params.set('search', toText(search));
+          }
+          if (toText(status) && toText(status).toLowerCase() !== 'all') {
+            params.set('status', toText(status).toLowerCase());
+          }
+
+          return request({
+            baseUrl: normalizeBaseUrl(apiBaseUrl),
+            path: `/api/admin/campaigns?${params.toString()}`,
+            method: 'GET',
+            token: refreshToken,
+            timeoutMs,
+          });
+        },
+        create({apiBaseUrl, refreshToken, payload, timeoutMs = 12000} = {}) {
+          return request({
+            baseUrl: normalizeBaseUrl(apiBaseUrl),
+            path: '/api/admin/campaigns',
+            method: 'POST',
+            token: refreshToken,
+            body: payload,
+            timeoutMs,
+          });
+        },
+        runAction({apiBaseUrl, refreshToken, campaignId, payload, timeoutMs = 12000} = {}) {
+          return request({
+            baseUrl: normalizeBaseUrl(apiBaseUrl),
+            path: `/api/admin/campaigns/${encodeURIComponent(campaignId)}/actions`,
+            method: 'POST',
+            token: refreshToken,
+            body: payload,
             timeoutMs,
           });
         },
@@ -944,6 +1030,69 @@
             path: `/api/admin/categories/${encodeURIComponent(categoryId)}`,
             method: 'DELETE',
             token,
+            timeoutMs,
+          });
+        },
+      },
+    },
+    SuperAdmin: {
+      Packages: {
+        listSubscriptions({apiBaseUrl, refreshToken, status = 'pending', timeoutMs = 12000} = {}) {
+          const tokenText = toText(refreshToken || getToken());
+          if (!tokenText) {
+            throw new ApiError('Missing refresh token. Please login again.');
+          }
+
+          const params = new URLSearchParams();
+          if (toText(status)) params.set('status', toText(status));
+
+          return request({
+            baseUrl: normalizeBaseUrl(apiBaseUrl),
+            path: `/api/super-admin/package/subscriptions${params.toString() ? `?${params.toString()}` : ''}`,
+            method: 'GET',
+            token: tokenText,
+            headers: {
+              'user-refres-token': tokenText,
+            },
+            includeRefreshToken: false,
+            timeoutMs,
+          });
+        },
+        approveSubscription({apiBaseUrl, refreshToken, subscriptionId, payload = {}, timeoutMs = 12000} = {}) {
+          const tokenText = toText(refreshToken || getToken());
+          if (!tokenText) {
+            throw new ApiError('Missing refresh token. Please login again.');
+          }
+
+          return request({
+            baseUrl: normalizeBaseUrl(apiBaseUrl),
+            path: `/api/super-admin/package/subscriptions/${encodeURIComponent(subscriptionId)}/approve`,
+            method: 'POST',
+            token: tokenText,
+            headers: {
+              'user-refres-token': tokenText,
+            },
+            body: payload,
+            includeRefreshToken: false,
+            timeoutMs,
+          });
+        },
+        rejectSubscription({apiBaseUrl, refreshToken, subscriptionId, payload = {}, timeoutMs = 12000} = {}) {
+          const tokenText = toText(refreshToken || getToken());
+          if (!tokenText) {
+            throw new ApiError('Missing refresh token. Please login again.');
+          }
+
+          return request({
+            baseUrl: normalizeBaseUrl(apiBaseUrl),
+            path: `/api/super-admin/package/subscriptions/${encodeURIComponent(subscriptionId)}/reject`,
+            method: 'POST',
+            token: tokenText,
+            headers: {
+              'user-refres-token': tokenText,
+            },
+            body: payload,
+            includeRefreshToken: false,
             timeoutMs,
           });
         },
