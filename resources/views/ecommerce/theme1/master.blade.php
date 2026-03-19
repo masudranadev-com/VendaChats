@@ -27,6 +27,21 @@
 
     <!-- Template Stylesheet -->
     <link href="{{ asset("assets/theme1/") }}/css/style.css" rel="stylesheet">
+    <script>
+        (function() {
+            try {
+                var raw = localStorage.getItem('theme1-css-vars-v2');
+                if (!raw) {
+                    return;
+                }
+
+                var variables = JSON.parse(raw);
+                Object.keys(variables).forEach(function(key) {
+                    document.documentElement.style.setProperty(key, variables[key]);
+                });
+            } catch (error) {}
+        })();
+    </script>
 </head>
 
 <body>
