@@ -1109,6 +1109,30 @@ body > .container-fluid.px-5.py-4.d-none.d-lg-block {
     color: var(--theme-on-primary);
 }
 
+.theme-on-primary {
+    color: var(--theme-on-primary) !important;
+}
+
+.theme-on-primary-hover {
+    color: var(--theme-on-primary-hover) !important;
+}
+
+.theme-on-secondary {
+    color: var(--theme-on-secondary) !important;
+}
+
+.theme-on-secondary-hover {
+    color: var(--theme-on-secondary-hover) !important;
+}
+
+.theme-on-surface {
+    color: var(--theme-text) !important;
+}
+
+.theme-on-heading {
+    color: var(--theme-heading) !important;
+}
+
 .footer {
     background: var(--theme-footer-bg);
 }
