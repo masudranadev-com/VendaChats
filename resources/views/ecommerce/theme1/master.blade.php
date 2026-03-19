@@ -301,35 +301,25 @@
                     <div class="footer-item d-flex flex-column">
                         <h4 class="text-primary mb-4">Customer Service</h4>
                         <a href="#" class=""><i class="fas fa-angle-right me-2"></i> Contact Us</a>
-                        <a href="#" class=""><i class="fas fa-angle-right me-2"></i> Returns</a>
                         <a href="#" class=""><i class="fas fa-angle-right me-2"></i> Order History</a>
-                        <a href="#" class=""><i class="fas fa-angle-right me-2"></i> Site Map</a>
-                        <a href="#" class=""><i class="fas fa-angle-right me-2"></i> Testimonials</a>
                         <a href="#" class=""><i class="fas fa-angle-right me-2"></i> My Account</a>
-                        <a href="#" class=""><i class="fas fa-angle-right me-2"></i> Unsubscribe Notification</a>
                     </div>
                 </div>
                 <div class="col-md-6 col-lg-6 col-xl-3">
                     <div class="footer-item d-flex flex-column">
                         <h4 class="text-primary mb-4">Information</h4>
                         <a href="#" class=""><i class="fas fa-angle-right me-2"></i> About Us</a>
-                        <a href="#" class=""><i class="fas fa-angle-right me-2"></i> Delivery infomation</a>
                         <a href="#" class=""><i class="fas fa-angle-right me-2"></i> Privacy Policy</a>
                         <a href="#" class=""><i class="fas fa-angle-right me-2"></i> Terms & Conditions</a>
-                        <a href="#" class=""><i class="fas fa-angle-right me-2"></i> Warranty</a>
+                        <a href="#" class=""><i class="fas fa-angle-right me-2"></i> Returns & Warranty </a>
                         <a href="#" class=""><i class="fas fa-angle-right me-2"></i> FAQ</a>
-                        <a href="#" class=""><i class="fas fa-angle-right me-2"></i> Seller Login</a>
                     </div>
                 </div>
                 <div class="col-md-6 col-lg-6 col-xl-3">
                     <div class="footer-item d-flex flex-column">
                         <h4 class="text-primary mb-4">Extras</h4>
-                        <a href="#" class=""><i class="fas fa-angle-right me-2"></i> Brands</a>
                         <a href="#" class=""><i class="fas fa-angle-right me-2"></i> Gift Vouchers</a>
-                        <a href="#" class=""><i class="fas fa-angle-right me-2"></i> Affiliates</a>
                         <a href="#" class=""><i class="fas fa-angle-right me-2"></i> Wishlist</a>
-                        <a href="#" class=""><i class="fas fa-angle-right me-2"></i> Order History</a>
-                        <a href="#" class=""><i class="fas fa-angle-right me-2"></i> Track Your Order</a>
                         <a href="#" class=""><i class="fas fa-angle-right me-2"></i> Track Your Order</a>
                     </div>
                 </div>
