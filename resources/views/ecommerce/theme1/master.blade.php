@@ -407,6 +407,7 @@
 
 
     <!-- Template Javascript -->
+    <script src="{{ asset("assets/theme1/") }}/js/apis.js"></script>
     <script src="{{ asset("assets/theme1/") }}/js/main.js"></script>
 </body>
 
