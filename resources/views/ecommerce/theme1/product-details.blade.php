@@ -27,41 +27,16 @@
                     <div class="product-categories mb-4">
                         <h4>Products Categories</h4>
                         <ul class="list-unstyled">
-                            <li>
-                                <div class="categories-item">
-                                    <a href="#" class="text-dark"><i class="fas fa-apple-alt text-secondary me-2"></i>
-                                        Accessories</a>
-                                    <span>(3)</span>
-                                </div>
-                            </li>
-                            <li>
-                                <div class="categories-item">
-                                    <a href="#" class="text-dark"><i class="fas fa-apple-alt text-secondary me-2"></i>
-                                        Electronics & Computer</a>
-                                    <span>(5)</span>
-                                </div>
-                            </li>
-                            <li>
-                                <div class="categories-item">
-                                    <a href="#" class="text-dark"><i
-                                            class="fas fa-apple-alt text-secondary me-2"></i>Laptops & Desktops</a>
-                                    <span>(2)</span>
-                                </div>
-                            </li>
-                            <li>
-                                <div class="categories-item">
-                                    <a href="#" class="text-dark"><i
-                                            class="fas fa-apple-alt text-secondary me-2"></i>Mobiles & Tablets</a>
-                                    <span>(8)</span>
-                                </div>
-                            </li>
-                            <li>
-                                <div class="categories-item">
-                                    <a href="#" class="text-dark"><i
-                                            class="fas fa-apple-alt text-secondary me-2"></i>SmartPhone & Smart TV</a>
-                                    <span>(5)</span>
-                                </div>
-                            </li>
+                            @foreach ($themeCategories as $category)
+                                <li>
+                                    <div class="categories-item">
+                                        <a href="{{ route('ecommerce.category.show', ['slug' => $category['slug']]) }}" class="text-dark">
+                                            <i class="{{ $category['icon'] }} text-secondary me-2"></i>{{ $category['name'] }}
+                                        </a>
+                                        <span>({{ $category['count'] }})</span>
+                                    </div>
+                                </li>
+                            @endforeach
                         </ul>
                     </div>
                     <div class="additional-product mb-4">
