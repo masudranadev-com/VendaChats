@@ -4,7 +4,15 @@
 
 @section('ecom-master')
     @php
-        $savedProducts = array_slice($themeProducts, 0, 4);
+        $savedProducts = $themeProducts;
+        $perPage = 4;
+        $totalSavedProducts = count($savedProducts);
+        $lastPage = max(1, (int) ceil($totalSavedProducts / $perPage));
+        $currentPage = max(1, min((int) request('page', 1), $lastPage));
+        $currentOffset = ($currentPage - 1) * $perPage;
+        $visibleSavedProducts = array_slice($savedProducts, $currentOffset, $perPage);
+        $fromProduct = $totalSavedProducts === 0 ? 0 : $currentOffset + 1;
+        $toProduct = min($currentOffset + $perPage, $totalSavedProducts);
     @endphp
 
     @include('ecommerce.theme1.partials.page-header', [
@@ -31,11 +39,14 @@
                                 <h3 class="mb-1">Saved For Later</h3>
                                 <p class="mb-0 text-muted">Use this list to shortlist products before moving them into your cart.</p>
                             </div>
-                            <a href="{{ route('ecommerce.shop') }}" class="btn btn-secondary rounded-pill px-4 py-2">Continue Shopping</a>
+                            <div class="text-lg-end">
+                                <p class="mb-2 text-muted">Showing {{ $fromProduct }}-{{ $toProduct }} of {{ $totalSavedProducts }} saved items</p>
+                                <a href="{{ route('ecommerce.shop') }}" class="btn btn-secondary rounded-pill px-4 py-2">Continue Shopping</a>
+                            </div>
                         </div>
                     </div>
 
-                    @foreach ($savedProducts as $product)
+                    @foreach ($visibleSavedProducts as $product)
                         <div class="theme-saved-item wow fadeInUp" data-wow-delay="{{ number_format(($loop->index + 1) / 10, 1) }}s">
                             <div class="theme-saved-thumb">
                                 <img src="{{ asset('assets/theme1/img/' . $product['image']) }}" class="img-fluid" alt="{{ $product['name'] }}">
@@ -63,6 +74,24 @@
                             </div>
                         </div>
                     @endforeach
+
+                    @if ($lastPage > 1)
+                        <div class="pagination d-flex justify-content-center mt-5 wow fadeInUp" data-wow-delay="0.2s">
+                            @if ($currentPage > 1)
+                                <a href="{{ request()->fullUrlWithQuery(['page' => $currentPage - 1]) }}" class="rounded">&laquo;</a>
+                            @endif
+
+                            @for ($page = 1; $page <= $lastPage; $page++)
+                                <a href="{{ request()->fullUrlWithQuery(['page' => $page]) }}" class="{{ $page === $currentPage ? 'active rounded' : 'rounded' }}">
+                                    {{ $page }}
+                                </a>
+                            @endfor
+
+                            @if ($currentPage < $lastPage)
+                                <a href="{{ request()->fullUrlWithQuery(['page' => $currentPage + 1]) }}" class="rounded">&raquo;</a>
+                            @endif
+                        </div>
+                    @endif
                 </div>
             </div>
         </div>

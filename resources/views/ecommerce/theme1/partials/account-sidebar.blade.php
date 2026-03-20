@@ -16,6 +16,10 @@
             class="theme-account-link {{ request()->routeIs('ecommerce.order-history') ? 'active' : '' }}">
             <i class="fas fa-box-open"></i> Order History
         </a>
+        <a href="{{ route('ecommerce.cart') }}"
+            class="theme-account-link {{ request()->routeIs('ecommerce.cart') ? 'active' : '' }}">
+            <i class="fas fa-shopping-cart"></i> Cart Items
+        </a>
         <a href="{{ route('ecommerce.wishlist') }}"
             class="theme-account-link {{ request()->routeIs('ecommerce.wishlist') ? 'active' : '' }}">
             <i class="fas fa-heart"></i> Wishlist
@@ -27,10 +31,6 @@
         <a href="{{ route('ecommerce.track-order') }}"
             class="theme-account-link {{ request()->routeIs('ecommerce.track-order') ? 'active' : '' }}">
             <i class="fas fa-truck"></i> Track Order
-        </a>
-        <a href="{{ route('ecommerce.login') }}"
-            class="theme-account-link {{ request()->routeIs('ecommerce.login', 'ecommerce.signup') ? 'active' : '' }}">
-            <i class="fas fa-sign-in-alt"></i> Login / Signup
         </a>
     </div>
 

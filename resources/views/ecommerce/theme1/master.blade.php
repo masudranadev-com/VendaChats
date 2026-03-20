@@ -1,26 +1,21 @@
 @php
     $primaryProductSlug = $themePrimaryProduct['slug'] ?? 'apple-ipad-mini-g2356';
 
-    $dashboardLinks = [
-        ['label' => 'Login', 'route' => 'ecommerce.login'],
-        ['label' => 'Signup', 'route' => 'ecommerce.signup'],
-        ['label' => 'Wishlist', 'route' => 'ecommerce.wishlist'],
-        ['label' => 'Order History', 'route' => 'ecommerce.order-history'],
-        ['label' => 'Notifications', 'route' => 'ecommerce.notifications'],
-        ['label' => 'My Account', 'route' => 'ecommerce.my-account'],
-    ];
+    // $dashboardAuthLinks = [
+    //     ['label' => 'My Account', 'route' => 'ecommerce.my-account'],
+    //     ['label' => 'Order History', 'route' => 'ecommerce.order-history'],
+    //     ['label' => 'Cart', 'route' => 'ecommerce.cart'],
+    //     ['label' => 'Wishlist', 'route' => 'ecommerce.wishlist'],
+    //     ['label' => 'Notifications', 'route' => 'ecommerce.notifications'],
+    //     ['label' => 'Track Your Order', 'route' => 'ecommerce.track-order'],
+    //     ['label' => 'Logout', 'route' => 'ecommerce.login'],
+    // ];
 
-    $shopPageLinks = [
-        ['label' => 'Bestseller', 'route' => 'ecommerce.bestseller'],
-        ['label' => 'Gift Vouchers', 'route' => 'ecommerce.gift-vouchers'],
-        ['label' => 'Wishlist', 'route' => 'ecommerce.wishlist'],
-        ['label' => 'Track Your Order', 'route' => 'ecommerce.track-order'],
-        ['label' => 'Order History', 'route' => 'ecommerce.order-history'],
-        ['label' => 'My Account', 'route' => 'ecommerce.my-account'],
-        ['label' => 'Notifications', 'route' => 'ecommerce.notifications'],
-        ['label' => 'Cart Page', 'route' => 'ecommerce.cart'],
-        ['label' => 'Cheackout', 'route' => 'ecommerce.cheackout'],
-    ];
+    // $dashboardLinks = [
+    //     ['label' => 'Track Your Order', 'route' => 'ecommerce.track-order'],
+    //     ['label' => 'Login', 'route' => 'ecommerce.login'],
+    //     ['label' => 'Signup', 'route' => 'ecommerce.signup'],
+    // ];
 
     $supportLinks = [
         ['label' => 'About Us', 'route' => 'ecommerce.about-us'],
@@ -32,7 +27,6 @@
 
     $footerCustomerLinks = [
         ['label' => 'Contact Us', 'route' => 'ecommerce.contact'],
-        ['label' => 'Track Your Order', 'route' => 'ecommerce.track-order'],
         ['label' => 'Order History', 'route' => 'ecommerce.order-history'],
         ['label' => 'My Account', 'route' => 'ecommerce.my-account'],
     ];
@@ -100,10 +94,7 @@
                     <a href="{{ route('ecommerce.contact') }}" class="text-muted ms-2">Contact</a>
                 </div>
             </div>
-            <div class="col-lg-4 text-center d-flex align-items-center justify-content-center">
-                <small class="text-dark">Call Us:</small>
-                <a href="tel:+0121234567890" class="text-muted ms-2">(+012) 1234 567890</a>
-            </div>
+            <div class="col-lg-4 text-center d-flex align-items-center justify-content-center"></div>
             <div class="col-lg-4 text-center text-lg-end">
                 <div class="d-inline-flex align-items-center" style="height: 45px;">
                     <div class="dropdown">
@@ -122,14 +113,13 @@
                         </div>
                     </div>
                     <div class="dropdown">
-                        <a href="#" class="dropdown-toggle text-muted ms-2" data-bs-toggle="dropdown">
-                            <small><i class="fa fa-home me-2"></i>My Dashboard</small>
+                        <a href="{{ route("ecommerce.login") }}" class="text-muted ms-2">
+                            <small><i class="fas fa-sign-in-alt me-2"></i>Login</small>
                         </a>
-                        <div class="dropdown-menu rounded">
-                            @foreach ($dashboardLinks as $link)
-                                <a href="{{ route($link['route']) }}" class="dropdown-item">{{ $link['label'] }}</a>
-                            @endforeach
-                        </div>
+
+                        <a href="{{ route("ecommerce.my-account") }}" class="text-muted ms-2">
+                            <small><i class="fa fa-home me-2"></i>Dashboard</small>
+                        </a>
                     </div>
                 </div>
             </div>
@@ -236,17 +226,6 @@
                                     @endforeach
                                 </div>
                             </div>
-                            <div class="nav-item dropdown">
-                                <a href="#"
-                                    class="nav-link dropdown-toggle {{ request()->routeIs('ecommerce.login', 'ecommerce.signup', 'ecommerce.gift-vouchers', 'ecommerce.wishlist', 'ecommerce.track-order', 'ecommerce.order-history', 'ecommerce.my-account', 'ecommerce.notifications', 'ecommerce.bestseller', 'ecommerce.cart', 'ecommerce.cheackout', 'ecommerce.not-found') ? 'active' : '' }}"
-                                    data-bs-toggle="dropdown">Pages</a>
-                                <div class="dropdown-menu m-0">
-                                    @foreach ($shopPageLinks as $link)
-                                        <a href="{{ route($link['route']) }}" class="dropdown-item">{{ $link['label'] }}</a>
-                                    @endforeach
-                                    <a href="{{ route('ecommerce.not-found') }}" class="dropdown-item">404 Page</a>
-                                </div>
-                            </div>
                             <a href="{{ route('ecommerce.contact') }}"
                                 class="nav-item nav-link me-2 {{ request()->routeIs('ecommerce.contact') ? 'active' : '' }}">Contact</a>
                             <div class="nav-item dropdown d-block d-lg-none mb-3">
@@ -267,9 +246,6 @@
                                 </div>
                             </div>
                         </div>
-                        <a href="tel:+0121234567890" class="btn btn-secondary rounded-pill py-2 px-4 px-lg-3 mb-3 mb-md-3 mb-lg-0">
-                            <i class="fa fa-mobile-alt me-2"></i> +0123 456 7890
-                        </a>
                     </div>
                 </nav>
             </div>
@@ -336,6 +312,61 @@
                 <div class="col-md-6 text-center text-md-end text-white">
                     Designed By <a class="border-bottom text-white" href="https://htmlcodex.com">HTML Codex</a>.
                     Distributed By <a class="border-bottom text-white" href="https://themewagon.com">ThemeWagon</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade quick-view-modal" id="theme1QuickViewModal" tabindex="-1"
+        aria-labelledby="theme1QuickViewTitle" aria-hidden="true" data-cart-url="{{ route('ecommerce.cart') }}"
+        data-wishlist-url="{{ route('ecommerce.wishlist') }}">
+        <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-xl modal-fullscreen-md-down">
+            <div class="modal-content border-0">
+                <button type="button" class="btn-close quick-view-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                <div class="row g-0">
+                    <div class="col-lg-6">
+                        <div class="quick-view-media">
+                            <span class="quick-view-badge" data-quick-view-badge hidden></span>
+                            <img src="" alt="" class="img-fluid" data-quick-view-image>
+                        </div>
+                    </div>
+                    <div class="col-lg-6">
+                        <div class="quick-view-content">
+                            <p class="quick-view-category mb-3">
+                                <a href="#" data-quick-view-category-link hidden></a>
+                                <span data-quick-view-category-text hidden></span>
+                            </p>
+                            <h2 class="quick-view-title" id="theme1QuickViewTitle" data-quick-view-title>Product Quick View</h2>
+                            <div class="quick-view-rating d-flex align-items-center gap-3 mb-3">
+                                <div class="quick-view-stars" data-quick-view-stars aria-label="Product rating"></div>
+                                <span class="quick-view-rating-value" data-quick-view-rating-text hidden></span>
+                            </div>
+                            <div class="quick-view-pricing mb-4" data-quick-view-pricing>
+                                <span class="quick-view-price" data-quick-view-price></span>
+                                <del class="quick-view-old-price" data-quick-view-old-price hidden></del>
+                            </div>
+                            <p class="quick-view-description mb-4" data-quick-view-description></p>
+                            <div class="quick-view-meta d-flex flex-wrap gap-2 mb-4">
+                                <span class="quick-view-chip" data-quick-view-status hidden></span>
+                                <span class="quick-view-chip" data-quick-view-stock hidden></span>
+                            </div>
+                            <div class="quick-view-actions d-flex flex-wrap gap-3">
+                                <a href="{{ route('ecommerce.cart') }}"
+                                    class="btn btn-primary border-secondary rounded-pill py-3 px-4"
+                                    data-quick-view-cart>
+                                    <i class="fas fa-shopping-cart me-2"></i> Add To Cart
+                                </a>
+                                <a href="{{ route('ecommerce.wishlist') }}"
+                                    class="btn btn-light border rounded-pill py-3 px-4 quick-view-wishlist"
+                                    data-quick-view-wishlist>
+                                    <i class="fas fa-heart me-2"></i> Add To Wishlist
+                                </a>
+                                <a href="#" class="btn btn-light border rounded-pill py-3 px-4" data-quick-view-details hidden>
+                                    View Full Details
+                                </a>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>

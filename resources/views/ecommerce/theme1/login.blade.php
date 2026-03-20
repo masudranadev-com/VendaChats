@@ -74,7 +74,7 @@
                                 </div>
                             </div>
                             <div class="col-md-6 text-md-end pt-2">
-                                <a href="{{ route('ecommerce.track-order') }}" class="text-primary fw-semibold">Need help accessing your account?</a>
+                                <a href="{{ route('ecommerce.signup') }}" class="text-primary fw-semibold">Create new account?</a>
                             </div>
                             <div class="col-12">
                                 <button type="button" class="btn btn-primary rounded-pill py-3 px-5">Login to Account</button>

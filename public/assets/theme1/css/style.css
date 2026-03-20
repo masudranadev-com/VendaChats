@@ -1210,3 +1210,207 @@ body > .container-fluid.px-5.py-4.d-none.d-lg-block {
     background: var(--theme-footer-glass) !important;
 }
 /*** Dynamic Theme End ***/
+
+/*** Quick View Start ***/
+.quick-view-modal .modal-dialog {
+    padding: 1rem;
+}
+
+.quick-view-modal .modal-content {
+    border-radius: 28px;
+    overflow: hidden;
+    background: var(--bs-white);
+    box-shadow: 0 30px 80px rgba(15, 23, 42, 0.18);
+}
+
+.quick-view-modal .quick-view-close {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    z-index: 3;
+    background-color: rgba(255, 255, 255, 0.92);
+    border-radius: 50%;
+    padding: 0.75rem;
+    box-shadow: 0 10px 25px rgba(15, 23, 42, 0.15);
+}
+
+.quick-view-modal .quick-view-media {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100%;
+    padding: clamp(1.5rem, 3vw, 2.75rem);
+    background: linear-gradient(135deg, rgba(242, 139, 0, 0.08), rgba(29, 53, 87, 0.05));
+}
+
+.quick-view-modal .quick-view-media img {
+    width: 100%;
+    max-width: 480px;
+    max-height: 70vh;
+    object-fit: contain;
+}
+
+.quick-view-modal .quick-view-badge {
+    position: absolute;
+    top: 1.5rem;
+    left: 1.5rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.65rem 1rem;
+    border-radius: 999px;
+    background: var(--bs-primary);
+    color: var(--bs-white);
+    font-size: 0.85rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+
+.quick-view-modal .quick-view-content {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    min-height: 100%;
+    padding: clamp(1.75rem, 4vw, 3rem);
+}
+
+.quick-view-modal .quick-view-category a,
+.quick-view-modal .quick-view-category span {
+    color: var(--bs-primary);
+    font-size: 0.85rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.quick-view-modal .quick-view-title {
+    margin-bottom: 1rem;
+    font-size: clamp(1.75rem, 3vw, 2.75rem);
+    line-height: 1.15;
+}
+
+.quick-view-modal .quick-view-rating {
+    color: #cbd5e1;
+}
+
+.quick-view-modal .quick-view-stars {
+    display: flex;
+    gap: 0.45rem;
+    font-size: 1rem;
+}
+
+.quick-view-modal .quick-view-stars .is-filled {
+    color: var(--bs-secondary);
+}
+
+.quick-view-modal .quick-view-rating-value {
+    color: var(--bs-dark);
+    font-weight: 600;
+}
+
+.quick-view-modal .quick-view-pricing {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: 0.85rem;
+}
+
+.quick-view-modal .quick-view-price {
+    color: var(--bs-primary);
+    font-size: clamp(1.75rem, 3vw, 2.5rem);
+    font-weight: 700;
+}
+
+.quick-view-modal .quick-view-old-price {
+    color: #94a3b8;
+    font-size: 1.05rem;
+}
+
+.quick-view-modal .quick-view-description {
+    max-width: 32rem;
+    color: #5f6b7a;
+    font-size: 1rem;
+    line-height: 1.75;
+}
+
+.quick-view-modal .quick-view-chip {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.7rem 1rem;
+    border: 1px solid rgba(29, 53, 87, 0.12);
+    border-radius: 999px;
+    background: rgba(248, 250, 252, 0.9);
+    color: var(--bs-dark);
+    font-weight: 600;
+}
+
+.quick-view-modal .quick-view-actions .btn {
+    min-width: 190px;
+    justify-content: center;
+}
+
+.quick-view-modal .quick-view-wishlist {
+    color: var(--bs-dark);
+}
+
+.quick-view-modal .quick-view-wishlist i {
+    color: #dc3545;
+    transition: 0.3s;
+}
+
+.quick-view-modal .quick-view-wishlist:hover {
+    background: var(--bs-primary);
+    border-color: var(--bs-primary);
+    color: var(--bs-white);
+}
+
+.quick-view-modal .quick-view-wishlist:hover i {
+    color: var(--bs-white);
+}
+
+@media (max-width: 991.98px) {
+    .quick-view-modal .modal-dialog {
+        padding: 0.75rem;
+    }
+
+    .quick-view-modal .quick-view-media img {
+        max-height: 42vh;
+    }
+
+    .quick-view-modal .quick-view-actions .btn {
+        width: 100%;
+    }
+}
+
+@media (max-width: 767.98px) {
+    .quick-view-modal .modal-dialog {
+        margin: 0;
+        padding: 0;
+    }
+
+    .quick-view-modal .modal-content {
+        min-height: 100vh;
+        border-radius: 0;
+    }
+
+    .quick-view-modal .quick-view-media {
+        min-height: 320px;
+        padding: 1.25rem 1.25rem 1rem;
+    }
+
+    .quick-view-modal .quick-view-badge {
+        top: 1rem;
+        left: 1rem;
+    }
+
+    .quick-view-modal .quick-view-content {
+        padding: 1.5rem 1.25rem 2rem;
+    }
+
+    .quick-view-modal .quick-view-pricing {
+        gap: 0.5rem;
+    }
+}
+/*** Quick View End ***/

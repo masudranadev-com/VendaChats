@@ -2,9 +2,26 @@
     $badge = strtolower($product['badge'] ?? '');
     $delay = $delay ?? '0.1s';
     $rating = (int) ($product['rating'] ?? 0);
+    $quickViewProduct = json_encode([
+        'name' => $product['name'] ?? '',
+        'category' => $product['category_name'] ?? '',
+        'category_url' => route('ecommerce.category.show', ['slug' => $product['category_slug']]),
+        'image' => asset('assets/theme1/img/' . $product['image']),
+        'image_alt' => $product['name'] ?? '',
+        'price' => $product['price'] ?? '',
+        'old_price' => $product['old_price'] ?? '',
+        'badge' => $product['badge'] ?? '',
+        'rating' => $rating,
+        'excerpt' => $product['excerpt'] ?? '',
+        'stock' => $product['stock'] ?? '',
+        'status' => $product['status'] ?? '',
+        'detail_url' => route('ecommerce.product.show', ['slug' => $product['slug']]),
+        'cart_url' => route('ecommerce.cart'),
+        'wishlist_url' => route('ecommerce.wishlist'),
+    ], JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT);
 @endphp
 
-<div class="product-item rounded wow fadeInUp" data-wow-delay="{{ $delay }}">
+<div class="product-item rounded wow fadeInUp" data-theme1-product="{{ $quickViewProduct }}" data-wow-delay="{{ $delay }}">
     <div class="product-item-inner border rounded">
         <div class="product-item-inner-item">
             <img src="{{ asset('assets/theme1/img/' . $product['image']) }}" class="img-fluid w-100 rounded-top" alt="{{ $product['name'] }}">
@@ -14,7 +31,7 @@
                 <div class="product-new">{{ $product['badge'] }}</div>
             @endif
             <div class="product-details">
-                <a href="{{ route('ecommerce.product.show', ['slug' => $product['slug']]) }}"><i class="fa fa-eye fa-1x"></i></a>
+                <a href="{{ route('ecommerce.product.show', ['slug' => $product['slug']]) }}" data-theme1-quick-view="true" aria-label="Quick view {{ $product['name'] }}"><i class="fa fa-eye fa-1x"></i></a>
             </div>
         </div>
         <div class="text-center rounded-bottom p-4">

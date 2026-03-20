@@ -42,6 +42,11 @@ class EcommerceController extends Controller
         return $this->renderPage('login');
     }
 
+    public function logout()
+    {
+        return "done";
+    }
+
     public function signup(): View
     {
         return $this->renderPage('signup');
@@ -84,7 +89,19 @@ class EcommerceController extends Controller
 
     public function trackOrder(): View
     {
-        return $this->renderPage('track-order');
+        return $this->renderPage('track-order', [
+            'trackingOrders' => $this->trackingOrders(),
+        ]);
+    }
+
+    public function publicTrackOrder(string $orderId): View
+    {
+        $normalizedOrderId = $this->normalizeTrackingOrderId($orderId);
+
+        return $this->renderPage('track-order-public', [
+            'requestedTrackingOrderId' => $normalizedOrderId,
+            'selectedTrackingOrder' => $this->findTrackingOrder($orderId),
+        ]);
     }
 
     public function orderHistory(): View
@@ -444,5 +461,134 @@ class EcommerceController extends Controller
         }
 
         return null;
+    }
+
+    private function trackingOrders(): array
+    {
+        return [
+            [
+                'id' => '#ELX-20510',
+                'route_id' => 'ELX-20510',
+                'items' => 'Home Security Cam A1',
+                'status' => 'waiting_for_call',
+                'status_class' => 'is-warning',
+                'summary' => 'Your order is waiting for the first verification call before confirmation can move forward.',
+                'eta' => 'Pending confirmation',
+                'courier' => 'Not assigned yet',
+                'shipment' => 'Awaiting dispatch',
+                'address' => 'Mirpur DOHS, Dhaka',
+                'last_update' => '20 Mar 2026, 10:05 AM',
+                'timeline' => [
+                    ['title' => 'waiting_for_call', 'body' => 'Our team is preparing the first verification call for this order.', 'time' => '20 Mar 2026, 10:05 AM', 'state' => 'current'],
+                    ['title' => 'waiting_for_confirmation', 'body' => 'This stage will begin after the verification call is answered.', 'time' => 'Pending', 'state' => 'pending'],
+                    ['title' => 'ready_to_dispatch', 'body' => 'Packing and dispatch preparation will start after confirmation.', 'time' => 'Pending', 'state' => 'pending'],
+                    ['title' => 'in_transit', 'body' => 'Courier movement will begin after dispatch handoff.', 'time' => 'Pending', 'state' => 'pending'],
+                    ['title' => 'success', 'body' => 'Delivery will be marked complete after successful handoff.', 'time' => 'Pending', 'state' => 'pending'],
+                ],
+            ],
+            [
+                'id' => '#ELX-20504',
+                'route_id' => 'ELX-20504',
+                'items' => 'Neo Smart TV 55"',
+                'status' => 'waiting_for_confirmation',
+                'status_class' => 'is-info',
+                'summary' => 'The customer call was completed and the order is currently waiting for final confirmation approval.',
+                'eta' => 'Confirmation in progress',
+                'courier' => 'Not assigned yet',
+                'shipment' => 'Awaiting confirmation',
+                'address' => 'Banani, Dhaka',
+                'last_update' => '20 Mar 2026, 11:10 AM',
+                'timeline' => [
+                    ['title' => 'waiting_for_call', 'body' => 'The customer was reached successfully for order verification.', 'time' => '20 Mar 2026, 10:42 AM', 'state' => 'complete'],
+                    ['title' => 'waiting_for_confirmation', 'body' => 'The order is under final confirmation review.', 'time' => '20 Mar 2026, 11:10 AM', 'state' => 'current'],
+                    ['title' => 'ready_to_dispatch', 'body' => 'Dispatch preparation starts after confirmation is completed.', 'time' => 'Pending', 'state' => 'pending'],
+                    ['title' => 'in_transit', 'body' => 'Transit updates will appear after courier pickup.', 'time' => 'Pending', 'state' => 'pending'],
+                    ['title' => 'success', 'body' => 'Delivery will be marked complete after successful handoff.', 'time' => 'Pending', 'state' => 'pending'],
+                ],
+            ],
+            [
+                'id' => '#ELX-20412',
+                'route_id' => 'ELX-20412',
+                'items' => 'Aurora Watch S2',
+                'status' => 'ready_to_dispatch',
+                'status_class' => 'is-warning',
+                'summary' => 'Your order is confirmed, packed, and waiting for dispatch handoff to the courier.',
+                'eta' => 'Tomorrow, 1:00 PM - 5:00 PM',
+                'courier' => 'City Parcel',
+                'shipment' => 'SV-203102-BD',
+                'address' => 'Uttara Sector 11, Dhaka',
+                'last_update' => '20 Mar 2026, 11:20 AM',
+                'timeline' => [
+                    ['title' => 'waiting_for_call', 'body' => 'The initial verification call was completed successfully.', 'time' => '19 Mar 2026, 07:44 PM', 'state' => 'complete'],
+                    ['title' => 'waiting_for_confirmation', 'body' => 'The order details were confirmed and approved.', 'time' => '19 Mar 2026, 07:48 PM', 'state' => 'complete'],
+                    ['title' => 'ready_to_dispatch', 'body' => 'The item is packed and ready for courier pickup.', 'time' => '20 Mar 2026, 11:20 AM', 'state' => 'current'],
+                    ['title' => 'in_transit', 'body' => 'Transit updates will begin after pickup scan.', 'time' => 'Pending', 'state' => 'pending'],
+                    ['title' => 'success', 'body' => 'Delivery will be marked complete after successful handoff.', 'time' => 'Pending', 'state' => 'pending'],
+                ],
+            ],
+            [
+                'id' => '#ELX-20489',
+                'route_id' => 'ELX-20489',
+                'items' => 'Vortex ProBook 15 and Orbit Earbuds X',
+                'status' => 'in_transit',
+                'status_class' => 'is-info',
+                'summary' => 'Your package has left the local hub and is currently moving through the delivery network.',
+                'eta' => 'Today, 6:00 PM - 9:00 PM',
+                'courier' => 'Electro Express',
+                'shipment' => 'SV-203490-BD',
+                'address' => 'House 12, Road 7, Dhanmondi, Dhaka',
+                'last_update' => '20 Mar 2026, 09:00 AM',
+                'timeline' => [
+                    ['title' => 'waiting_for_call', 'body' => 'The verification call was completed and the order was accepted.', 'time' => '19 Mar 2026, 10:14 AM', 'state' => 'complete'],
+                    ['title' => 'waiting_for_confirmation', 'body' => 'Delivery details and product availability were confirmed.', 'time' => '19 Mar 2026, 10:32 AM', 'state' => 'complete'],
+                    ['title' => 'ready_to_dispatch', 'body' => 'Items were packed and handed to the dispatch queue.', 'time' => '19 Mar 2026, 03:10 PM', 'state' => 'complete'],
+                    ['title' => 'in_transit', 'body' => 'The package is currently with the courier and heading toward the destination area.', 'time' => '20 Mar 2026, 09:00 AM', 'state' => 'current'],
+                    ['title' => 'success', 'body' => 'Delivery will be marked complete after successful handoff confirmation.', 'time' => 'Pending', 'state' => 'pending'],
+                ],
+            ],
+            [
+                'id' => '#ELX-20187',
+                'route_id' => 'ELX-20187',
+                'items' => 'StreamBox Mini Hub',
+                'status' => 'success',
+                'status_class' => 'is-success',
+                'summary' => 'The delivery was completed successfully and received at the destination address.',
+                'eta' => 'Delivered on 18 Mar 2026',
+                'courier' => 'Rapid Dispatch',
+                'shipment' => 'SV-201870-BD',
+                'address' => 'Zindabazar, Sylhet',
+                'last_update' => '18 Mar 2026, 04:25 PM',
+                'timeline' => [
+                    ['title' => 'waiting_for_call', 'body' => 'The customer verification call was completed.', 'time' => '16 Mar 2026, 09:10 AM', 'state' => 'complete'],
+                    ['title' => 'waiting_for_confirmation', 'body' => 'The order was confirmed and approved for processing.', 'time' => '16 Mar 2026, 09:18 AM', 'state' => 'complete'],
+                    ['title' => 'ready_to_dispatch', 'body' => 'The item was prepared and handed to dispatch.', 'time' => '16 Mar 2026, 02:15 PM', 'state' => 'complete'],
+                    ['title' => 'in_transit', 'body' => 'The parcel reached the destination city and was assigned to a rider.', 'time' => '18 Mar 2026, 09:35 AM', 'state' => 'complete'],
+                    ['title' => 'success', 'body' => 'The package was handed over and marked as complete.', 'time' => '18 Mar 2026, 04:25 PM', 'state' => 'current'],
+                ],
+            ],
+        ];
+    }
+
+    private function findTrackingOrder(string $orderId): ?array
+    {
+        $normalizedOrderId = $this->normalizeTrackingOrderId($orderId);
+
+        foreach ($this->trackingOrders() as $order) {
+            if ($order['id'] === $normalizedOrderId) {
+                return $order;
+            }
+        }
+
+        return null;
+    }
+
+    private function normalizeTrackingOrderId(string $orderId): string
+    {
+        $normalizedOrderId = strtoupper(trim(rawurldecode($orderId)));
+        $normalizedOrderId = preg_replace('/\s+/', '', $normalizedOrderId) ?? $normalizedOrderId;
+        $normalizedOrderId = ltrim($normalizedOrderId, '#');
+        $normalizedOrderId = preg_replace('/[^A-Z0-9-]/', '', $normalizedOrderId) ?? $normalizedOrderId;
+
+        return '#' . $normalizedOrderId;
     }
 }
