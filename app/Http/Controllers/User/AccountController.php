@@ -30,7 +30,7 @@ class AccountController extends Controller
             'password' => ['required', 'string'],
         ]);
 
-        $apiUrl = rtrim((string) config('services.backend.url', 'http://localhost:8082'), '/');
+        $apiUrl = rtrim((string) config('services.backend.internal_url', 'http://localhost:8082'), '/');
 
         try {
             $response = Http::acceptJson()
@@ -69,7 +69,7 @@ class AccountController extends Controller
             'whatsapp_number.regex' => 'Please enter a valid WhatsApp number (digits only, optional +).',
         ]);
 
-        $apiUrl = rtrim((string) config('services.backend.url', 'http://localhost:8082'), '/');
+        $apiUrl = rtrim((string) config('services.backend.internal_url', 'http://localhost:8082'), '/');
 
         try {
             $response = Http::acceptJson()
@@ -105,7 +105,7 @@ class AccountController extends Controller
         $token = $request->session()->get('auth.refresh_token');
 
         if ($token) {
-            $apiUrl = config('services.backend.url');
+            $apiUrl = config('services.backend.internal_url');
 
             Http::withHeaders(['x-refresh-token' => $token])
                 ->post("{$apiUrl}/api/logout");
@@ -124,7 +124,7 @@ class AccountController extends Controller
             return;
         }
 
-        $apiUrl = rtrim((string) config('services.backend.url', 'http://localhost:8082'), '/');
+        $apiUrl = rtrim((string) config('services.backend.internal_url', 'http://localhost:8082'), '/');
 
         try {
             $response = Http::acceptJson()

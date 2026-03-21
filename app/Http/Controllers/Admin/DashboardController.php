@@ -21,7 +21,7 @@ class DashboardController extends Controller
         return view('admin.dashboard', [
             'title' => 'Dashboard',
             'subtitle' => 'Live operational snapshot powered by order-history API.',
-            'ordersApiBaseUrl' => rtrim((string) config('services.backend.url', 'http://localhost:8082'), '/'),
+            'ordersApiBaseUrl' => rtrim((string) config('services.backend.public_url', 'http://localhost:8082'), '/'),
             'ordersRefreshToken' => $refreshToken,
         ]);
     }

@@ -13,7 +13,7 @@ class AdminCampaignController extends Controller
         return view('admin.campaigns.index', [
             'title' => 'Campaigns',
             'subtitle' => 'Build, schedule, and control product campaigns from one clear workspace.',
-            'campaignsApiBaseUrl' => rtrim((string) Config::get('services.backend.url', 'http://localhost:8082'), '/'),
+            'campaignsApiBaseUrl' => rtrim((string) Config::get('services.backend.public_url', 'http://localhost:8082'), '/'),
         ]);
     }
 }

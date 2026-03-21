@@ -37,7 +37,9 @@ return [
         'graph_api_version' => env('META_GRAPH_API_VERSION', 'v22.0'),
     ],
     'backend' => [
-        'url' => env('BACKEND_API_URL', 'http://localhost:8082'),
+        'url' => env('BACKEND_API_INTERNAL_URL', env('BACKEND_API_URL', 'http://localhost:8082')),
+        'internal_url' => env('BACKEND_API_INTERNAL_URL', env('BACKEND_API_URL', 'http://localhost:8082')),
+        'public_url' => env('BACKEND_API_PUBLIC_URL', env('BACKEND_API_URL', 'http://localhost:8082')),
     ],
 
     'facebook' => [

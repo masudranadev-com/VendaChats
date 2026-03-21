@@ -26,7 +26,7 @@ class BotSettingsController extends Controller
             'subtitle' => 'Enable and control each automation capability for Messenger and Comment workflows.',
             'pageId' => '',
             'pageName' => '',
-            'facebookApiBaseUrl' => rtrim((string) config('services.backend.url', 'http://localhost:8082'), '/'),
+            'facebookApiBaseUrl' => rtrim((string) config('services.backend.public_url', 'http://localhost:8082'), '/'),
             'facebookRefreshToken' => $refreshToken,
         ]);
     }
@@ -157,7 +157,7 @@ class BotSettingsController extends Controller
        
         // Here connect with  
         $token = $request->session()->get('auth.refresh_token');
-        $apiUrl = rtrim((string) config('services.backend.url', 'http://localhost:8082'), '/');
+        $apiUrl = rtrim((string) config('services.backend.internal_url', 'http://localhost:8082'), '/');
 
         $response = Http::withHeaders([
             'Content-Type' => 'application/json',

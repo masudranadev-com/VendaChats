@@ -19,7 +19,7 @@ class AdminUsersController extends Controller
         return view('admin.users.index', [
             'title' => 'Users',
             'subtitle' => 'Track buyer emotion, WhatsApp status, and user type in one place.',
-            'usersApiBaseUrl' => rtrim((string) config('services.backend.url', 'http://localhost:8082'), '/'),
+            'usersApiBaseUrl' => rtrim((string) config('services.backend.public_url', 'http://localhost:8082'), '/'),
             'usersRefreshToken' => $refreshToken,
         ]);
     }

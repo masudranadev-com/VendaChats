@@ -24,7 +24,7 @@ class AdminWebsiteContentController extends Controller
                     ['key' => 'linked_products', 'label' => 'Linked Products', 'value' => '--', 'note' => 'Loading linked product count', 'tone' => 'info'],
                     ['key' => 'queue_size', 'label' => 'Queue Size', 'value' => '--', 'note' => 'Loading total slider queue', 'tone' => 'success'],
                 ],
-                'slidersApiBaseUrl' => $apiConfig['apiBaseUrl'],
+                'slidersApiBaseUrl' => $apiConfig['publicApiBaseUrl'],
                 'slidersRefreshToken' => $apiConfig['refreshToken'],
                 'sliderDefaults' => [
                     'id' => null,
@@ -51,7 +51,7 @@ class AdminWebsiteContentController extends Controller
             $this->shell('page-editor', $content),
             [
                 'legalPages' => $legalPages,
-                'pagesApiBaseUrl' => $apiConfig['apiBaseUrl'],
+                'pagesApiBaseUrl' => $apiConfig['publicApiBaseUrl'],
                 'pagesRefreshToken' => $apiConfig['refreshToken'],
             ]
         ));
@@ -333,7 +333,8 @@ class AdminWebsiteContentController extends Controller
     private function backendApiConfig(Request $request): array
     {
         return [
-            'apiBaseUrl' => rtrim((string) config('services.backend.url', 'http://localhost:8082'), '/'),
+            'publicApiBaseUrl' => rtrim((string) config('services.backend.public_url', 'http://localhost:8082'), '/'),
+            'internalApiBaseUrl' => rtrim((string) config('services.backend.internal_url', 'http://localhost:8082'), '/'),
             'refreshToken' => (string) (
                 $request->session()->get('auth.refresh_token')
                 ?? $request->session()->get('refresh_token')
@@ -356,7 +357,7 @@ class AdminWebsiteContentController extends Controller
                     'user-refres-token' => $apiConfig['refreshToken'],
                 ])
                 ->timeout(12)
-                ->get($apiConfig['apiBaseUrl'].'/api/admin/shop-settings/content/pages');
+                ->get($apiConfig['internalApiBaseUrl'].'/api/admin/shop-settings/content/pages');
 
             $payload = $response->json();
             if ($response->ok() && is_array($payload) && is_array($payload['pages'] ?? null)) {

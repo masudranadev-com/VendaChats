@@ -13,7 +13,7 @@ class AdminPackageController extends Controller
         return view('admin.packages.index', [
             'title' => 'Packages',
             'subtitle' => 'Manage your current package, renewal details, and upgrade options from one place.',
-            'packagesApiBaseUrl' => rtrim((string) Config::get('services.backend.url', 'http://localhost:8082'), '/'),
+            'packagesApiBaseUrl' => rtrim((string) Config::get('services.backend.public_url', 'http://localhost:8082'), '/'),
         ]);
     }
 }

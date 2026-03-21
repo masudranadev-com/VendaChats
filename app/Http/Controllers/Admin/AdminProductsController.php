@@ -18,7 +18,7 @@ class AdminProductsController extends Controller
         return view('admin.products.index', [
             'title' => 'Products',
             'subtitle' => 'Manage catalog, pricing, stock risk, and product performance in one clear workspace.',
-            'productsApiBaseUrl' => rtrim((string) config('services.backend.url', 'http://localhost:8082'), '/'),
+            'productsApiBaseUrl' => rtrim((string) config('services.backend.public_url', 'http://localhost:8082'), '/'),
             'productsRefreshToken' => $refreshToken,
             'callVoiceFeature' => $this->callVoiceFeature(),
         ]);
@@ -39,7 +39,7 @@ class AdminProductsController extends Controller
             'categories' => ['Apparel', 'Electronics', 'Footwear', 'Accessories'],
             'channels' => ['Website', 'Facebook', 'Messenger', 'WhatsApp', 'Instagram'],
             'shippingProfiles' => ['Standard', 'Express', 'Fragile Item', 'Outside Dhaka'],
-            'backendApiBaseUrl' => rtrim((string) config('services.backend.url', 'http://localhost:8082'), '/'),
+            'backendApiBaseUrl' => rtrim((string) config('services.backend.public_url', 'http://localhost:8082'), '/'),
             'refreshToken' => $refreshToken,
             'formMode' => 'create',
             'productId' => null,
@@ -66,7 +66,7 @@ class AdminProductsController extends Controller
             'categories' => ['Apparel', 'Electronics', 'Footwear', 'Accessories'],
             'channels' => ['Website', 'Facebook', 'Messenger', 'WhatsApp', 'Instagram'],
             'shippingProfiles' => ['Standard', 'Express', 'Fragile Item', 'Outside Dhaka'],
-            'backendApiBaseUrl' => rtrim((string) config('services.backend.url', 'http://localhost:8082'), '/'),
+            'backendApiBaseUrl' => rtrim((string) config('services.backend.public_url', 'http://localhost:8082'), '/'),
             'refreshToken' => $refreshToken,
             'formMode' => 'edit',
             'productId' => $productId,
@@ -89,7 +89,7 @@ class AdminProductsController extends Controller
         return view('admin.categories.index', [
             'title' => 'Categories',
             'subtitle' => 'Create and organize product categories in one place.',
-            'categoriesApiBaseUrl' => rtrim((string) config('services.backend.url', 'http://localhost:8082'), '/'),
+            'categoriesApiBaseUrl' => rtrim((string) config('services.backend.public_url', 'http://localhost:8082'), '/'),
             'categoriesRefreshToken' => $categoriesRefreshToken,
         ]);
     }

@@ -19,7 +19,7 @@ class AdminPostController extends Controller
         return view('admin.posts.index', [
             'title' => 'Posts',
             'subtitle' => 'Review post activity and prioritize reply opportunities by time and engagement.',
-            'postsApiBaseUrl' => rtrim((string) config('services.backend.url', 'http://localhost:8082'), '/'),
+            'postsApiBaseUrl' => rtrim((string) config('services.backend.public_url', 'http://localhost:8082'), '/'),
             'postsRefreshToken' => $refreshToken,
         ]);
     }

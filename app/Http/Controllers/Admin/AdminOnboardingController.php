@@ -65,7 +65,7 @@ class AdminOnboardingController extends Controller
             ], 401);
         }
 
-        $apiUrl = rtrim((string) Config::get('services.backend.url', 'http://localhost:8082'), '/');
+        $apiUrl = rtrim((string) Config::get('services.backend.internal_url', 'http://localhost:8082'), '/');
 
         try {
             $response = Http::acceptJson()

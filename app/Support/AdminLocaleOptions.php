@@ -18,7 +18,7 @@ class AdminLocaleOptions
             return $fallback;
         }
 
-        $apiUrl = rtrim((string) config('services.backend.url', 'http://localhost:8082'), '/');
+        $apiUrl = rtrim((string) config('services.backend.internal_url', 'http://localhost:8082'), '/');
 
         try {
             $response = $this->request($refreshToken)

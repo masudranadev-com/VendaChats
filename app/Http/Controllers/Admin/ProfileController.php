@@ -24,7 +24,7 @@ class ProfileController extends Controller
         return view('admin.profile.index', [
             'title' => 'My Profile',
             'subtitle' => 'Update your contact details, profile image, email, and password from one place.',
-            'profileApiBaseUrl' => rtrim((string) config('services.backend.url', 'http://localhost:8082'), '/'),
+            'profileApiBaseUrl' => rtrim((string) config('services.backend.public_url', 'http://localhost:8082'), '/'),
             'profileRefreshToken' => (string) (
                 $request->session()->get('auth.refresh_token')
                 ?? $request->session()->get('refresh_token')
@@ -72,7 +72,7 @@ class ProfileController extends Controller
             return [];
         }
 
-        $apiUrl = rtrim((string) config('services.backend.url', 'http://localhost:8082'), '/');
+        $apiUrl = rtrim((string) config('services.backend.internal_url', 'http://localhost:8082'), '/');
 
         try {
             $response = Http::acceptJson()

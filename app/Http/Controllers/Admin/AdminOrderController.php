@@ -64,7 +64,7 @@ class AdminOrderController extends Controller
         return view('admin.orders.index', [
             'title' => 'Orders',
             'subtitle' => 'Control payment checks, dispatch priorities, and delivery health from one clean operational view.',
-            'ordersApiBaseUrl' => rtrim((string) config('services.backend.url', 'http://localhost:8082'), '/'),
+            'ordersApiBaseUrl' => rtrim((string) config('services.backend.public_url', 'http://localhost:8082'), '/'),
             'ordersRefreshToken' => $refreshToken,
             'ordersProductType' => $productType,
             'metrics' => [
@@ -117,7 +117,7 @@ class AdminOrderController extends Controller
             'orderActionsEnabled' => $orderActionsEnabled,
             'confirmActionEnabled' => $confirmActionEnabled,
             'confirmButtonLabel' => $confirmButtonLabel,
-            'ordersApiBaseUrl' => rtrim((string) config('services.backend.url', 'http://localhost:8082'), '/'),
+            'ordersApiBaseUrl' => rtrim((string) config('services.backend.public_url', 'http://localhost:8082'), '/'),
             'ordersRefreshToken' => $refreshToken,
             'orderId' => $orderId,
         ]);

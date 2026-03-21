@@ -117,7 +117,7 @@ class ShopSettingsController extends Controller
         ), [
             'title' => 'Shop Settings',
             'subtitle' => 'Keep onboarding choices editable after launch so the store can switch product flow or locale later.',
-            'productsApiBaseUrl' => rtrim((string) config('services.backend.url', 'http://localhost:8082'), '/'),
+            'productsApiBaseUrl' => rtrim((string) config('services.backend.public_url', 'http://localhost:8082'), '/'),
             'productsRefreshToken' => (string) (
                 $request->session()->get('auth.refresh_token')
                 ?? $request->session()->get('refresh_token')
@@ -222,7 +222,7 @@ class ShopSettingsController extends Controller
             sectionSubtitle: 'Add your A Metafy subdomain quickly, or connect a custom domain if your package supports it.',
             quickStats: []
         ), [
-            'domainApiBaseUrl' => $apiConfig['apiBaseUrl'],
+            'domainApiBaseUrl' => $apiConfig['publicApiBaseUrl'],
             'domainRefreshToken' => $apiConfig['refreshToken'],
             'initialSubdomainBase' => trim((string) ($config['subdomain_base'] ?? 'ametafy.shop')) ?: 'ametafy.shop',
         ]);
@@ -270,7 +270,7 @@ class ShopSettingsController extends Controller
                 ['label' => 'Creation Access', 'value' => 'Locked', 'note' => 'Manual theme creation disabled', 'tone' => 'warning'],
             ]
         ), [
-            'themeApiBaseUrl' => $apiConfig['apiBaseUrl'],
+            'themeApiBaseUrl' => $apiConfig['publicApiBaseUrl'],
             'themeRefreshToken' => $apiConfig['refreshToken'],
             'hasDomain' => $hasDomain,
             'domainContext' => $domainContext,
@@ -624,7 +624,7 @@ class ShopSettingsController extends Controller
                 ['key' => 'expiring_soon', 'label' => 'Expiring Soon', 'value' => '--', 'note' => 'Loading upcoming expiries', 'tone' => 'warning'],
             ]
         ), [
-            'offersApiBaseUrl' => $apiConfig['apiBaseUrl'],
+            'offersApiBaseUrl' => $apiConfig['publicApiBaseUrl'],
             'offersRefreshToken' => $apiConfig['refreshToken'],
             'couponDefaults' => $this->defaultOfferCouponDefaults(),
             'coupons' => [],
@@ -833,7 +833,8 @@ class ShopSettingsController extends Controller
     private function backendApiConfig(Request $request): array
     {
         return [
-            'apiBaseUrl' => rtrim((string) config('services.backend.url', 'http://localhost:8082'), '/'),
+            'publicApiBaseUrl' => rtrim((string) config('services.backend.public_url', 'http://localhost:8082'), '/'),
+            'internalApiBaseUrl' => rtrim((string) config('services.backend.internal_url', 'http://localhost:8082'), '/'),
             'refreshToken' => (string) (
                 $request->session()->get('auth.refresh_token')
                 ?? $request->session()->get('refresh_token')
@@ -857,7 +858,7 @@ class ShopSettingsController extends Controller
                     'user-refres-token' => $apiConfig['refreshToken'],
                 ])
                 ->timeout(12)
-                ->get($apiConfig['apiBaseUrl'].'/api/admin/user/global/config/info');
+                ->get($apiConfig['internalApiBaseUrl'].'/api/admin/user/global/config/info');
 
             if ($response->ok() && is_array($response->json())) {
                 $config = $response->json();
